@@ -1,2 +1,4 @@
-const ui = document.getElementById('ui');
-if (ui) ui.textContent = 'Drift Club';
+import './styles.css';
+import { startApp } from './app';
+
+void startApp();

@@ -1,0 +1,69 @@
+:root {
+  --ink: #15131c;
+  --cream: #fff7e8;
+  --red: #e63b2e;
+  --orange: #ff8a1f;
+  --yellow: #ffd23f;
+  --green: #3fbf5f;
+  --blue: #3a6ff0;
+  --bg1: #2a2f45;
+  --bg2: #1b1f2e;
+  --font: 'Baloo 2', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; height: 100%; overflow: hidden; background: var(--bg2);
+  font-family: var(--font); color: var(--ink);
+  -webkit-user-select: none; user-select: none; touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+#app { position: fixed; inset: 0; }
+#scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#hud, #touch, #ui { position: absolute; inset: 0; pointer-events: none; }
+.stroke { -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; }
+
+/* HUD */
+#hud { display: none; }
+#hud.on { display: block; }
+.hud-top { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 16px; right: 16px; display: flex; justify-content: space-between; }
+.hud-box { background: var(--cream); border: 3px solid var(--ink); border-radius: 16px; padding: 2px 14px 0; box-shadow: 0 4px 0 var(--ink); text-align: center; min-width: 118px; }
+.hud-box small { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; opacity: .6; }
+.hud-box b { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.hud-drift { position: absolute; top: 20%; left: 50%; transform: translateX(-50%); text-align: center; opacity: 0; transition: opacity .15s; white-space: nowrap; }
+.hud-drift.on { opacity: 1; }
+.hud-drift b { display: block; font-size: 46px; font-weight: 800; color: var(--yellow); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; line-height: 1; }
+.hud-drift span { font-size: 24px; font-weight: 800; color: #fff; -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; }
+.hud-drift.active b { transform: scale(1.06); }
+.hud-drift.bank b { color: var(--green); animation: pop .7s ease-out; }
+.hud-drift.lose b { color: var(--red); animation: shake .5s; }
+@keyframes pop { 0% { transform: scale(1.5); } 100% { transform: scale(1); } }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+.hud-count { position: absolute; top: 34%; left: 0; right: 0; text-align: center; font-size: 110px; font-weight: 800; color: #fff; -webkit-text-stroke: 6px var(--ink); paint-order: stroke fill; }
+.hud-wrong { display: none; position: absolute; top: 48%; left: 50%; transform: translateX(-50%); background: var(--red); color: #fff; border: 3px solid var(--ink); border-radius: 14px; padding: 4px 18px; font-size: 28px; font-weight: 800; box-shadow: 0 4px 0 var(--ink); }
+.hud-wrong.on { display: block; }
+.hud-progress { position: absolute; bottom: max(16px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); width: min(420px, 55vw); }
+.hud-bar { height: 14px; background: var(--cream); border: 3px solid var(--ink); border-radius: 10px; overflow: hidden; }
+.hud-bar i { display: block; height: 100%; width: 0; background: var(--orange); }
+.hud-speed { position: absolute; right: 16px; bottom: max(12px, env(safe-area-inset-bottom)); font-weight: 700; color: #fff; -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill; font-size: 18px; }
+.hud-speed b { font-size: 30px; font-variant-numeric: tabular-nums; }
+
+/* Commandes tactiles */
+#touch { display: none; }
+#touch.on { display: block; }
+.t-steer { position: absolute; left: 0; bottom: 0; width: 45%; height: 60%; pointer-events: auto; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 34px; }
+.t-steer-track { width: 220px; height: 64px; border-radius: 32px; background: rgba(255, 247, 232, .35); border: 3px solid rgba(21, 19, 28, .6); position: relative; }
+.t-knob { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: var(--cream); border: 3px solid var(--ink); }
+.t-steer span { position: absolute; bottom: 10px; font-size: 12px; color: #fff; opacity: .75; }
+.t-pedals { position: absolute; right: 16px; bottom: 24px; display: flex; gap: 12px; align-items: flex-end; pointer-events: auto; }
+.t-btn { width: 80px; height: 80px; border-radius: 50%; border: 3px solid var(--ink); box-shadow: 0 5px 0 var(--ink); font: 800 16px var(--font); color: var(--ink); touch-action: none; }
+.t-gaz { background: var(--green); width: 96px; height: 96px; }
+.t-frein { background: var(--red); color: #fff; }
+.t-drift { background: var(--yellow); }
+.t-btn.down { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
+.t-top { position: absolute; top: calc(max(12px, env(safe-area-inset-top)) + 70px); right: 16px; display: flex; gap: 8px; pointer-events: auto; }
+.t-small { padding: 6px 12px; border-radius: 12px; border: 3px solid var(--ink); background: var(--cream); font: 700 14px var(--font); box-shadow: 0 3px 0 var(--ink); }
+
+/* Écrans (complétés à la Tâche 20) */
+.screen { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; padding: 16px; pointer-events: auto; background: radial-gradient(circle at 50% 30%, var(--bg1), var(--bg2)); color: var(--cream); text-align: center; }
+.btn { font: 800 20px var(--font); padding: 10px 26px; border-radius: 16px; border: 3px solid var(--ink); background: var(--orange); color: var(--ink); box-shadow: 0 5px 0 var(--ink); cursor: pointer; }
+.btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }

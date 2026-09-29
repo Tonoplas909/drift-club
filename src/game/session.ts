@@ -1,0 +1,186 @@
+import * as THREE from 'three';
+import { RaceSim, type RaceEvent, type RaceResult } from '../core/race/race';
+import { CARS } from '../core/physics/cars';
+import { MODES } from '../core/physics/assists';
+import type { AssistParams, CarParams, CarState } from '../core/physics/types';
+import type { Assets } from '../render/assets';
+import { World } from '../render/world';
+import { CAMERA_LOIN, CAMERA_PROCHE, type ChaseConfig } from '../render/camera';
+import type { QualityManager } from '../render/quality';
+import type { AudioEngine } from '../audio/audio';
+import type { InputManager } from '../input/manager';
+import type { Reglages } from '../storage/store';
+import { FixedStepLoop } from './loop';
+import { interpolatePose } from './pose';
+import type { Hud } from './hud';
+import type { PreparedLevel } from './prepare';
+
+export interface DebugHook {
+  attach(car: CarParams, assists: AssistParams, cam: ChaseConfig): void;
+  frame(car: CarState, dt: number): void;
+}
+
+export interface SessionDeps {
+  renderer: THREE.WebGLRenderer;
+  assets: Assets;
+  hud: Hud;
+  audio: AudioEngine;
+  input: InputManager;
+  quality: QualityManager;
+  reglages: Reglages;
+  debug?: DebugHook | null;
+}
+
+export interface SessionCallbacks {
+  onFinish(r: RaceResult): void;
+  onPause(): void;
+}
+
+export function toggleFullscreen(): void {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
+  else document.exitFullscreen?.().catch(() => {});
+}
+
+export class GameSession {
+  private race: RaceSim;
+  private readonly world: World;
+  private readonly loop: FixedStepLoop;
+  private raf = 0;
+  private last = 0;
+  private paused = false;
+  private disposed = false;
+  private pendingReplace = false;
+  private finishDelay = -1;
+  private camCfg: ChaseConfig;
+
+  constructor(private readonly level: PreparedLevel, private readonly deps: SessionDeps, private readonly cb: SessionCallbacks) {
+    this.world = new World({
+      renderer: deps.renderer, level: level.level, track: level.track, terrain: level.terrain, env: level.env,
+      assets: deps.assets, carId: deps.reglages.voiture, color: deps.reglages.couleur, quality: deps.quality.level,
+    });
+    this.race = this.newRace();
+    this.loop = new FixedStepLoop(() => this.simStep());
+    this.camCfg = deps.reglages.cameraLoin ? CAMERA_LOIN : CAMERA_PROCHE;
+    deps.debug?.attach(CARS[deps.reglages.voiture], MODES[deps.reglages.mode], this.camCfg);
+    window.addEventListener('resize', this.onResize);
+    this.onResize();
+  }
+
+  private newRace(): RaceSim {
+    const { level, track, terrain, env } = this.level;
+    return new RaceSim({ level, track, terrain, env, car: CARS[this.deps.reglages.voiture], assists: MODES[this.deps.reglages.mode] });
+  }
+
+  private readonly onResize = (): void => {
+    this.world.resize(window.innerWidth, window.innerHeight);
+  };
+
+  start(): void {
+    this.deps.hud.reset();
+    this.deps.hud.show(true);
+    this.world.resetCamera(this.race.car);
+    this.deps.input.reset();
+    this.deps.audio.startEngine();
+    this.last = performance.now();
+    this.raf = requestAnimationFrame(this.frame);
+  }
+
+  private readonly frame = (now: number): void => {
+    if (this.disposed) return;
+    this.raf = requestAnimationFrame(this.frame);
+    const dt = Math.min(0.25, Math.max(0, (now - this.last) / 1000));
+    this.last = now;
+    if (this.paused) return;
+
+    const a = this.deps.input.consumeActions();
+    if (a.pause && this.race.phase !== 'arrivee') { this.cb.onPause(); return; }
+    if (a.camera) {
+      this.deps.reglages.cameraLoin = !this.deps.reglages.cameraLoin;
+      this.camCfg = this.deps.reglages.cameraLoin ? CAMERA_LOIN : CAMERA_PROCHE;
+    }
+    if (a.muet) this.deps.reglages.muet = this.deps.audio.toggleMute();
+    if (a.pleinEcran) toggleFullscreen();
+    if (a.replacer) this.pendingReplace = true;
+
+    const alpha = this.loop.advance(dt);
+    const car = this.race.car;
+    const pose = interpolatePose(this.race.prevCar, car, alpha, this.level.terrain);
+    this.world.update(pose, car, dt, this.camCfg);
+    this.world.render();
+    this.deps.hud.update(this.race.hud());
+    this.deps.audio.updateEngine(car.rpm, car.throttle, car.rearSlip, car.speed);
+    this.deps.debug?.frame(car, dt);
+    if (this.race.phase === 'course' && this.deps.quality.sample(dt)) this.world.setQuality(this.deps.quality.level);
+
+    if (this.finishDelay >= 0) {
+      this.finishDelay -= dt;
+      if (this.finishDelay < 0 && this.race.result) this.cb.onFinish(this.race.result);
+    }
+  };
+
+  private simStep(): void {
+    const input = this.deps.input.state(this.deps.reglages.accelAuto);
+    const events = this.race.step(input, this.pendingReplace);
+    this.pendingReplace = false;
+    for (const e of events) this.handle(e);
+  }
+
+  private handle(e: RaceEvent): void {
+    switch (e.type) {
+      case 'decompte':
+        this.deps.audio.playCountdown(e.n);
+        if (e.n === 0) this.deps.hud.go();
+        break;
+      case 'bank':
+        this.deps.audio.playBank(e.multiplier);
+        this.deps.hud.flash('bank', e.points);
+        break;
+      case 'lose':
+        this.deps.audio.playLose();
+        this.deps.hud.flash('lose', e.points);
+        break;
+      case 'choc':
+        this.deps.audio.playCrash(e.impact);
+        this.world.shake(e.impact);
+        break;
+      case 'replace':
+        this.world.resetCamera(this.race.car);
+        break;
+      case 'arrivee':
+        this.finishDelay = 1.5;
+        break;
+    }
+  }
+
+  pause(): void {
+    this.paused = true;
+    this.deps.audio.stopEngine();
+  }
+
+  resume(): void {
+    this.paused = false;
+    this.loop.reset();
+    this.deps.input.reset();
+    this.deps.audio.startEngine();
+    this.last = performance.now();
+  }
+
+  restart(): void {
+    this.race = this.newRace();
+    this.finishDelay = -1;
+    this.pendingReplace = false;
+    this.world.resetEffects();
+    this.world.resetCamera(this.race.car);
+    this.deps.hud.reset();
+    this.resume();
+  }
+
+  dispose(): void {
+    this.disposed = true;
+    cancelAnimationFrame(this.raf);
+    window.removeEventListener('resize', this.onResize);
+    this.deps.audio.stopEngine();
+    this.deps.hud.show(false);
+    this.world.dispose();
+  }
+}
