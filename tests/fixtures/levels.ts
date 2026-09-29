@@ -34,13 +34,15 @@ export function curveLevel(): Level {
   return makeLevel(pts);
 }
 
-/** Montée le long de +z, épingle, redescente parallèle à x = 40. */
+/** Montée le long de +z, épingle en demi-cercle (rayon 20 m, centre (20, 100)), redescente parallèle à x = 40. */
 export function hairpinLevel(): Level {
   return makeLevel([
     [0, 0, 0, 10],
     [0, 50, 0, 10],
     [0, 100, 0, 10],
-    [20, 125, 0, 10],
+    [5.86, 114.14, 0, 10],
+    [20, 120, 0, 10],
+    [34.14, 114.14, 0, 10],
     [40, 100, 0, 10],
     [40, 50, 0, 10],
     [40, 0, 0, 10],
