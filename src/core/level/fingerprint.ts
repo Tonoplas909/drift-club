@@ -1,0 +1,29 @@
+import type { Level } from './types';
+
+/** Calcule l'empreinte SHA-256 d'un niveau (sans nom ni auteur). */
+export async function empreinteNiveau(level: Level): Promise<string> {
+  // Crée un objet canonique sans nom ni auteur
+  const canonical = {
+    format: level.format,
+    environnement: level.environnement,
+    ambiance: level.ambiance,
+    route: level.route,
+    barrieres: level.barrieres,
+    decor: level.decor,
+    objets: level.objets,
+  };
+
+  // Sérialise en JSON canonique (clés fixes, minifié)
+  const json = JSON.stringify(canonical);
+
+  // Calcule SHA-256
+  const encoder = new TextEncoder();
+  const data = encoder.encode(json);
+  const hashBuffer = await globalThis.crypto.subtle.digest('SHA-256', data);
+
+  // Convertit en hex
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+
+  return hashHex;
+}

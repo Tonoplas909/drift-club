@@ -2,9 +2,20 @@ import type { TrackData } from './buildTrack';
 
 const MAX_PAR_TYPE = 5;
 
-/** Erreurs de géométrie : croisements / passages trop proches, virages de rayon < 8 m. */
-export function checkGeometry(track: TrackData): string[] {
-  const errs: string[] = [];
+export interface ProblemeGeometrie {
+  type: 'croisement' | 'virage';
+  s: number;
+  x: number;
+  z: number;
+  x2?: number;
+  z2?: number;
+  s2?: number;
+  message: string;
+}
+
+/** Détecte les problèmes de géométrie : croisements, virages serrés. */
+export function geometryProblems(track: TrackData): ProblemeGeometrie[] {
+  const problems: ProblemeGeometrie[] = [];
   const S = track.samples;
   const scratch: number[] = [];
 
@@ -20,7 +31,17 @@ export function checkGeometry(track: TrackData): string[] {
       if (b.s - a.s <= 2 * thr) continue;
       if (Math.hypot(a.x - b.x, a.z - b.z) < thr) {
         if (a.s - lastFlag > 30) {
-          errs.push(`La route se croise ou passe trop près d'elle-même (vers ${Math.round(a.s)} m et ${Math.round(b.s)} m).`);
+          const msg = `La route se croise ou passe trop près d'elle-même (vers ${Math.round(a.s)} m et ${Math.round(b.s)} m).`;
+          problems.push({
+            type: 'croisement',
+            s: a.s,
+            x: a.x,
+            z: a.z,
+            s2: b.s,
+            x2: b.x,
+            z2: b.z,
+            message: msg,
+          });
           crossings++;
           lastFlag = a.s;
         }
@@ -35,7 +56,14 @@ export function checkGeometry(track: TrackData): string[] {
     const r = Math.abs(sp.k) > 1e-9 ? 1 / Math.abs(sp.k) : Infinity;
     if (r < 8) {
       if (!inTight && tight < MAX_PAR_TYPE) {
-        errs.push(`Virage trop serré vers ${Math.round(sp.s)} m (rayon ${r.toFixed(1)} m, minimum 8 m).`);
+        const msg = `Virage trop serré vers ${Math.round(sp.s)} m (rayon ${r.toFixed(1)} m, minimum 8 m).`;
+        problems.push({
+          type: 'virage',
+          s: sp.s,
+          x: sp.x,
+          z: sp.z,
+          message: msg,
+        });
         tight++;
       }
       inTight = true;
@@ -43,5 +71,10 @@ export function checkGeometry(track: TrackData): string[] {
       inTight = false;
     }
   }
-  return errs;
+  return problems;
+}
+
+/** Erreurs de géométrie : croisements / passages trop proches, virages de rayon < 8 m. */
+export function checkGeometry(track: TrackData): string[] {
+  return geometryProblems(track).map((p) => p.message);
 }
