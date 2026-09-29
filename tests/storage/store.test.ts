@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { Store, memoryKV, safeStorage, defaultReglages, type KV } from '../../src/storage/store';
+import { Store, memoryKV, safeStorage, defaultReglages, cleNiveauPerso, type KV } from '../../src/storage/store';
+import { straightLevel } from '../fixtures/levels';
 
 const throwingKV: KV = { getItem: () => { throw new Error('refusé'); }, setItem: () => { throw new Error('refusé'); } };
 
@@ -59,5 +60,69 @@ describe('Store', () => {
     expect(() => st.saveReglages(defaultReglages(false))).not.toThrow();
     expect(st.loadReglages(false)).toEqual(defaultReglages(false));
     expect(() => st.submitRecord('x', 'semi', { score: 1, temps: 1, voiture: 'legere', meilleurDrift: 1, date: 'd' })).not.toThrow();
+  });
+
+  // Niveaux personnalisés
+  it('sauvegarde et récupère un niveau', () => {
+    const st = new Store(memoryKV());
+    const l = straightLevel();
+    const n = { id: 'test1', level: l, maj: '2026-09-29T10:00:00Z' };
+    st.saveNiveau(n);
+    const retrieved = st.getNiveau('test1');
+    expect(retrieved).toEqual(n);
+  });
+
+  it('liste les niveaux triés par date de modification (plus récents en premier)', () => {
+    const st = new Store(memoryKV());
+    const l = straightLevel();
+    st.saveNiveau({ id: 'a', level: l, maj: '2026-09-29T10:00:00Z' });
+    st.saveNiveau({ id: 'b', level: l, maj: '2026-09-29T11:00:00Z' });
+    st.saveNiveau({ id: 'c', level: l, maj: '2026-09-29T09:00:00Z' });
+    const list = st.listNiveaux();
+    expect(list[0].id).toBe('b');
+    expect(list[1].id).toBe('a');
+    expect(list[2].id).toBe('c');
+  });
+
+  it('supprime un niveau', () => {
+    const st = new Store(memoryKV());
+    const l = straightLevel();
+    st.saveNiveau({ id: 'test1', level: l, maj: '2026-09-29T10:00:00Z' });
+    expect(st.getNiveau('test1')).not.toBeNull();
+    st.deleteNiveau('test1');
+    expect(st.getNiveau('test1')).toBeNull();
+  });
+
+  it('filtre les niveaux invalides', () => {
+    const st = new Store(memoryKV());
+    const l = straightLevel();
+    const invalid = { ...l, route: [] }; // route vide = invalide
+    st.saveNiveau({ id: 'valid', level: l, maj: '2026-09-29T10:00:00Z' });
+    st.saveNiveau({ id: 'invalid', level: invalid as any, maj: '2026-09-29T10:00:00Z' });
+    const list = st.listNiveaux();
+    expect(list.length).toBe(1);
+    expect(list[0].id).toBe('valid');
+  });
+
+  it('génère un nouvel ID aléatoire', () => {
+    const st = new Store(memoryKV());
+    const id1 = st.nouvelId();
+    const id2 = st.nouvelId();
+    expect(typeof id1).toBe('string');
+    expect(id1.length).toBeGreaterThan(0);
+    expect(id1).not.toBe(id2);
+  });
+
+  it('génère une clé pour les niveaux personnalisés', () => {
+    const empreinte = 'abc123';
+    const key = cleNiveauPerso(empreinte);
+    expect(key).toBe('perso:abc123');
+  });
+
+  it('ne lève jamais d\'exception pour les niveaux, même si le stockage refuse', () => {
+    const st = new Store(throwingKV);
+    const l = straightLevel();
+    expect(() => st.saveNiveau({ id: 'x', level: l, maj: '2026-09-29' })).not.toThrow();
+    expect(st.listNiveaux()).toEqual([]);
   });
 });

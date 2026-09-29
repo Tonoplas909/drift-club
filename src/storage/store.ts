@@ -1,6 +1,8 @@
 import type { CarId, ModeId } from '../core/physics/types';
 import { CAR_IDS } from '../core/physics/cars';
 import { MODE_IDS } from '../core/physics/assists';
+import type { Level } from '../core/level/types';
+import { validateLevel } from '../core/level/validate';
 
 export interface KV {
   getItem(key: string): string | null;
@@ -28,8 +30,15 @@ export interface RecordEntry {
   date: string;
 }
 
+export interface MonNiveau {
+  id: string;
+  level: Level;
+  maj: string;
+}
+
 const K_REGLAGES = 'driftclub.v1.reglages';
 const K_RECORDS = 'driftclub.v1.records';
+const K_NIVEAUX = 'driftclub.v1.niveaux';
 const QUALITES: Qualite[] = ['auto', 'basse', 'haute'];
 
 export function memoryKV(): KV {
@@ -125,4 +134,55 @@ export class Store {
     this.write(K_RECORDS, all);
     return true;
   }
+
+  private niveaux(): Record<string, MonNiveau> {
+    const n = this.read(K_NIVEAUX);
+    return typeof n === 'object' && n !== null && !Array.isArray(n) ? (n as Record<string, MonNiveau>) : {};
+  }
+
+  /** Liste les niveaux personnalisés triés par date de modification (plus récents en premier). */
+  listNiveaux(): MonNiveau[] {
+    const all = this.niveaux();
+    const valid = Object.values(all).filter((n: MonNiveau) => {
+      try {
+        const v = validateLevel(n.level);
+        return v.ok;
+      } catch {
+        return false;
+      }
+    });
+    return valid.sort((a: MonNiveau, b: MonNiveau) => {
+      return new Date(b.maj).getTime() - new Date(a.maj).getTime();
+    });
+  }
+
+  /** Récupère un niveau par ID. */
+  getNiveau(id: string): MonNiveau | null {
+    const n = this.niveaux()[id];
+    return n ?? null;
+  }
+
+  /** Sauvegarde un niveau (insert ou replace). */
+  saveNiveau(n: MonNiveau): void {
+    const all = this.niveaux();
+    all[n.id] = n;
+    this.write(K_NIVEAUX, all);
+  }
+
+  /** Supprime un niveau par ID. */
+  deleteNiveau(id: string): void {
+    const all = this.niveaux();
+    delete all[id];
+    this.write(K_NIVEAUX, all);
+  }
+
+  /** Génère un nouvel ID aléatoire. */
+  nouvelId(): string {
+    return Math.random().toString(36).slice(2, 10);
+  }
+}
+
+/** Génère une clé pour enregistrer les records d'un niveau personnalisé. */
+export function cleNiveauPerso(empreinte: string): string {
+  return `perso:${empreinte}`;
 }
