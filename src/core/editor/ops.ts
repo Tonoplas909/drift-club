@@ -1,4 +1,4 @@
-import type { Level, PointRoute, Barriere, ObjetPlace } from '../level/types';
+import type { Level, PointRoute, Barriere, CoteBarriere, TypeObjet } from '../level/types';
 import { LIMITES } from '../level/types';
 import { clamp } from '../math/vec';
 
@@ -62,27 +62,17 @@ export function setPoint(l: Level, i: number, props: { y?: number; l?: number })
   if (props.l !== undefined) p.l = clamp(props.l, LIMITES.largeurMin, LIMITES.largeurMax);
 }
 
-/** Supprime un point. Renvoie false si la route n'a que 2 points. Ajuste les barrières. */
+/** Supprime un point. Renvoie false si la route n'a que 2 points. Raccourcit les barrières qui le couvraient. */
 export function deletePoint(l: Level, i: number): boolean {
   if (l.route.length <= LIMITES.pointsMin) return false;
   l.route.splice(i, 1);
-
-  // Ajuste les barrières : décale les indices et supprime les barrières invalides
-  const newBarrieres: Barriere[] = [];
+  const out: Barriere[] = [];
   for (const b of l.barrieres) {
-    // Une barrière couvre des segments de b.de à b.a-1 (entre points b.de et b.a)
-    // Si le point supprimé est à l'intérieur, on supprime la barrière
-    // Sinon on décale les indices
-    if (b.a <= i) {
-      // Barrière avant le point supprimé : inchangée
-      newBarrieres.push(b);
-    } else if (b.de > i) {
-      // Barrière après le point supprimé : décale les indices
-      newBarrieres.push({ de: b.de - 1, a: b.a - 1, cote: b.cote });
-    }
-    // Sinon: b.de <= i < b.a : la barrière est supprimée (elle couvre le point supprimé)
+    const de = b.de > i ? b.de - 1 : b.de;
+    const a = Math.min(b.a >= i ? b.a - 1 : b.a, l.route.length - 1);
+    if (a > de) out.push({ de, a, cote: b.cote });
   }
-  l.barrieres = newBarrieres;
+  l.barrieres = out;
   return true;
 }
 
@@ -104,148 +94,62 @@ export function barrierAt(l: Level, seg: number): BarrierFlags {
   return flags;
 }
 
-/** Bascule une barrière sur un côté. */
+/** Bascule une barrière sur un côté ('ext' exclut gauche/droite sur le tronçon, et inversement). */
 export function toggleBarrier(l: Level, seg: number, cote: CoteEdit): void {
-  const flags = barrierAt(l, seg);
-
+  const flags = toFlags(l);
+  const f = flags[seg];
+  if (!f) return;
   if (cote === 'ext') {
-    // Activer ext : désactiver gauche/droite
-    if (flags.ext) {
-      flags.ext = false;
-    } else {
-      flags.ext = true;
-      flags.gauche = false;
-      flags.droite = false;
-    }
+    f.ext = !f.ext;
+    if (f.ext) f.gauche = f.droite = false;
   } else {
-    // Activer gauche/droite : désactiver ext
-    if (cote === 'gauche') flags.gauche = !flags.gauche;
-    else flags.droite = !flags.droite;
-    if (flags.gauche || flags.droite) flags.ext = false;
+    f[cote] = !f[cote];
+    if (f[cote]) f.ext = false;
   }
-
-  // Reconstruit les barrières
-  rebuildBarriers(l, seg, flags);
+  l.barrieres = fromFlags(flags);
 }
 
-/** Reconstruit les barrières pour un segment en particulier. */
-function rebuildBarriers(l: Level, seg: number, newFlags: BarrierFlags): void {
-  // Supprime les barrières qui chevauchent ce segment
-  const newBarrieres: Barriere[] = [];
+/** Barrières → drapeaux par tronçon (le tronçon i va du point i au point i+1). */
+function toFlags(l: Level): BarrierFlags[] {
+  const n = Math.max(0, l.route.length - 1);
+  const flags: BarrierFlags[] = Array.from({ length: n }, () => ({ gauche: false, droite: false, ext: false }));
   for (const b of l.barrieres) {
-    if (!(b.de <= seg && seg < b.a)) {
-      newBarrieres.push(b);
+    for (let s = Math.max(0, b.de); s < Math.min(b.a, n); s++) {
+      const f = flags[s];
+      if (b.cote === 'ext') f.ext = true;
+      if (b.cote === 'gauche' || b.cote === 'deux') f.gauche = true;
+      if (b.cote === 'droite' || b.cote === 'deux') f.droite = true;
     }
   }
-  l.barrieres = newBarrieres;
-
-  // Fusionne les barrières adjacentes pour ce segment
-  normalizeBarriers(l);
-
-  // Ajoute les nouvelles barrières si nécessaire
-  if (newFlags.gauche || newFlags.droite || newFlags.ext) {
-    const barcode = newFlags.ext ? 'ext' : newFlags.gauche && newFlags.droite ? 'deux' : newFlags.gauche ? 'gauche' : 'droite';
-
-    // Cherche si on peut étendre une barrière existante
-    let merged = false;
-    for (const b of l.barrieres) {
-      if (b.cote === barcode && b.a === seg) {
-        b.a = seg + 1;
-        merged = true;
-        break;
-      }
-      if (b.cote === barcode && b.de === seg + 1) {
-        b.de = seg;
-        merged = true;
-        break;
-      }
-    }
-
-    if (!merged) {
-      l.barrieres.push({ de: seg, a: seg + 1, cote: barcode as any });
-    }
-
-    normalizeBarriers(l);
-  }
+  return flags;
 }
 
-/** Normalise les barrières : fusionne les plages contigues et compresse les formats. */
+/** Drapeaux → plages minimales triées ('ext' prioritaire, gauche+droite → 'deux'). */
+function fromFlags(flags: BarrierFlags[]): Barriere[] {
+  const code = (f: BarrierFlags): CoteBarriere | null =>
+    f.ext ? 'ext' : f.gauche && f.droite ? 'deux' : f.gauche ? 'gauche' : f.droite ? 'droite' : null;
+  const out: Barriere[] = [];
+  let cur: Barriere | null = null;
+  flags.forEach((f, s) => {
+    const c = code(f);
+    if (cur && cur.cote === c) { cur.a = s + 1; return; }
+    cur = c ? { de: s, a: s + 1, cote: c } : null;
+    if (cur) out.push(cur);
+  });
+  return out;
+}
+
+/** Normalise les barrières : plages fusionnées, triées, sans chevauchement. */
 export function normalizeBarriers(l: Level): void {
-  if (l.barrieres.length === 0) return;
-
-  // Étend les barrières 'deux' en deux entrées 'gauche' et 'droite'
-  const expanded: Array<{ de: number; a: number; cote: string }> = [];
-  for (const b of l.barrieres) {
-    if (b.cote === 'deux') {
-      expanded.push({ de: b.de, a: b.a, cote: 'gauche' });
-      expanded.push({ de: b.de, a: b.a, cote: 'droite' });
-    } else {
-      expanded.push(b);
-    }
-  }
-
-  // Trie par côté et par position
-  const grouped: Record<string, Array<{ de: number; a: number }>> = {};
-  for (const b of expanded) {
-    if (!grouped[b.cote]) grouped[b.cote] = [];
-    grouped[b.cote].push({ de: b.de, a: b.a });
-  }
-
-  // Fusionne les plages contigues pour chaque côté
-  const merged: Array<{ de: number; a: number; cote: string }> = [];
-  for (const [cote, ranges] of Object.entries(grouped)) {
-    ranges.sort((a, b) => a.de - b.de);
-    for (let i = 0; i < ranges.length; ) {
-      const start = ranges[i].de;
-      let end = ranges[i].a;
-      let j = i + 1;
-      // Fusionne tant que le prochain segment est adjacent ou chevauche
-      while (j < ranges.length && ranges[j].de <= end) {
-        end = Math.max(end, ranges[j].a);
-        j++;
-      }
-      merged.push({ de: start, a: end, cote });
-      i = j;
-    }
-  }
-
-  // Compresse : convertit gauche+droite en 'deux' quand ils couvrent la même plage
-  const final: Barriere[] = [];
-  const seen = new Set<string>();
-
-  for (const b of merged) {
-    const key = `${b.de}-${b.a}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-
-    if (b.cote === 'gauche') {
-      const droite = merged.find((x) => x.cote === 'droite' && x.de === b.de && x.a === b.a);
-      if (droite) {
-        final.push({ de: b.de, a: b.a, cote: 'deux' });
-        seen.add(`${droite.de}-${droite.a}`);
-        continue;
-      }
-    } else if (b.cote === 'droite') {
-      const gauche = merged.find((x) => x.cote === 'gauche' && x.de === b.de && x.a === b.a);
-      if (gauche) {
-        // Already handled by gauche case
-        continue;
-      }
-    }
-
-    final.push(b as Barriere);
-  }
-
-  final.sort((a, b) => a.de - b.de);
-  l.barrieres = final;
+  l.barrieres = fromFlags(toFlags(l));
 }
 
 // Objects
 
 /** Ajoute un objet. Renvoie l'index ou -1 si au-delà de la limite. */
-export function addObjet(l: Level, type: any, x: number, z: number, rot = 0): number {
+export function addObjet(l: Level, type: TypeObjet, x: number, z: number, rot = 0): number {
   if (l.objets.length >= LIMITES.objetsMax) return -1;
-  l.objets.push({ type, x, z, rot: rot % 360 });
+  l.objets.push({ type, x, z, rot: ((rot % 360) + 360) % 360 });
   return l.objets.length - 1;
 }
 

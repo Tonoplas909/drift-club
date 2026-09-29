@@ -13,12 +13,12 @@ describe('EditorDoc: undo/redo', () => {
   it('applique une mutation et crée une entrée d\'historique', () => {
     const l = straightLevel();
     const doc = new EditorDoc(l);
-    const v1 = doc.currentVersion;
+    const v1 = doc.version;
     doc.apply((draft) => {
       addPoint(draft, 10, 20);
     });
     expect(doc.level.route.length).toBe(l.route.length + 1);
-    expect(doc.currentVersion).toBe(v1 + 1);
+    expect(doc.version).toBe(v1 + 1);
   });
 
   it('annule le dernier changement', () => {
@@ -95,14 +95,14 @@ describe('EditorDoc: gestures', () => {
   it('débute et termine un geste', () => {
     const l = straightLevel();
     const doc = new EditorDoc(l);
-    const v1 = doc.currentVersion;
+    const v1 = doc.version;
     doc.beginGesture();
     doc.updateGesture((draft) => {
       addPoint(draft, 10, 20);
     });
     expect(doc.level.route.length).toBe(l.route.length + 1);
     doc.endGesture();
-    expect(doc.currentVersion).toBeGreaterThan(v1);
+    expect(doc.version).toBeGreaterThan(v1);
     expect(doc.canUndo).toBe(true);
   });
 
@@ -120,17 +120,27 @@ describe('EditorDoc: gestures', () => {
   });
 
   it('ne crée pas une entrée d\'historique si le geste ne change rien', () => {
+    const doc = new EditorDoc(straightLevel());
+    doc.beginGesture();
+    doc.updateGesture(() => {});
+    doc.endGesture();
+    expect(doc.canUndo).toBe(false);
+  });
+
+  it('annuler après un geste revient à l\'état d\'avant le geste, en une fois', () => {
     const l = straightLevel();
     const doc = new EditorDoc(l);
-    const v1 = doc.currentVersion;
+    const x0 = l.route[1].x;
     doc.beginGesture();
-    doc.updateGesture((draft) => {
-      // Ne change rien
-    });
+    doc.updateGesture((d) => { d.route[1].x = x0 + 5; });
+    doc.updateGesture((d) => { d.route[1].x = x0 + 10; });
     doc.endGesture();
-    // Version doit rester la même (pas vraiment implémenté strictement, mais le geste doit pouvoir être annulé)
-    // En fait, le test montre que les gestes créent des entrées même si vides
-    // Acceptons le comportement courant
+    expect(doc.level.route[1].x).toBe(x0 + 10);
+    expect(doc.undo()).toBe(true);
+    expect(doc.level.route[1].x).toBe(x0);
+    expect(doc.canUndo).toBe(false);
+    doc.redo();
+    expect(doc.level.route[1].x).toBe(x0 + 10);
   });
 
   it('appelle onChange lors de chaque mutation', () => {

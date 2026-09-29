@@ -5,7 +5,7 @@ import { copyLevel } from './ops';
 export class EditorDoc {
   private history: Level[] = [];
   private redoStack: Level[] = [];
-  private version: number = 0;
+  private _version = 0;
   private gestureStart: Level | null = null;
   private gestureCurrent: Level | null = null;
 
@@ -27,8 +27,9 @@ export class EditorDoc {
     return this.redoStack.length > 0;
   }
 
-  get currentVersion(): number {
-    return this.version;
+  /** Incrémenté à chaque changement (rafraîchissement de l'interface). */
+  get version(): number {
+    return this._version;
   }
 
   /** Applique une mutation et crée une entrée d'historique. */
@@ -44,7 +45,7 @@ export class EditorDoc {
         this.history.shift();
       }
       this.redoStack = [];
-      this.version++;
+      this._version++;
       this.onChange?.();
     }
   }
@@ -55,7 +56,7 @@ export class EditorDoc {
     this.gestureCurrent = copyLevel(this.level);
   }
 
-  /** Metà jour le geste en appliquant une mutation. */
+  /** Met à jour le geste en appliquant une mutation. */
   updateGesture(fn: (draft: Level) => void): void {
     if (!this.gestureCurrent) return;
     const next = copyLevel(this.gestureCurrent);
@@ -63,21 +64,22 @@ export class EditorDoc {
     this.gestureCurrent = next;
     // Remplace l'état courant sans créer d'historique
     this.history[this.history.length - 1] = this.gestureCurrent;
-    this.version++;
+    this._version++;
     this.onChange?.();
   }
 
   /** Termine le geste et crée une entrée d'historique si changé. */
   endGesture(): void {
     if (!this.gestureStart || !this.gestureCurrent) return;
+    // l'état courant avait été remplacé pendant le geste : on remet l'état de départ puis on empile le résultat
+    this.history[this.history.length - 1] = this.gestureStart;
     if (!deepEqual(this.gestureStart, this.gestureCurrent)) {
-      // Crée une nouvelle entrée d'historique pour le geste
-      this.history.push(copyLevel(this.gestureCurrent));
+      this.history.push(this.gestureCurrent);
       if (this.history.length > this.max) {
         this.history.shift();
       }
       this.redoStack = [];
-      this.version++;
+      this._version++;
       this.onChange?.();
     }
     this.gestureStart = null;
@@ -90,7 +92,7 @@ export class EditorDoc {
     this.history[this.history.length - 1] = this.gestureStart;
     this.gestureStart = null;
     this.gestureCurrent = null;
-    this.version++;
+    this._version++;
     this.onChange?.();
   }
 
@@ -99,7 +101,7 @@ export class EditorDoc {
     if (!this.canUndo) return false;
     const current = this.history.pop()!;
     this.redoStack.push(current);
-    this.version++;
+    this._version++;
     this.onChange?.();
     return true;
   }
@@ -109,7 +111,7 @@ export class EditorDoc {
     if (!this.canRedo) return false;
     const next = this.redoStack.pop()!;
     this.history.push(next);
-    this.version++;
+    this._version++;
     this.onChange?.();
     return true;
   }
