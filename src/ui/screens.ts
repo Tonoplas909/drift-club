@@ -43,11 +43,13 @@ const DESCRIPTIONS_MODES: Record<ModeId, string> = {
   exigeant: 'Aucune aide. Tout se dose à la main.',
 };
 
-export interface NiveauCarte { nom: string; detail: string; record: RecordEntry | null }
+export interface NiveauCarte { nom: string; detail: string; record: RecordEntry | null; /** raison pour laquelle le niveau ne se lance pas */ desactive?: string }
 
 export class Screens {
   private progressEl: HTMLElement | null = null;
   private toastTimer = 0;
+  private ongletNiveaux: 'off' | 'perso' = 'off';
+  private ecranNiveaux: HTMLElement | null = null;
 
   constructor(private readonly root: HTMLElement) {}
 
@@ -58,6 +60,11 @@ export class Screens {
 
   clear(): void {
     this.show();
+  }
+
+  /** Affiche un écran construit ailleurs (éditeur, hub). */
+  monter(node: HTMLElement): void {
+    this.show(node);
   }
 
   loading(msg: string): void {
@@ -84,7 +91,7 @@ export class Screens {
       h('div', { class: 'menu' },
         h('button', { class: 'btn big', onclick: o.onJouer }, 'Jouer'),
         h('button', { class: 'btn sec', onclick: o.onGarage }, 'Garage'),
-        h('button', { class: 'btn sec', onclick: o.onEditeur }, 'Éditeur ', h('small', {}, 'bientôt')),
+        h('button', { class: 'btn sec', onclick: o.onEditeur }, 'Éditeur'),
         h('button', { class: 'btn sec', onclick: o.onReglages }, 'Réglages'),
       ),
       h('p', { class: 'hint' }, 'Z/W ou ↑ accélérer · S ou ↓ freiner · Q/A, D ou ← → tourner · Espace frein à main · R replacer · C caméra · Échap pause'),
@@ -92,28 +99,43 @@ export class Screens {
     ));
   }
 
-  niveaux(o: { cartes: NiveauCarte[]; mode: ModeId; voiture: CarId; onChoisir(i: number): void; onGarage(): void; onReglages(): void; onRetour(): void }): void {
-    this.show(h('div', { class: 'screen' }, h('div', { class: 'panel wide' },
-      h('h2', {}, 'Choisis un niveau'),
-      h('div', { class: 'tabs' },
-        h('button', { class: 'tab on' }, 'Officiels'),
-        h('button', { class: 'tab', disabled: true }, 'Mes niveaux · bientôt'),
-        h('button', { class: 'tab', disabled: true }, 'Importer · bientôt'),
-      ),
-      h('p', { class: 'sub' }, 'Mode ', h('b', {}, MODE_NOMS[o.mode]), ' · Voiture ', h('b', {}, CARS[o.voiture].nom)),
-      h('div', { class: 'cards' }, ...o.cartes.map((c, i) =>
-        h('button', { class: 'card', onclick: () => o.onChoisir(i) },
-          h('span', { class: 'num' }, String(i + 1)),
-          h('b', {}, c.nom),
-          h('small', {}, c.detail),
-          h('span', { class: 'rec' }, c.record ? `Record : ${formatScore(c.record.score)}` : 'Pas encore de record'),
-        ))),
-      h('div', { class: 'row' },
-        h('button', { class: 'btn sec', onclick: o.onRetour }, 'Retour'),
-        h('button', { class: 'btn sec', onclick: o.onGarage }, 'Garage'),
-        h('button', { class: 'btn sec', onclick: o.onReglages }, 'Réglages'),
-      ),
-    )));
+  niveaux(o: { cartes: NiveauCarte[]; perso: NiveauCarte[]; mode: ModeId; voiture: CarId; onChoisir(i: number): void; onChoisirPerso(i: number): void; onEditeur(): void; onGarage(): void; onReglages(): void; onRetour(): void }): void {
+    const carte = (c: NiveauCarte, i: number, choisir: (i: number) => void): HTMLElement =>
+      h('button', { class: 'card' + (c.desactive ? ' off' : ''), title: c.desactive ?? '', onclick: () => (c.desactive ? this.toast(c.desactive) : choisir(i)) },
+        h('span', { class: 'num' }, String(i + 1)),
+        h('b', {}, c.nom),
+        h('small', {}, c.detail),
+        h('span', { class: 'rec' }, c.record ? `Record : ${formatScore(c.record.score)}` : 'Pas encore de record'),
+      );
+    const render = (): void => {
+      const perso = this.ongletNiveaux === 'perso';
+      const ecran = h('div', { class: 'screen' }, h('div', { class: 'panel wide' },
+        h('h2', {}, 'Choisis un niveau'),
+        h('div', { class: 'tabs' },
+          h('button', { class: 'tab' + (perso ? '' : ' on'), onclick: () => { this.ongletNiveaux = 'off'; render(); } }, 'Officiels'),
+          h('button', { class: 'tab' + (perso ? ' on' : ''), onclick: () => { this.ongletNiveaux = 'perso'; render(); } }, `Mes niveaux${o.perso.length ? ` (${o.perso.length})` : ''}`),
+          h('button', { class: 'tab', disabled: true }, 'Importer · bientôt'),
+        ),
+        h('p', { class: 'sub' }, 'Mode ', h('b', {}, MODE_NOMS[o.mode]), ' · Voiture ', h('b', {}, CARS[o.voiture].nom)),
+        perso && o.perso.length === 0
+          ? h('p', { class: 'sub' }, "Tu n'as pas encore créé de niveau. Ouvre l'éditeur pour dessiner ta première route !")
+          : h('div', { class: 'cards' }, ...(perso ? o.perso.map((c, i) => carte(c, i, o.onChoisirPerso)) : o.cartes.map((c, i) => carte(c, i, o.onChoisir)))),
+        h('div', { class: 'row' },
+          h('button', { class: 'btn sec', onclick: o.onRetour }, 'Retour'),
+          perso && h('button', { class: 'btn sec', onclick: o.onEditeur }, 'Éditeur'),
+          h('button', { class: 'btn sec', onclick: o.onGarage }, 'Garage'),
+          h('button', { class: 'btn sec', onclick: o.onReglages }, 'Réglages'),
+        ),
+      ));
+      this.ecranNiveaux = ecran;
+      this.show(ecran);
+    };
+    render();
+  }
+
+  /** true tant que l'écran de choix du niveau est affiché (pour les mises à jour asynchrones). */
+  niveauxVisible(): boolean {
+    return !!this.ecranNiveaux && this.root.contains(this.ecranNiveaux);
   }
 
   garage(o: { voiture: CarId; couleur: string; onChange(voiture: CarId, couleur: string): void; onRetour(): void }): void {
@@ -160,16 +182,16 @@ export class Screens {
     render();
   }
 
-  pause(o: { onReprendre(): void; onRecommencer(): void; onMenu(): void }): void {
+  pause(o: { onReprendre(): void; onRecommencer(): void; onMenu(): void; menuLabel?: string }): void {
     this.show(h('div', { class: 'screen dim' }, h('div', { class: 'panel' },
       h('h2', {}, 'Pause'),
       h('button', { class: 'btn', onclick: o.onReprendre }, 'Reprendre'),
       h('button', { class: 'btn sec', onclick: o.onRecommencer }, 'Recommencer'),
-      h('button', { class: 'btn sec', onclick: o.onMenu }, 'Menu'),
+      h('button', { class: 'btn sec', onclick: o.onMenu }, o.menuLabel ?? 'Menu'),
     )));
   }
 
-  resultats(o: { result: RaceResult; record: boolean; persistent: boolean; onRecommencer(): void; onSuivant: (() => void) | null; onMenu(): void }): void {
+  resultats(o: { result: RaceResult; record: boolean; persistent: boolean; onRecommencer(): void; onSuivant: (() => void) | null; onMenu(): void; menuLabel?: string }): void {
     const r = o.result;
     const ecart = r.time - r.targetTime;
     this.show(h('div', { class: 'screen dim' }, h('div', { class: 'panel' },
@@ -185,7 +207,7 @@ export class Screens {
       h('div', { class: 'row' },
         h('button', { class: 'btn', onclick: o.onRecommencer }, 'Recommencer'),
         o.onSuivant && h('button', { class: 'btn', onclick: o.onSuivant }, 'Niveau suivant'),
-        h('button', { class: 'btn sec', onclick: o.onMenu }, 'Menu'),
+        h('button', { class: 'btn sec', onclick: o.onMenu }, o.menuLabel ?? 'Menu'),
       ),
     )));
   }
