@@ -15,11 +15,13 @@ Jeu de drift en 3D dans le navigateur : enchaîne les drifts sur des routes de m
 
 | Mode | Pour qui |
 |---|---|
-| **Arcade** | Bouton Drift : glissade guidée, pas de tête-à-queue. Idéal au tactile. |
+| **Arcade** | Bouton Drift : glissade guidée (le tête-à-queue reste possible si on en fait trop). Idéal au tactile. |
 | **Semi-arcade** | On lance le drift soi-même (frein à main, coup de gaz), contre-braquage aidé. |
 | **Exigeant** | Aucune aide. |
 
 Trois voitures : **L'Équilibrée** (pour débuter), **La Légère** (agile) et **La Turbo** (puissante). Les records sont enregistrés par niveau et par mode.
+
+Cinq niveaux : **Premiers virages**, **Forêt des Pins**, **Col du Loup**, **Lacets du Belvédère** (montée en épingles) et **Vallée des Crêtes** (descente rapide au coucher du soleil).
 
 ## Commandes
 

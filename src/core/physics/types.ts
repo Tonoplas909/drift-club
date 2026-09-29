@@ -23,22 +23,26 @@ export interface CarParams {
   tireC: number;
   maxSteer: number;      // rad, braquage max à l'arrêt
   steerLock: number;     // rad, butée (aide au contre-braquage comprise)
-  steerSpeed: number;    // rad/s
+  steerSpeed: number;    // rad/s, vitesse d'entrée de braquage (à l'arrêt ; plus douce à haute vitesse)
+  steerReturn: number;   // rad/s, retour au centre (rapide)
+  steerCounter: number;  // multiplicateur de steerSpeed pour inversion / contre-braquage
   steerSpeedReduction: number; // braquage max / (1 + v × k)
   length: number;        // m
   width: number;         // m
+  yawDamp: number;       // 1/s, amortissement de lacet en travers (β > 15°)
+  throttleRise: number;  // 1/s, montée de l'accélérateur lissé
+  throttleFall: number;  // 1/s, descente de l'accélérateur lissé
 }
 
 export interface AssistParams {
   counterSteer: number;          // 0..1
   counterSteerDeadzone: number;  // rad
-  betaMax: number | null;        // rad, null = pas de limiteur
-  spinStiffness: number;         // (rad/s²)/rad
   speedRetention: number;        // 0..1
   arcadeDrift: boolean;
   arcadeBeta: number;            // rad
   arcadeRearGrip: number;        // multiplicateur de μ arrière
   arcadePathRate: number;        // rad/s à direction pleine
+  arcadeYawAccel: number;        // rad/s², autorité max de l'aide Drift sur le lacet
 }
 
 export interface CarState {
@@ -62,6 +66,8 @@ export interface CarState {
   reverse: boolean;
   /** accélérateur effectif (−1..1, négatif = marche arrière) */
   throttle: number;
+  /** accélérateur lissé (−1..1) : c'est lui qui pilote la force motrice */
+  throttleSmooth: number;
   prevVelAngle: number;
 }
 
