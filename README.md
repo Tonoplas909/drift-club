@@ -38,6 +38,32 @@ Cinq niveaux : **Premiers virages**, **Forêt des Pins**, **Col du Loup**, **Lac
 
 Au tactile : glisse le pouce gauche pour tourner, boutons Gaz, Frein et Drift à droite (accélération automatique activable dans les réglages).
 
+## Éditeur de niveaux
+
+Depuis l'accueil, **Éditeur** ouvre « Mes niveaux » : **Nouveau niveau**, **Copier un niveau officiel**, **Importer un .json**, puis pour chaque niveau **Modifier**, **Jouer**, **Renommer**, **Dupliquer**, **Exporter** (fichier `.json` lisible) et **Supprimer** (avec confirmation). Tes niveaux apparaissent aussi dans **Jouer → Mes niveaux**, avec leurs records.
+
+Dans l'éditeur, la route est vue de dessus (grille en mètres, largeur réelle de la chaussée). Cinq outils :
+
+| Outil | Ce qu'il fait |
+|---|---|
+| **Route** | Clic dans le vide : ajoute un point à la fin. Glisser un point : le déplacer. Clic sur la route : insère un point. Point sélectionné : largeur, hauteur, Supprimer. |
+| **Barrières** | Choisis Gauche, Droite ou Extérieur (extérieur du virage), puis clique sur un tronçon (entre deux points, repérés par des tirets) pour poser ou retirer sa barrière. |
+| **Objets** | Palette (arbre, sapin, rocher, pneus, barrière, panneau) : clic pour poser, glisser pour déplacer, boutons ±15° pour tourner, Supprimer. |
+| **Décor** | Ambiance (Jour / Coucher), densité, « Autre décor » (nouvelle graine). |
+| **Infos** | Nom (1 à 40 caractères) et auteur (0 à 30). |
+
+Le **profil en long** (bandeau du bas, repliable) montre la hauteur en fonction de la distance : glisse un point verticalement pour modifier son altitude. La **barre de validation** est toujours visible : « ✔ Niveau valide · … » ou la liste des erreurs, avec les compteurs (points/150, objets/300, longueur/3 km). Les croisements et virages trop serrés sont entourés en rouge sur la carte. Un niveau invalide ne peut pas être testé.
+
+**Tester** lance la course tout de suite (voiture et mode courants) ; depuis la pause ou les résultats, **Retour à l'éditeur** retrouve l'éditeur exactement dans le même état. Le niveau est **enregistré automatiquement** dans le navigateur (indicateur « Enregistré » ; si la structure est invalide, « Non enregistré : … »).
+
+| Action | Commande |
+|---|---|
+| Déplacer la vue | Glisser dans le vide, clic droit ou clic milieu ; deux doigts au tactile |
+| Zoom | Molette (vers le curseur) ; pincement au tactile ; « Recentrer » pour tout voir |
+| Annuler / Rétablir | Ctrl+Z / Ctrl+Y ou Ctrl+Maj+Z (100 états) |
+| Supprimer la sélection | Suppr ou Retour arrière |
+| Désélectionner / annuler un glissement | Échap |
+
 ## Développement
 
 ```bash

@@ -200,7 +200,8 @@ function departArrivee(ctx: CanvasRenderingContext2D, track: TrackData, e: EtatD
   // « Départ » derrière la ligne, « Arrivée » devant
   for (const [sp, txt, dir] of [[a, 'Départ', -1], [b, 'Arrivée', 1]] as const) {
     const p = mondeVersEcran(e.vue, e.w, e.h, sp.x + dir * sp.tx * (sp.w + 3), sp.z + dir * sp.tz * (sp.w + 3));
-    const q = { sx: p.sx + dir * sp.tx * 22, sy: p.sy + dir * sp.tz * 22 };
+    const off = Math.max(22, e.rayon + 14);
+    const q = { sx: p.sx + dir * sp.tx * off, sy: p.sy + dir * sp.tz * off };
     ctx.strokeStyle = CREAM;
     ctx.strokeText(txt, q.sx, q.sy + 4);
     ctx.fillStyle = INK;
