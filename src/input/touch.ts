@@ -2,7 +2,7 @@ import type { InputState } from '../core/input';
 import { clamp } from '../core/math/vec';
 import { NO_ACTIONS, type Actions } from './keyboard';
 
-/** Glisser vers la droite = tourner a droite (direction negative). Course pleine = 18 % de la zone (60 px min). */
+/** Glisser vers la droite = tourner à droite (direction négative). Course pleine = 18 % de la zone (60 px min). */
 export function steerFromDrag(dx: number, zoneWidth: number): number {
   const full = Math.max(60, zoneWidth * 0.18);
   return -clamp(dx / full, -1, 1);

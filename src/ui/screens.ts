@@ -19,7 +19,7 @@ export function levelSummary(data: unknown): { nom: string; longueur: number; am
 type Child = Node | string | null | undefined | false;
 type Attrs = Record<string, string | boolean | ((e: Event) => void)>;
 
-/** Petit constructeur d'elements : h('button', { class: 'btn', onclick: f }, 'Texte'). */
+/** Petit constructeur d'éléments : h('button', { class: 'btn', onclick: f }, 'Texte'). */
 export function h<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Attrs = {}, ...children: Child[]): HTMLElementTagNameMap[K] {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
@@ -32,15 +32,15 @@ export function h<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Attrs = 
 }
 
 const DESCRIPTIONS_VOITURES: Record<CarId, string> = {
-  equilibree: 'Coupe fastback previsible, pour debuter.',
-  legere: 'Petit coupe des annees 80, agile : on la fait glisser par le poids.',
-  turbo: 'Grosse GT turbo, puissante : decroche au moindre coup de gaz.',
+  equilibree: 'Coupé fastback prévisible, pour débuter.',
+  legere: 'Petit coupé des années 80, agile : on la fait glisser par le poids.',
+  turbo: 'Grosse GT turbo, puissante : décroche au moindre coup de gaz.',
 };
 
 const DESCRIPTIONS_MODES: Record<ModeId, string> = {
-  arcade: 'Bouton Drift : glissade guidee, pas de tete-a-queue.',
-  semi: 'On lance le drift soi-meme, contre-braquage aide.',
-  exigeant: 'Aucune aide. Tout se dose a la main.',
+  arcade: 'Bouton Drift : glissade guidée, pas de tête-à-queue.',
+  semi: 'On lance le drift soi-même, contre-braquage aidé.',
+  exigeant: 'Aucune aide. Tout se dose à la main.',
 };
 
 export interface NiveauCarte { nom: string; detail: string; record: RecordEntry | null }
@@ -84,11 +84,11 @@ export class Screens {
       h('div', { class: 'menu' },
         h('button', { class: 'btn big', onclick: o.onJouer }, 'Jouer'),
         h('button', { class: 'btn sec', onclick: o.onGarage }, 'Garage'),
-        h('button', { class: 'btn sec', onclick: o.onEditeur }, 'Editeur ', h('small', {}, 'bientot')),
-        h('button', { class: 'btn sec', onclick: o.onReglages }, 'Reglages'),
+        h('button', { class: 'btn sec', onclick: o.onEditeur }, 'Éditeur ', h('small', {}, 'bientôt')),
+        h('button', { class: 'btn sec', onclick: o.onReglages }, 'Réglages'),
       ),
-      h('p', { class: 'hint' }, 'Z/W ou ↑ accelerer · S ou ↓ freiner · Q/A, D ou ← → tourner · Espace frein a main · R replacer · C camera · Echap pause'),
-      !o.persistent && h('p', { class: 'warn' }, 'Stockage indisponible : tes records et reglages ne seront pas enregistres.'),
+      h('p', { class: 'hint' }, 'Z/W ou ↑ accélérer · S ou ↓ freiner · Q/A, D ou ← → tourner · Espace frein à main · R replacer · C caméra · Échap pause'),
+      !o.persistent && h('p', { class: 'warn' }, 'Stockage indisponible : tes records et réglages ne seront pas enregistrés.'),
     ));
   }
 
@@ -97,8 +97,8 @@ export class Screens {
       h('h2', {}, 'Choisis un niveau'),
       h('div', { class: 'tabs' },
         h('button', { class: 'tab on' }, 'Officiels'),
-        h('button', { class: 'tab', disabled: true }, 'Mes niveaux · bientot'),
-        h('button', { class: 'tab', disabled: true }, 'Importer · bientot'),
+        h('button', { class: 'tab', disabled: true }, 'Mes niveaux · bientôt'),
+        h('button', { class: 'tab', disabled: true }, 'Importer · bientôt'),
       ),
       h('p', { class: 'sub' }, 'Mode ', h('b', {}, MODE_NOMS[o.mode]), ' · Voiture ', h('b', {}, CARS[o.voiture].nom)),
       h('div', { class: 'cards' }, ...o.cartes.map((c, i) =>
@@ -111,7 +111,7 @@ export class Screens {
       h('div', { class: 'row' },
         h('button', { class: 'btn sec', onclick: o.onRetour }, 'Retour'),
         h('button', { class: 'btn sec', onclick: o.onGarage }, 'Garage'),
-        h('button', { class: 'btn sec', onclick: o.onReglages }, 'Reglages'),
+        h('button', { class: 'btn sec', onclick: o.onReglages }, 'Réglages'),
       ),
     )));
   }
@@ -138,7 +138,7 @@ export class Screens {
     const QUALITES: [Qualite, string][] = [['auto', 'Auto'], ['basse', 'Basse'], ['haute', 'Haute']];
     const render = () => {
       this.show(h('div', { class: 'screen' }, h('div', { class: 'panel wide' },
-        h('h2', {}, 'Reglages'),
+        h('h2', {}, 'Réglages'),
         h('h3', {}, 'Mode de conduite'),
         h('div', { class: 'choices row3' }, ...MODE_IDS.map((m) =>
           h('button', { class: 'choice' + (m === r.mode ? ' on' : ''), onclick: () => { r.mode = m; change(); } },
@@ -148,12 +148,12 @@ export class Screens {
           h('input', { type: 'range', min: '0', max: '1', step: '0.05', value: String(r.volume), oninput: (e: Event) => { r.volume = parseFloat((e.target as HTMLInputElement).value); o.onChange({ ...r }); } }),
           h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.muet, onchange: (e: Event) => { r.muet = (e.target as HTMLInputElement).checked; change(); } }), 'Muet'),
         ),
-        h('h3', {}, 'Qualite graphique'),
+        h('h3', {}, 'Qualité graphique'),
         h('div', { class: 'seg' }, ...QUALITES.map(([q, label]) =>
           h('button', { class: 'tab' + (q === r.qualite ? ' on' : ''), onclick: () => { r.qualite = q; change(); } }, label))),
         h('h3', {}, 'Conduite'),
-        h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.cameraLoin, onchange: (e: Event) => { r.cameraLoin = (e.target as HTMLInputElement).checked; change(); } }), 'Camera eloignee (touche C)'),
-        o.touch && h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.accelAuto, onchange: (e: Event) => { r.accelAuto = (e.target as HTMLInputElement).checked; change(); } }), 'Acceleration automatique (tactile)'),
+        h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.cameraLoin, onchange: (e: Event) => { r.cameraLoin = (e.target as HTMLInputElement).checked; change(); } }), 'Caméra éloignée (touche C)'),
+        o.touch && h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.accelAuto, onchange: (e: Event) => { r.accelAuto = (e.target as HTMLInputElement).checked; change(); } }), 'Accélération automatique (tactile)'),
         h('button', { class: 'btn', onclick: o.onRetour }, 'Retour'),
       )));
     };
@@ -173,8 +173,8 @@ export class Screens {
     const r = o.result;
     const ecart = r.time - r.targetTime;
     this.show(h('div', { class: 'screen dim' }, h('div', { class: 'panel' },
-      h('h2', {}, 'Arrivee !'),
-      o.record && h('div', { class: 'badge' }, o.persistent ? 'Nouveau record !' : 'Nouveau record (non enregistre)'),
+      h('h2', {}, 'Arrivée !'),
+      o.record && h('div', { class: 'badge' }, o.persistent ? 'Nouveau record !' : 'Nouveau record (non enregistré)'),
       h('div', { class: 'score' }, formatScore(r.score)),
       h('table', { class: 'detail' },
         h('tr', {}, h('td', {}, 'Points de drift'), h('td', {}, formatScore(r.driftPoints))),

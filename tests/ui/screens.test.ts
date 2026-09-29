@@ -3,7 +3,7 @@ import { levelSummary } from '../../src/ui/screens';
 import { NIVEAUX_OFFICIELS } from '../../src/levels';
 
 describe('levelSummary', () => {
-  it('resume un niveau officiel', () => {
+  it('résume un niveau officiel', () => {
     const s = levelSummary(NIVEAUX_OFFICIELS[2].data);
     expect(s).toMatchObject({ nom: 'Col du Loup', ambiance: 'coucher' });
     expect(s!.longueur).toBeGreaterThan(900);

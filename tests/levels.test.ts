@@ -10,7 +10,7 @@ describe('niveaux officiels', () => {
     expect(cleNiveauOfficiel('col-du-loup')).toBe('off:col-du-loup');
   });
   for (const n of NIVEAUX_OFFICIELS) {
-    it(`${n.id} : valide, bonne longueur, decor genere`, () => {
+    it(`${n.id} : valide, bonne longueur, décor généré`, () => {
       const r = loadLevel(n.data);
       if (!r.ok) throw new Error(r.erreurs.join('\n'));
       expect(r.track.length).toBeGreaterThan(900);

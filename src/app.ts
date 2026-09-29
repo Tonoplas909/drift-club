@@ -41,7 +41,7 @@ export class App {
     try {
       this.renderer = new THREE.WebGLRenderer({ canvas: $('scene') as HTMLCanvasElement, antialias: true, powerPreference: 'high-performance' });
     } catch {
-      this.screens.error('WebGL indisponible', "Ton navigateur ou ta carte graphique ne permet pas d'afficher la 3D. Essaie avec un navigateur recent (Chrome, Firefox, Edge ou Safari).", []);
+      this.screens.error('WebGL indisponible', "Ton navigateur ou ta carte graphique ne permet pas d'afficher la 3D. Essaie avec un navigateur récent (Chrome, Firefox, Edge ou Safari).", []);
       return;
     }
     this.renderer.setSize(window.innerWidth, window.innerHeight, false);
@@ -58,20 +58,20 @@ export class App {
     window.addEventListener('keydown', unlock);
     window.addEventListener('keydown', (e) => { if (e.code === 'Escape' && this.onEscape) { const f = this.onEscape; this.onEscape = null; f(); } });
     document.addEventListener('visibilitychange', () => { if (document.hidden && this.session) this.pauseRace(); });
-    $('app').append(Object.assign(document.createElement('div'), { className: 'portrait', textContent: 'Tourne ton telephone en mode paysage' }));
+    $('app').append(Object.assign(document.createElement('div'), { className: 'portrait', textContent: 'Tourne ton téléphone en mode paysage' }));
 
     await this.chargerModeles();
   }
 
   private async chargerModeles(): Promise<void> {
-    this.screens.loading('Chargement des modeles...');
+    this.screens.loading('Chargement des modèles…');
     try {
       this.assets = await loadAssets(import.meta.env.BASE_URL + 'models/', (p) => this.screens.setProgress(p));
       this.showroom = new Showroom(this.renderer, this.assets);
       this.accueil();
     } catch {
-      this.screens.error('Chargement impossible', "Les modeles 3D n'ont pas pu etre charges. Verifie ta connexion.", [
-        { label: 'Reessayer', onClick: () => void this.chargerModeles() },
+      this.screens.error('Chargement impossible', "Les modèles 3D n'ont pas pu être chargés. Vérifie ta connexion.", [
+        { label: 'Réessayer', onClick: () => void this.chargerModeles() },
       ]);
     }
   }
@@ -86,7 +86,7 @@ export class App {
       persistent: this.persistent,
       onJouer: () => this.niveaux(),
       onGarage: () => this.garage(() => this.accueil()),
-      onEditeur: () => this.screens.toast("L'editeur arrive bientot !"),
+      onEditeur: () => this.screens.toast("L'éditeur arrive bientôt !"),
       onReglages: () => this.reglagesEcran(() => this.accueil()),
     });
   }
@@ -145,7 +145,7 @@ export class App {
   private async lancer(index: number): Promise<void> {
     if (!this.assets) return;
     this.showroom?.stop();
-    this.screens.loading('Preparation du niveau...');
+    this.screens.loading('Préparation du niveau…');
     await new Promise((r) => setTimeout(r, 30));
     const n = NIVEAUX_OFFICIELS[index];
     const res = prepareLevel(cleNiveauOfficiel(n.id), n.data);

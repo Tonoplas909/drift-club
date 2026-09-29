@@ -14,7 +14,7 @@ const ACTION_CODES: Record<string, keyof Actions> = {
 const PREVENT = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space']);
 
 export class KeyboardInput {
-  /** true pendant une course : empeche le defilement de la page avec les fleches / Espace */
+  /** true pendant une course : empêche le défilement de la page avec les flèches / Espace */
   capture = false;
   private readonly down = new Set<string>();
   private actions: Actions = { ...NO_ACTIONS };

@@ -28,7 +28,7 @@ function run(car: CarState, ctx: StepContext, seconds: number, input: InputState
 const finite = (c: CarState) => Object.values(c).every((v) => typeof v !== 'number' || Number.isFinite(v));
 
 describe('voiture : ligne droite', () => {
-  it('accelere pleins gaz sans devier', () => {
+  it('accélère pleins gaz sans dévier', () => {
     const c = createCarState(0, 0, 0);
     run(c, ctxOf('equilibree', 'semi'), 5, inp({ gaz: 1 }));
     expect(c.speed).toBeGreaterThan(14);
@@ -37,7 +37,7 @@ describe('voiture : ligne droite', () => {
     expect(Math.abs(c.heading)).toBeLessThan(0.01);
     expect(c.z).toBeGreaterThan(30);
   });
-  it('plafonne pres de la vitesse max', () => {
+  it('plafonne près de la vitesse max', () => {
     for (const id of CAR_IDS) {
       const c = createCarState(0, 0, 0);
       run(c, ctxOf(id, 'semi'), 60, inp({ gaz: 1 }));
@@ -45,7 +45,7 @@ describe('voiture : ligne droite', () => {
       expect(c.speed).toBeLessThanOrEqual(CARS[id].maxSpeed + 0.5);
     }
   });
-  it('freine de 25 m/s a larret en moins de 70 m', () => {
+  it('freine de 25 m/s à l’arrêt en moins de 70 m', () => {
     const c = createCarState(0, 0, 0);
     c.vz = 25;
     const ctx = ctxOf('equilibree', 'semi');
@@ -54,7 +54,7 @@ describe('voiture : ligne droite', () => {
     expect(t).toBeLessThan(5);
     expect(c.z).toBeLessThan(70);
   });
-  it('recule en maintenant le frein a larret', () => {
+  it('recule en maintenant le frein à l’arrêt', () => {
     const c = createCarState(0, 0, 0);
     run(c, ctxOf('equilibree', 'semi'), 3, inp({ frein: 1 }));
     expect(c.reverse).toBe(true);
@@ -64,14 +64,14 @@ describe('voiture : ligne droite', () => {
 });
 
 describe('voiture : virages et glisse', () => {
-  it('tourne a gauche (cap qui augmente, x qui augmente)', () => {
+  it('tourne à gauche (cap qui augmente, x qui augmente)', () => {
     const c = createCarState(0, 0, 0);
     c.vz = 8;
     run(c, ctxOf('equilibree', 'semi'), 2, inp({ gaz: 0.3, direction: 1 }));
     expect(c.heading).toBeGreaterThan(0.3);
     expect(c.x).toBeGreaterThan(1);
   });
-  it('le frein a main fait decrocher larriere (semi et exigeant)', () => {
+  it('le frein à main fait décrocher l’arrière (semi et exigeant)', () => {
     for (const mode of ['semi', 'exigeant'] as ModeId[]) {
       const c = createCarState(0, 0, 0);
       c.vz = 20;
@@ -80,7 +80,7 @@ describe('voiture : virages et glisse', () => {
       expect(maxBeta).toBeGreaterThan(20 * DEG);
     }
   });
-  it('Arcade : le drift tient et ne part pas en tete-a-queue', () => {
+  it('Arcade : le drift tient et ne part pas en tête-à-queue', () => {
     const c = createCarState(0, 0, 0);
     c.vz = 25;
     const { maxBeta } = run(c, ctxOf('equilibree', 'arcade'), 6, inp({ gaz: 1, freinAMain: true, direction: 1 }));
@@ -116,13 +116,13 @@ describe('voiture : robustesse', () => {
       return cur;
     };
   };
-  it('deterministe : memes entrees, meme etat au bit pres', () => {
+  it('déterministe : mêmes entrées, même état au bit près', () => {
     const a = createCarState(0, 0, 0), b = createCarState(0, 0, 0);
     run(a, ctxOf('turbo', 'semi'), 20, randomInputs(7));
     run(b, ctxOf('turbo', 'semi'), 20, randomInputs(7));
     expect(a).toEqual(b);
   });
-  it('3 voitures x 3 modes, 30 s dentrees aleatoires : etat fini, vitesse bornee', () => {
+  it('3 voitures × 3 modes, 30 s d’entrées aléatoires : état fini, vitesse bornée', () => {
     for (const id of CAR_IDS) for (const mode of MODE_IDS) {
       const c = createCarState(0, 0, 0);
       run(c, ctxOf(id, mode), 30, randomInputs(id.length * 31 + mode.length));

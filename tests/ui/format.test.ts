@@ -4,7 +4,7 @@ import { formatScore, formatTime, formatDistance } from '../../src/ui/format';
 describe('formatage', () => {
   it('score avec espaces fines', () => {
     expect(formatScore(0)).toBe('0');
-    expect(formatScore(1234567.4)).toBe('1 234 567');
+    expect(formatScore(1234567.4)).toBe('1 234 567');
     expect(formatScore(999)).toBe('999');
   });
   it('temps m:ss.cc sans « 60 secondes »', () => {
