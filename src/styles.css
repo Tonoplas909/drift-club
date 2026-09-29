@@ -130,3 +130,10 @@ html, body {
   .screen.garage { align-items: flex-end; }
   .panel.side { max-height: 55vh; }
 }
+.debug { position: fixed; top: 8px; right: 8px; width: 330px; max-height: 92vh; overflow-y: auto; z-index: 20; background: rgba(21, 19, 28, .88); color: #eee; font: 12px/1.3 ui-monospace, monospace; padding: 8px; border-radius: 10px; pointer-events: auto; }
+.debug.folded > :not(.debug-bar) { display: none; }
+.debug-bar { display: flex; gap: 6px; }
+.debug button { font: 12px ui-monospace, monospace; }
+.debug h4 { margin: 8px 0 2px; color: var(--yellow); }
+.debug label { display: grid; grid-template-columns: 120px 1fr 56px; gap: 4px; align-items: center; }
+.debug pre { margin: 6px 0; white-space: pre-wrap; color: #9fe; }
