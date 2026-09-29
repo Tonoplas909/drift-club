@@ -16,6 +16,13 @@ export function forestMask(x: number, z: number, graine: number): number {
   return fbm(x / 120, z / 120, graine + 11);
 }
 
+/** Côté (+1 gauche, −1 droite) d'une barrière « ext » : extérieur du virage, inchangé sur les quasi-droites. */
+export function coteExterieur(k: number, precedent: number): number {
+  if (k > 1 / 400) return -1;
+  if (k < -1 / 400) return 1;
+  return precedent;
+}
+
 const MANUAL_KIND: Record<string, DecorKind> = {
   arbre: 'feuillu', sapin: 'sapin', rocher: 'rocher', pneus: 'pneus', panneau: 'panneau',
 };
@@ -54,8 +61,7 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Ter
       else if (b.cote === 'droite') sides = [-1];
       else if (b.cote === 'deux') sides = [1, -1];
       else {
-        if (sp.k > 1 / 400) extSide = -1;
-        else if (sp.k < -1 / 400) extSide = 1;
+        extSide = coteExterieur(sp.k, extSide);
         sides = [extSide];
       }
       for (const side of sides) {
