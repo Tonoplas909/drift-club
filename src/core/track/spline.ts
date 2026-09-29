@@ -28,7 +28,16 @@ export function catmullRomCentripetal(p0: P4, p1: P4, p2: P4, p3: P4, u: number)
   return mix(b1, b2, t1, t2, t);
 }
 
-const extrapolate = (a: P4, b: P4): P4 => ({ x: 2 * a.x - b.x, y: 2 * a.y - b.y, z: 2 * a.z - b.z, l: a.l });
+function ghost(a: P4, b: P4, c?: P4): P4 {
+  const lin: P4 = { x: 2 * a.x - b.x, y: 2 * a.y - b.y, z: 2 * a.z - b.z, l: a.l };
+  if (!c) return lin;
+  const tx = (-3 * a.x + 4 * b.x - c.x) / 2, tz = (-3 * a.z + 4 * b.z - c.z) / 2;
+  const cx = b.x - a.x, cz = b.z - a.z;
+  const tl = Math.hypot(tx, tz), cl = Math.hypot(cx, cz);
+  if (tl < 1e-6 || cl < 1e-6) return lin;
+  if ((tx * cx + tz * cz) / (tl * cl) < Math.cos(Math.PI / 6)) return lin;
+  return { x: a.x - (tx / tl) * cl, y: lin.y, z: a.z - (tz / tl) * cl, l: a.l };
+}
 
 /**
  * Échantillonne la courbe passant par tous les points, à pas constant (longueur 3D).
@@ -36,7 +45,7 @@ const extrapolate = (a: P4, b: P4): P4 => ({ x: 2 * a.x - b.x, y: 2 * a.y - b.y,
  */
 export function sampleRoute(points: P4[], step: number): { samples: (P4 & { s: number })[]; pointS: number[] } {
   const n = points.length;
-  const ext = [extrapolate(points[0], points[1]), ...points, extrapolate(points[n - 1], points[n - 2])];
+  const ext = [ghost(points[0], points[1], points[2]), ...points, ghost(points[n - 1], points[n - 2], points[n - 3])];
   const SUB = 32;
   const dense: P4[] = [];
   const pointDense: number[] = [];

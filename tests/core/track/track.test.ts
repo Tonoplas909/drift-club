@@ -31,6 +31,7 @@ describe('buildTrack', () => {
     expect(mid.k).toBeLessThan(0.023);
     expect(t.length).toBeGreaterThan(75);
     expect(t.length).toBeLessThan(82);
+    for (const s of t.samples) expect(s.k).toBeGreaterThan(-1 / 400);
   });
   it('pente : grade ≈ dy/ds', () => {
     const t = buildTrack(makeLevel([[0, 0, 0, 10], [0, 100, 10, 10], [0, 200, 20, 10]]));
