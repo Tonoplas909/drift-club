@@ -21,7 +21,7 @@ export interface EtatDessin {
 const INK = '#15131c', CREAM = '#fff7e8', ORANGE = '#ff8a1f', YELLOW = '#ffd23f', RED = '#e63b2e', GREEN = '#3fbf5f';
 
 /** Rayon (m) et couleurs des objets, pour le symbole vu de dessus. */
-const OBJETS: Record<TypeObjet, { r: number; fill: string }> = {
+export const OBJETS: Record<TypeObjet, { r: number; fill: string }> = {
   arbre: { r: 2.6, fill: '#3f9b4a' },
   sapin: { r: 2.2, fill: '#1f6b46' },
   rocher: { r: 1.9, fill: '#9a9aa6' },
@@ -197,9 +197,10 @@ function departArrivee(ctx: CanvasRenderingContext2D, track: TrackData, e: EtatD
   ctx.font = '800 12px system-ui, sans-serif';
   ctx.textAlign = 'center';
   ctx.lineWidth = 3;
-  for (const [sp, txt] of [[a, 'Départ'], [b, 'Arrivée']] as const) {
-    const p = mondeVersEcran(e.vue, e.w, e.h, sp.x - sp.tx * (sp.w + 3), sp.z - sp.tz * (sp.w + 3));
-    const q = { sx: p.sx - sp.tx * 14, sy: p.sy - sp.tz * 14 };
+  // « Départ » derrière la ligne, « Arrivée » devant
+  for (const [sp, txt, dir] of [[a, 'Départ', -1], [b, 'Arrivée', 1]] as const) {
+    const p = mondeVersEcran(e.vue, e.w, e.h, sp.x + dir * sp.tx * (sp.w + 3), sp.z + dir * sp.tz * (sp.w + 3));
+    const q = { sx: p.sx + dir * sp.tx * 22, sy: p.sy + dir * sp.tz * 22 };
     ctx.strokeStyle = CREAM;
     ctx.strokeText(txt, q.sx, q.sy + 4);
     ctx.fillStyle = INK;
@@ -283,8 +284,12 @@ function problemes(ctx: CanvasRenderingContext2D, e: EtatDessin): void {
 }
 
 function poignees(ctx: CanvasRenderingContext2D, e: EtatDessin): void {
-  const r = e.rayon;
   const n = e.level.route.length;
+  // poignées plus petites (et sans numéro) quand les points sont très rapprochés à l'écran
+  let ecart = Infinity;
+  for (let i = 1; i < n; i++) ecart = Math.min(ecart, Math.hypot(e.level.route[i].x - e.level.route[i - 1].x, e.level.route[i].z - e.level.route[i - 1].z));
+  const dense = ecart * e.vue.scale < e.rayon * 2.6;
+  const r = dense ? Math.max(4, (ecart * e.vue.scale) / 2.6) : e.rayon;
   ctx.font = `800 ${Math.round(r * 1.05)}px system-ui, sans-serif`;
   ctx.textAlign = 'center';
   e.level.route.forEach((p, i) => {
@@ -300,6 +305,7 @@ function poignees(ctx: CanvasRenderingContext2D, e: EtatDessin): void {
     ctx.fillStyle = sel ? YELLOW : i === 0 ? GREEN : i === n - 1 ? RED : CREAM;
     ctx.fill();
     ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.stroke();
+    if (dense && !sel) return;
     ctx.fillStyle = i === n - 1 && !sel ? '#fff' : INK;
     ctx.fillText(String(i), s.sx, s.sy + r * 0.36);
   });
