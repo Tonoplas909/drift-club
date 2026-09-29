@@ -565,13 +565,15 @@ export function curveLevel(): Level {
   return makeLevel(pts);
 }
 
-/** Montée le long de +z, épingle, redescente parallèle à x = 40. */
+/** Montée le long de +z, épingle en demi-cercle (rayon 20 m, centre (20, 100)), redescente parallèle à x = 40. */
 export function hairpinLevel(): Level {
   return makeLevel([
     [0, 0, 0, 10],
     [0, 50, 0, 10],
     [0, 100, 0, 10],
-    [20, 125, 0, 10],
+    [5.86, 114.14, 0, 10],
+    [20, 120, 0, 10],
+    [34.14, 114.14, 0, 10],
     [40, 100, 0, 10],
     [40, 50, 0, 10],
     [40, 0, 0, 10],
@@ -3678,17 +3680,26 @@ Run : `npx vitest run tests/levels.test.ts` → FAIL.
   "route": [
     { "x": 0, "z": 0, "y": 0, "l": 9 },
     { "x": 100, "z": 0, "y": 5, "l": 9 },
-    { "x": 200, "z": 5, "y": 15, "l": 9 },
-    { "x": 232, "z": 22, "y": 17, "l": 9 },
-    { "x": 205, "z": 45, "y": 19, "l": 9 },
+    { "x": 190, "z": 3, "y": 14, "l": 9 },
+    { "x": 205, "z": 4, "y": 15, "l": 9 },
+    { "x": 219.8, "z": 10.2, "y": 16, "l": 9 },
+    { "x": 226, "z": 25, "y": 17, "l": 9 },
+    { "x": 219.8, "z": 39.8, "y": 18, "l": 9 },
+    { "x": 205, "z": 46, "y": 19, "l": 9 },
     { "x": 120, "z": 50, "y": 28, "l": 9 },
-    { "x": 40, "z": 50, "y": 36, "l": 9 },
-    { "x": 8, "z": 70, "y": 38, "l": 9 },
-    { "x": 35, "z": 95, "y": 40, "l": 9 },
+    { "x": 50, "z": 50, "y": 35, "l": 9 },
+    { "x": 35, "z": 50, "y": 36, "l": 9 },
+    { "x": 19.4, "z": 56.4, "y": 37, "l": 9 },
+    { "x": 13, "z": 72, "y": 38, "l": 9 },
+    { "x": 19.4, "z": 87.6, "y": 39, "l": 9 },
+    { "x": 35, "z": 94, "y": 40, "l": 9 },
     { "x": 130, "z": 100, "y": 50, "l": 9 },
-    { "x": 220, "z": 100, "y": 58, "l": 9 },
-    { "x": 252, "z": 120, "y": 60, "l": 9 },
-    { "x": 225, "z": 145, "y": 62, "l": 9 },
+    { "x": 207, "z": 100, "y": 57, "l": 9 },
+    { "x": 222, "z": 100, "y": 58, "l": 9 },
+    { "x": 237.6, "z": 106.4, "y": 59, "l": 9 },
+    { "x": 244, "z": 122, "y": 60, "l": 9 },
+    { "x": 237.6, "z": 137.6, "y": 61, "l": 9 },
+    { "x": 222, "z": 144, "y": 62, "l": 9 },
     { "x": 140, "z": 150, "y": 70, "l": 9 },
     { "x": 60, "z": 160, "y": 78, "l": 9 },
     { "x": 20, "z": 200, "y": 82, "l": 9 },
@@ -3705,10 +3716,10 @@ Run : `npx vitest run tests/levels.test.ts` → FAIL.
     { "x": 240, "z": 610, "y": 86, "l": 9 }
   ],
   "barrieres": [
-    { "de": 2, "a": 4, "cote": "ext" },
-    { "de": 6, "a": 8, "cote": "ext" },
-    { "de": 10, "a": 12, "cote": "ext" },
-    { "de": 19, "a": 22, "cote": "ext" }
+    { "de": 2, "a": 8, "cote": "ext" },
+    { "de": 9, "a": 15, "cote": "ext" },
+    { "de": 16, "a": 22, "cote": "ext" },
+    { "de": 28, "a": 31, "cote": "ext" }
   ],
   "decor": { "graine": 777, "densite": 0.7 },
   "objets": []
@@ -3738,7 +3749,7 @@ export const cleNiveauOfficiel = (id: string): string => `off:${id}`;
 - [ ] **Step 3 : vérifier** — `npx vitest run tests/levels.test.ts` → PASS ; `npx tsc --noEmit` → OK.
 
 Si un niveau échoue sur la géométrie :
-- « virage trop serré » près d'une épingle (points d'apex d'indice 3, 7, 11 du Col du Loup) → éloigner ce point d'apex de 6 m vers l'extérieur de l'épingle (augmenter `x` pour les apex à droite, 232 → 238 et 252 → 258 ; le diminuer pour l'apex à gauche, 8 → 2), puis relancer.
+- « virage trop serré » → les épingles du Col du Loup sont déjà des arcs de 5 points (rayon ≈ 21 m, mesuré à 15 m minimum après lissage) ; si un niveau échoue quand même, signaler le rayon mesuré et le point concerné dans le rapport (BLOCKED), sans modifier les seuils.
 - « se croise » → écarter de 10 m le point le plus proche de la zone signalée, perpendiculairement à la route.
 - Dans tous les cas, noter dans le rapport les points modifiés et pourquoi.
 
