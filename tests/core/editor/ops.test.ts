@@ -19,6 +19,7 @@ import {
   copyLevel,
 } from '../../../src/core/editor/ops';
 import { straightLevel, makeLevel } from '../../fixtures/levels';
+import type { Level } from '../../../src/core/level/types';
 import { validateLevel } from '../../../src/core/level/validate';
 
 describe('ops: points', () => {
@@ -127,19 +128,19 @@ describe('ops: barriers', () => {
       { de: 1, a: 3, cote: 'droite' },
     ];
     normalizeBarriers(l);
-    // Doit fusionner les deux plages gauche contigues
-    const gauche = l.barrieres.filter((b) => b.cote === 'gauche');
-    expect(gauche.length).toBe(1);
-    expect(gauche[0].de).toBe(0);
-    expect(gauche[0].a).toBe(4);
+    // plages sans chevauchement : gauche seule, puis gauche+droite (« deux »), puis gauche seule
+    expect(l.barrieres).toEqual([
+      { de: 0, a: 1, cote: 'gauche' },
+      { de: 1, a: 3, cote: 'deux' },
+      { de: 3, a: 4, cote: 'gauche' },
+    ]);
   });
 
   it('normalizeBarriers convertit deux en gauche+droite fusionnées', () => {
     const l = straightLevel();
     l.barrieres = [{ de: 0, a: 2, cote: 'deux' }];
     normalizeBarriers(l);
-    // Doit rester deux ou être décomposé et recomposé
-    expect(l.barrieres.some((b) => b.cote === 'deux' || (b.cote === 'gauche' && b.de === 0))).toBe(true);
+    expect(l.barrieres).toEqual([{ de: 0, a: 2, cote: 'deux' }]);
   });
 });
 
@@ -253,5 +254,35 @@ describe('ops: factory', () => {
     expect(l2.route).not.toBe(l1.route);
     expect(l2.nom).toBe('Copie');
     expect(l2.route.length).toBe(l1.route.length);
+  });
+});
+
+describe('ops: barrières sur des plages', () => {
+  const route = (n: number) => Array.from({ length: n }, (_, i) => ({ x: 0, z: i * 20, y: 0, l: 10 }));
+  const lvl = (n: number, barrieres: Level['barrieres']): Level =>
+    ({ ...newLevel(), route: route(n), barrieres });
+
+  it('basculer un tronçon au milieu d\'une plage la coupe en deux sans toucher au reste', () => {
+    const l = lvl(10, [{ de: 2, a: 8, cote: 'ext' }]);
+    toggleBarrier(l, 5, 'ext');
+    expect(l.barrieres).toEqual([{ de: 2, a: 5, cote: 'ext' }, { de: 6, a: 8, cote: 'ext' }]);
+    toggleBarrier(l, 5, 'ext');
+    expect(l.barrieres).toEqual([{ de: 2, a: 8, cote: 'ext' }]);
+  });
+
+  it('gauche + droite sur un tronçon donne « deux »', () => {
+    const l = lvl(6, [{ de: 0, a: 4, cote: 'gauche' }]);
+    toggleBarrier(l, 2, 'droite');
+    expect(l.barrieres).toEqual([{ de: 0, a: 2, cote: 'gauche' }, { de: 2, a: 3, cote: 'deux' }, { de: 3, a: 4, cote: 'gauche' }]);
+  });
+
+  it('supprimer un point intérieur raccourcit la barrière', () => {
+    const l = lvl(10, [{ de: 2, a: 6, cote: 'gauche' }]);
+    deletePoint(l, 4);
+    expect(l.barrieres).toEqual([{ de: 2, a: 5, cote: 'gauche' }]);
+    deletePoint(l, 0);
+    expect(l.barrieres).toEqual([{ de: 1, a: 4, cote: 'gauche' }]);
+    deletePoint(l, 4);
+    expect(l.barrieres).toEqual([{ de: 1, a: 3, cote: 'gauche' }]);
   });
 });
