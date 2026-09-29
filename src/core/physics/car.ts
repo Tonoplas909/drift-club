@@ -4,11 +4,15 @@ import type { CarState, StepContext } from './types';
 
 const G = 9.81;
 const GEAR_STEPS = [0, 0.2, 0.38, 0.56, 0.76];
+/** Part minimale de force latérale conservée sous pleine patinage (cercle d'adhérence adouci) */
+const LAT_MIN = 0.35;
+/** Idem essieu arrière : plein gaz clavier (0/1) ne doit pas supprimer tout le guidage latéral en glisse */
+const REAR_LAT_MIN = 0.5;
 
 export function createCarState(x: number, z: number, heading: number, y = 0): CarState {
   return {
     x, y, z, heading, vx: 0, vz: 0, yawRate: 0, steer: 0, steerInput: 0, ax: 0, beta: 0, speed: 0,
-    vLong: 0, vLat: 0, rearSlip: 0, wheelSpin: 0, rpm: 900, gear: 1, reverse: false, throttle: 0, prevVelAngle: heading,
+    vLong: 0, vLat: 0, rearSlip: 0, wheelSpin: 0, rpm: 900, gear: 1, reverse: false, throttle: 0, throttleSmooth: 0, prevVelAngle: heading,
   };
 }
 
@@ -30,15 +34,26 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
   const speed0 = Math.hypot(car.vx, car.vz);
   const beta0 = speed0 > 1 ? Math.atan2(vLat0, vLong0) : 0;
 
-  // Direction (rampe) + contre-braquage assisté
-  const maxSteer = p.maxSteer / (1 + speed0 * p.steerSpeedReduction);
-  const target = clamp(input.direction, -1, 1) * maxSteer;
-  const ds = p.steerSpeed * dt;
-  car.steerInput += clamp(target - car.steerInput, -ds, ds);
+  // Direction : butée dépendante de la vitesse (relâchée en glisse pour pouvoir contre-braquer), rampe asymétrique
+  const dirIn = clamp(input.direction, -1, 1);
+  const speedRed = 1 / (1 + speed0 * p.steerSpeedReduction);
+  const slideRelax = smoothstep(10 * DEG, 35 * DEG, Math.abs(beta0));
+  const maxSteer = p.maxSteer * lerp(speedRed, 1, slideRelax);
+  const target = dirIn * maxSteer;
+  const cur = car.steerInput;
+  // contre-braquage vers la glisse : même côté que beta (repère voiture, +gauche)
+  const versGlisse = vLong0 > 2 && Math.abs(beta0) > 8 * DEG && target * beta0 > 0;
+  let rate: number;
+  if (target * cur >= 0 && Math.abs(target) < Math.abs(cur)) rate = p.steerReturn;       // retour au centre : rapide
+  else if (target * cur < 0 || versGlisse) rate = p.steerSpeed * p.steerCounter;         // inversion / contre-braquage : vif
+  else rate = p.steerSpeed * (0.4 + 0.6 * (maxSteer / p.maxSteer));                      // entrée : progressive, plus douce à vitesse
+  car.steerInput += clamp(target - cur, -rate * dt, rate * dt);
   let steer = car.steerInput;
   if (as.counterSteer > 0 && vLong0 > 2 && Math.abs(beta0) > as.counterSteerDeadzone) {
     const b0 = clamp(beta0, -1.2, 1.2);
-    steer += as.counterSteer * (b0 - Math.sign(b0) * as.counterSteerDeadzone);
+    // l'aide s'efface si le joueur braque dans la glisse (elle ne doit pas verrouiller la voiture)
+    const oppose = clamp(-dirIn * Math.sign(b0), 0, 1);
+    steer += as.counterSteer * (1 - 0.85 * oppose) * (b0 - Math.sign(b0) * as.counterSteerDeadzone);
   }
   steer = clamp(steer, -p.steerLock, p.steerLock);
   car.steer = steer;
@@ -52,6 +67,10 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
   const throttle = car.reverse ? -input.frein : input.gaz;
   const brake = car.reverse ? input.gaz : input.frein;
   car.throttle = throttle;
+  // Accélérateur lissé (clavier 0/1) : monte doucement, retombe plus vite
+  const tsRate = Math.abs(throttle) > Math.abs(car.throttleSmooth) ? p.throttleRise : p.throttleFall;
+  car.throttleSmooth += clamp(throttle - car.throttleSmooth, -tsRate * dt, tsRate * dt);
+  const drive = car.throttleSmooth;
 
   // Charges par essieu (transfert de masse longitudinal)
   const Fzf = Math.max(0.1 * m * G, (m * G * b) / L - (m * car.ax * p.cgHeight) / L);
@@ -68,11 +87,11 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
 
   // Forces longitudinales
   let Fdrive = 0;
-  if (throttle > 0) {
+  if (drive > 0) {
     const r = clamp(vLong0 / p.maxSpeed, 0, 1);
-    Fdrive = throttle * p.engineForce * (1 - r * r);
-  } else if (throttle < 0 && vLong0 > -8) {
-    Fdrive = throttle * p.engineForce * 0.4;
+    Fdrive = drive * p.engineForce * (1 - r * r);
+  } else if (drive < 0 && vLong0 > -8) {
+    Fdrive = drive * p.engineForce * 0.4;
   }
   let FbrakeF = 0, FbrakeR = 0;
   if (brake > 0 && Math.abs(vLong0) > 0.3) {
@@ -89,8 +108,8 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
   const maxFx = muF * Fzf;
   const frontUse = clamp(Math.abs(FbrakeF) / maxFx, 0, 1);
   const Ffx = clamp(FbrakeF, -maxFx, maxFx);
-  const rearLat = Math.sqrt(Math.max(0.05, 1 - rearUse * rearUse));
-  const frontLat = Math.sqrt(Math.max(0.05, 1 - frontUse * frontUse));
+  const rearLat = Math.max(REAR_LAT_MIN, Math.sqrt(1 - rearUse * rearUse));
+  const frontLat = Math.max(LAT_MIN, Math.sqrt(1 - frontUse * frontUse));
 
   // Forces latérales
   const vAbs = Math.max(Math.abs(vLong0), 0.5);
@@ -127,20 +146,15 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
     if (flatGround && sp1 < 0.3 && input.gaz === 0 && input.frein === 0) { car.vx *= 0.9; car.vz *= 0.9; }
   }
 
-  // Aide : limiteur de tête-à-queue
+  // Amortissement de lacet en travers (frottement des pneus) : adoucit l'entrée/sortie de glisse, sans plafonner
   const vl2 = car.vx * sinH + car.vz * cosH;
   const vt2 = car.vx * cosH - car.vz * sinH;
   const sp2 = Math.hypot(car.vx, car.vz);
   const beta2 = sp2 > 2 ? Math.atan2(vt2, vl2) : 0;
-  if (as.betaMax !== null && as.spinStiffness > 0) {
-    const excess = Math.abs(beta2) - as.betaMax;
-    if (excess > 0) {
-      car.yawRate += Math.sign(beta2) * as.spinStiffness * excess * dt;
-      if (Math.sign(car.yawRate) === -Math.sign(beta2)) car.yawRate *= 1 - Math.min(1, 8 * dt);
-    }
-  }
+  car.yawRate -= car.yawRate * p.yawDamp * smoothstep(15 * DEG, 70 * DEG, Math.abs(beta2)) * dt;
 
-  // Aide Arcade : le bouton Drift vise un angle de dérive et courbe la trajectoire
+  // Aide Arcade : le bouton Drift vise un angle de dérive et courbe la trajectoire.
+  // Autorité bornée (pas de recalage forcé du lacet) et effacée au-delà de la cible : le joueur peut la déborder et partir en tête-à-queue.
   const velAngle = sp2 > 0.5 ? Math.atan2(car.vx, car.vz) : car.heading;
   const pathRate = wrapAngle(velAngle - car.prevVelAngle) / dt;
   car.prevVelAngle = velAngle;
@@ -149,9 +163,13 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
     const dir = dirIn !== 0 ? Math.sign(dirIn) : beta2 !== 0 ? -Math.sign(beta2) : 0;
     const amount = dirIn !== 0 ? Math.abs(dirIn) : 0.6;
     const betaTarget = -dir * as.arcadeBeta * amount;
+    // au-delà de la cible dans le sens de la rotation : l'aide lâche prise (pleine à la cible, nulle à cible + 25°)
+    const over = Math.max(0, Math.abs(beta2) - Math.abs(betaTarget)) * (Math.sign(beta2) === Math.sign(betaTarget) || betaTarget === 0 ? 1 : 0);
+    const authority = 1 - smoothstep(0, 25 * DEG, over);
     const rDesired = pathRate + 3 * (beta2 - betaTarget);
-    car.yawRate += (rDesired - car.yawRate) * Math.min(1, 10 * dt);
-    const turn = dirIn * as.arcadePathRate * dt;
+    const dYaw = clamp((rDesired - car.yawRate) * Math.min(1, 10 * dt) * authority, -as.arcadeYawAccel * dt, as.arcadeYawAccel * dt);
+    car.yawRate += dYaw;
+    const turn = dirIn * as.arcadePathRate * dt * authority;
     const c = Math.cos(turn), s = Math.sin(turn);
     const nvx = car.vx * c + car.vz * s;
     const nvz = car.vz * c - car.vx * s;
@@ -169,7 +187,8 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
     }
   }
 
-  car.yawRate = clamp(car.yawRate, -6, 6);
+  // Borne de sécurité numérique uniquement (jamais atteinte par un vrai tête-à-queue)
+  car.yawRate = clamp(car.yawRate, -12, 12);
 
   // Position
   car.heading = wrapAngle(car.heading + car.yawRate * dt);
@@ -183,7 +202,8 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
   car.vLat = car.vx * c2 - car.vz * s2;
   car.speed = Math.hypot(car.vx, car.vz);
   car.beta = car.speed > 1 ? Math.atan2(car.vLat, car.vLong) : 0;
-  const axNow = clamp((car.vLong - vLong0) / dt, -15, 15);
+  // accélération issue des forces (pas de la dérivée de vLong : la rotation du cap simulerait un freinage et fausserait le transfert de masse)
+  const axNow = clamp(Fx / m, -15, 15);
   car.ax += (axNow - car.ax) * Math.min(1, 8 * dt);
   const slide = clamp((Math.abs(alphaR) - 0.12) / 0.35, 0, 1) * smoothstep(3, 8, car.speed);
   const spin = rearUse > 0.98 && throttle > 0 && car.speed < 15 ? 0.6 : 0;
