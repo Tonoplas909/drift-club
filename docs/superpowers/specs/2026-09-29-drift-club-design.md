@@ -31,7 +31,7 @@ Une seule spec (ce document), **deux plans d'implémentation**, le lot 1 d'abord
 
 ### 3.1 Pile technique
 - **three.js** (seule dépendance d'exécution), **TypeScript**, **Vite** (compilation), **Vitest** (tests).
-- Modèles 3D : packs **Kenney** (Car Kit, Nature Kit), licence CC0, inclus dans le repo.
+- Décor 3D : pack **Kenney Nature Kit**, licence CC0, inclus dans le repo. Voitures : **générées par code** (silhouettes d'inspiration japonaise).
 - Pas de moteur physique externe : physique de voiture maison.
 
 ### 3.2 Principe : simulation séparée du rendu
@@ -119,9 +119,9 @@ Paramètres par voiture : masse, courbe de force moteur, vitesse max, empattemen
 |---|---|
 | **L'Équilibrée** | référence pour débuter, prévisible |
 | **La Légère** | peu puissante, très agile, on la fait décrocher par transfert de masse |
-| **La Muscle** | lourde, beaucoup de couple, décroche au gaz, plus dure à tenir |
+| **La Turbo** | grosse GT, beaucoup de couple, décroche au gaz, plus dure à tenir |
 
-Chacune utilise un modèle Kenney (Car Kit) à la silhouette distincte (choisis à l'implémentation : petite citadine/sportive légère, coupé sport, grosse sportive ou muscle car). Couleur de carrosserie : 8 couleurs au choix.
+Les voitures sont **d'inspiration japonaise** (culture drift), générées par code dans le même style toon, sans nom ni logo de marque : La Légère = petit coupé à hayon des années 80 à phares escamotables (esprit AE86), L'Équilibrée = coupé fastback à petit becquet (esprit Silvia), La Turbo = grosse GT à long capot et grand aileron (esprit Supra / Skyline). Couleur de carrosserie : 8 couleurs au choix.
 
 ### 4.5 Collisions
 - Voiture ≈ **3 cercles** alignés sur son axe (avant, centre, arrière).
@@ -298,7 +298,7 @@ Touches lues par **position physique** (`KeyboardEvent.code`) : AZERTY et QWERTY
 - **Terrain** : couleurs par sommet (herbe claire/foncée par bruit, plus sombre sous la forêt, roche sur les pentes raides).
 - **Ciel** en dégradé + **brouillard** de même teinte.
 - **Ambiances** `jour` et `coucher` : palettes ciel/lumière/brouillard.
-- Modèles Kenney : leurs matériaux sont remplacés par des matériaux toon de même couleur.
+- Décor Kenney : ses matériaux sont remplacés par des matériaux toon de même couleur. Voitures : profil latéral extrudé (caisse, habitacle vitré, passages de roues), détails en blocs (feux, pare-chocs, aileron), roues procédurales.
 
 ### 9.2 Effets
 - Fumée de pneus : particules instanciées, pool fixe.
@@ -396,4 +396,4 @@ Accueil → Éditeur : **Nouveau niveau**, modifier un de **Mes niveaux**, ou **
 - **GitHub Action** à chaque push sur `main` : `npm ci` → `npm test` → `npm run build` → publication sur GitHub Pages. Un test en échec bloque la publication.
 - Vite configuré avec `base: '/drift-club/'`.
 - **Action manuelle de Macalamar** (une fois) : *Settings → Pages → Source : GitHub Actions*.
-- `README.md` en français : présentation, lien de jeu, commandes, modes, crédits (Kenney, CC0). Licence Kenney jointe dans `public/models/`.
+- `README.md` en français : présentation, lien de jeu, commandes, modes, crédits (décor Kenney, CC0). Licence Kenney jointe dans `public/models/`.

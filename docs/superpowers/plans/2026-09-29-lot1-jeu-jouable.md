@@ -6,7 +6,7 @@
 
 **Architecture :** simulation pure et déterministe dans `src/core/` (sans three.js ni DOM), pas fixe de 1/120 s ; rendu three.js dans `src/render/` qui interpole entre deux états ; `src/game/` fait la boucle et le lien ; `src/ui/` les menus HTML/CSS.
 
-**Tech Stack :** TypeScript 5 (strict), Vite 5, Vitest 2, three.js 0.170, modèles Kenney (CC0).
+**Tech Stack :** TypeScript 5 (strict), Vite 5, Vitest 2, three.js 0.170, décor Kenney Nature Kit (CC0), voitures d'inspiration japonaise générées par code.
 
 **Spec :** `docs/superpowers/specs/2026-09-29-drift-club-design.md` (à lire en entier avant toute tâche).
 
@@ -17,7 +17,7 @@
 - `src/core/**` n'importe **jamais** `three`, ni le DOM (`document`, `window`), ni `Math.random`, `Date`, `performance`. Hasard uniquement via `mulberry32` (`src/core/math/rng.ts`).
 - Pas de simulation : `SIM_DT = 1 / 120` (constante dans `src/core/constants.ts`).
 - Unités internes : mètres, secondes, radians. km/h seulement pour l'affichage et les seuils du score.
-- Repère : y vers le haut. Cap `heading` (ψ) : avant = `(sin ψ, cos ψ)` en (x, z) ; gauche = `(cos ψ, −sin ψ)` ; ψ qui augmente = virage à gauche ; three.js : `object.rotation.y = ψ`. Une voiture Kenney regarde vers +z, ses roues gauches sont en +x.
+- Repère : y vers le haut. Cap `heading` (ψ) : avant = `(sin ψ, cos ψ)` en (x, z) ; gauche = `(cos ψ, −sin ψ)` ; ψ qui augmente = virage à gauche ; three.js : `object.rotation.y = ψ`. Les voitures regardent vers +z, leurs roues gauches sont en +x.
 - Braquage `steer` positif = roues vers la gauche. `direction` d'entrée : +1 = gauche, −1 = droite.
 - Dérive `beta` = `atan2(vLat, vLong)` : positive = la vitesse part à gauche du nez.
 - Vite `base: '/drift-club/'` ; les fichiers de `public/` se chargent via `import.meta.env.BASE_URL`.
@@ -54,14 +54,14 @@ src/core/physics/{types,cars,assists,car,collision}.ts
 src/core/scoring/score.ts
 src/core/race/race.ts
 src/storage/store.ts
-src/render/{materials,assets,procedural,palettes,sky,road,terrainMesh,decor,carView,effects,camera,quality,world,showroom}.ts
+src/render/{materials,assets,procedural,jdmCars,palettes,sky,road,terrainMesh,decor,carView,effects,camera,quality,world,showroom}.ts
 src/game/{loop,pose,prepare,hud,session}.ts
 src/input/{keyboard,touch,manager}.ts
 src/audio/audio.ts
 src/ui/{format,couleurs,screens}.ts
 src/debug/panel.ts
 levels/{premiers-virages,foret-des-pins,col-du-loup}.json
-public/models/cars/*.glb + Textures/colormap.png, public/models/nature/*.glb, public/models/LICENCE-kenney.txt
+public/models/nature/*.glb, public/models/LICENCE-kenney.txt   (décor Kenney ; voitures générées par code)
 tests/…                         miroir de src/
 ```
 
@@ -1899,7 +1899,7 @@ git commit -m "Environnement généré : forêt en bosquets, rochers, chevrons, 
 **Interfaces :**
 - Consumes : `InputState` (T1), `Ground` (T5), `clamp`, `lerp`, `smoothstep`, `wrapAngle`, `DEG`, `mulberry32` (T2).
 - Produces :
-  - `type CarId = 'equilibree' | 'legere' | 'muscle'`, `type ModeId = 'arcade' | 'semi' | 'exigeant'`
+  - `type CarId = 'equilibree' | 'legere' | 'turbo'`, `type ModeId = 'arcade' | 'semi' | 'exigeant'`
   - `interface CarParams` (voir code), `interface AssistParams` (voir code)
   - `interface CarState { x; y; z; heading; vx; vz; yawRate; steer; steerInput; ax; beta; speed; vLong; vLat; rearSlip; wheelSpin; rpm; gear; reverse; throttle; prevVelAngle }`
   - `interface StepContext { params: CarParams; assists: AssistParams; ground: Ground; onRoad: boolean }`
@@ -2032,8 +2032,8 @@ describe('voiture : robustesse', () => {
   };
   it('déterministe : mêmes entrées, même état au bit près', () => {
     const a = createCarState(0, 0, 0), b = createCarState(0, 0, 0);
-    run(a, ctxOf('muscle', 'semi'), 20, randomInputs(7));
-    run(b, ctxOf('muscle', 'semi'), 20, randomInputs(7));
+    run(a, ctxOf('turbo', 'semi'), 20, randomInputs(7));
+    run(b, ctxOf('turbo', 'semi'), 20, randomInputs(7));
     expect(a).toEqual(b);
   });
   it('3 voitures × 3 modes, 30 s d’entrées aléatoires : état fini, vitesse bornée', () => {
@@ -2062,14 +2062,12 @@ Run : `npx vitest run tests/core/physics/car.test.ts` → FAIL.
 ```ts
 import type { Ground } from '../track/terrain';
 
-export type CarId = 'equilibree' | 'legere' | 'muscle';
+export type CarId = 'equilibree' | 'legere' | 'turbo';
 export type ModeId = 'arcade' | 'semi' | 'exigeant';
 
 export interface CarParams {
   id: CarId;
   nom: string;
-  /** nom du fichier modèle Kenney (sans .glb) */
-  modele: string;
   mass: number;          // kg
   wheelbase: number;     // m
   cgToFront: number;     // m, centre de gravité → essieu avant
@@ -2141,33 +2139,33 @@ export interface StepContext {
 ```ts
 import type { CarId, CarParams } from './types';
 
-export const CAR_IDS: CarId[] = ['equilibree', 'legere', 'muscle'];
+export const CAR_IDS: CarId[] = ['equilibree', 'legere', 'turbo'];
 
 /** Valeurs de départ, à régler avec le panneau ?debug. */
 export const CARS: Record<CarId, CarParams> = {
   equilibree: {
-    id: 'equilibree', nom: "L'Équilibrée", modele: 'sedan-sports',
+    id: 'equilibree', nom: "L'Équilibrée",
     mass: 1250, wheelbase: 2.6, cgToFront: 1.25, cgHeight: 0.5, gyration: 1.5,
     engineForce: 5200, maxSpeed: 55, brakeForce: 11000, handbrakeForce: 5000,
     dragCoef: 0.42, rollResist: 12, muFront: 1.05, muRear: 1.0, tireB: 8, tireC: 1.5,
     maxSteer: 0.62, steerLock: 0.85, steerSpeed: 3.2, steerSpeedReduction: 0.035,
-    length: 4.3, width: 1.8,
+    length: 4.4, width: 1.74,
   },
   legere: {
-    id: 'legere', nom: 'La Légère', modele: 'hatchback-sports',
+    id: 'legere', nom: 'La Légère',
     mass: 950, wheelbase: 2.45, cgToFront: 1.15, cgHeight: 0.48, gyration: 1.35,
     engineForce: 3800, maxSpeed: 48, brakeForce: 9000, handbrakeForce: 4200,
     dragCoef: 0.38, rollResist: 10, muFront: 1.08, muRear: 0.98, tireB: 9, tireC: 1.5,
     maxSteer: 0.66, steerLock: 0.9, steerSpeed: 3.6, steerSpeedReduction: 0.03,
-    length: 4.0, width: 1.75,
+    length: 4.1, width: 1.68,
   },
-  muscle: {
-    id: 'muscle', nom: 'La Muscle', modele: 'suv-luxury',
+  turbo: {
+    id: 'turbo', nom: 'La Turbo',
     mass: 1650, wheelbase: 2.8, cgToFront: 1.45, cgHeight: 0.62, gyration: 1.65,
     engineForce: 10500, maxSpeed: 58, brakeForce: 14000, handbrakeForce: 6000,
     dragCoef: 0.5, rollResist: 14, muFront: 1.02, muRear: 0.92, tireB: 7, tireC: 1.6,
     maxSteer: 0.58, steerLock: 0.82, steerSpeed: 2.8, steerSpeedReduction: 0.04,
-    length: 4.7, width: 1.95,
+    length: 4.6, width: 1.82,
   },
 };
 ```
@@ -2497,8 +2495,9 @@ describe('collisions', () => {
   });
   it('obstacle à cheval sur deux cases de la grille', () => {
     const world = buildCollisionWorld({ circles: [{ x: 7.9, z: 8.1, r: 1 }], segments: [] });
-    // cercle avant à (length/2 − width/2) = 1,25 m devant le centre ; 0,1 m d'interpénétration
-    const car = createCarState(7.9, 8.1 - 1 - P.width / 2 - 1.25 + 0.1, 0);
+    // cercle avant à (length/2 − width/2) devant le centre ; 0,1 m d'interpénétration
+    const off = P.length / 2 - P.width / 2;
+    const car = createCarState(7.9, 8.1 - 1 - P.width / 2 - off + 0.1, 0);
     car.vz = 5;
     expect(resolveCollisions(car, P, world)).toBeGreaterThan(0);
   });
@@ -3372,7 +3371,7 @@ describe('Store', () => {
   });
   it('aller-retour des réglages', () => {
     const st = new Store(memoryKV());
-    const r = { ...defaultReglages(false), voiture: 'muscle' as const, couleur: '#3a6ff0', volume: 0.3, cameraLoin: true };
+    const r = { ...defaultReglages(false), voiture: 'turbo' as const, couleur: '#3a6ff0', volume: 0.3, cameraLoin: true };
     st.saveReglages(r);
     expect(st.loadReglages(false)).toEqual(r);
   });
@@ -3752,54 +3751,68 @@ git commit -m "Trois niveaux officiels : Premiers virages, Forêt des Pins, Col 
 
 ---
 
-## Tâche 13 : Modèles Kenney, matériaux toon, préparation des modèles
+## Tâche 13 : Voitures JDM générées par code, modèles de décor Kenney, matériaux toon
 
 **Files :**
-- Create : `public/models/**` (copie), `src/render/materials.ts`, `src/render/procedural.ts`, `src/render/assets.ts`
+- Create : `public/models/**` (copie du décor), `src/render/materials.ts`, `src/render/procedural.ts`, `src/render/jdmCars.ts`, `src/render/assets.ts`
 - Test : `tests/render/assets.test.ts`
 
 **Interfaces :**
-- Consumes : `CARS`, `CAR_IDS`, `CarId` (T7), `DecorKind` (T6).
+- Consumes : `CAR_IDS`, `CarId` (T7), `DecorKind` (T6).
 - Produces :
   - `toonGradient(): THREE.DataTexture`, `toonMaterial(opts?: { color?: THREE.ColorRepresentation; vertexColors?: boolean; map?: THREE.Texture | null }): THREE.MeshToonMaterial`
   - `outlineMaterial(width: number, color?: THREE.ColorRepresentation): THREE.MeshBasicMaterial` (coque inversée, extrusion le long de la normale)
   - `outlineGeometry(geo: THREE.BufferGeometry): THREE.BufferGeometry` (normales lissées par position, pour des contours sans trous)
-  - `coloredBox(w, h, d, x, y, z, color): THREE.BufferGeometry`, `borneGeometry()`, `chevronGeometry()`, `barrierGeometry()` (longueur 1 le long de +z), `tireStack(wheel: THREE.BufferGeometry)`
-  - `type Sampler = (u: number, v: number, out: THREE.Color) => void`, `textureSampler(tex: THREE.Texture): Sampler` (DOM)
-  - `bakeMesh(mesh: THREE.Mesh, sampler: Sampler | null, matrix: THREE.Matrix4): THREE.BufferGeometry` → géométrie non indexée avec `position`, `normal`, `color` (linéaire)
+  - `colorize(g: THREE.BufferGeometry, color: THREE.ColorRepresentation): THREE.BufferGeometry`, `coloredBox(w, h, d, x, y, z, color): THREE.BufferGeometry`, `wheelGeometry(r: number, width: number)`, `borneGeometry()`, `chevronGeometry()`, `barrierGeometry()` (longueur 1 le long de +z), `tireStack(wheel: THREE.BufferGeometry)`
+  - `PAINT: THREE.Color` (couleur « sentinelle » de la peinture), `interface CarShape` (voir code), `CAR_SHAPES: Record<CarId, CarShape>`, `bodyProfile(s): [number, number][]`, `cabinProfile(s): [number, number][]`, `extrudeProfile(points, width, color, bevel?): THREE.BufferGeometry`, `buildJdmCar(s: CarShape): CarModel`
+  - `bakeMesh(mesh: THREE.Mesh, matrix: THREE.Matrix4): THREE.BufferGeometry` → géométrie non indexée avec `position`, `normal`, `color` (couleur du matériau, linéaire)
   - `normalizeGeometry(geo, size: number, axis: 'x' | 'y'): THREE.BufferGeometry` (base à y = 0, centrée en x/z, mise à l'échelle)
-  - `dominantColor(geo): THREE.Color`, `paintGeometry(src, paint: THREE.Color, color: THREE.Color): THREE.BufferGeometry`
+  - `paintGeometry(src, paint: THREE.Color, color: THREE.Color): THREE.BufferGeometry`
   - `interface WheelModel { geometry; position: THREE.Vector3; front: boolean; left: boolean }`, `interface CarModel { body: THREE.BufferGeometry; wheels: WheelModel[]; paint: THREE.Color }`
   - `interface Assets { cars: Record<CarId, CarModel>; decor: Record<string, THREE.BufferGeometry> }` — clés de décor : `decorKey(kind, variant)` = `` `${kind}${variant}` `` (`sapin0..2`, `feuillu0..2`, `rocher0..1`, `rocherHaut0`, `panneau0`, `pneus0`, `chevron0`, `borne0`) + `barriere`
   - `decorKey(kind: DecorKind, variant: number): string`
-  - `loadAssets(baseUrl: string, onProgress?: (p: number) => void): Promise<Assets>` (DOM + réseau)
+  - `loadAssets(baseUrl: string, onProgress?: (p: number) => void): Promise<Assets>` (réseau : ne charge que le décor ; les voitures sont construites par code)
 
-Les modèles Kenney regardent vers +z, roues gauches en +x. Les voitures ont des nœuds séparés `body`, `spoiler` (parfois) et `wheel-front-left`, `wheel-front-right`, `wheel-back-left`, `wheel-back-right`. Leur texture est une palette (`Textures/colormap.png`) : on « cuit » la couleur de chaque sommet (lecture de la palette aux UV) pour n'utiliser que des couleurs de sommets avec le matériau toon. Les modèles nature n'ont pas de texture : couleur du matériau.
+**Voitures (choix de Macalamar) :** trois silhouettes d'inspiration japonaise, sans nom ni logo de marque. Chaque voiture est un profil latéral (caisse + habitacle vitré) extrudé sur la largeur, avec passages de roues découpés dans le profil, toit peint, pare-chocs, calandre, feux, rétroviseurs et aileron selon le modèle :
+- **La Légère** : petit coupé à hayon des années 80, phares escamotables (esprit AE86) ;
+- **L'Équilibrée** : coupé fastback, petit becquet (esprit Silvia) ;
+- **La Turbo** : grosse GT, capot long, grand aileron (esprit Supra / Skyline).
 
-- [ ] **Step 1 : copier les modèles dans le projet**
+Les voitures regardent vers +z, roues gauches en +x, axes de roues aux positions de la physique (`cgToFront` et `cgToFront − wheelbase`). La peinture utilise une couleur sentinelle (`PAINT`, magenta) remplacée par la couleur choisie via `paintGeometry`. Les roues sont procédurales (pneu, jante, moyeu et rayons visibles quand elles tournent).
+
+**Décor :** modèles Kenney Nature Kit (sans texture : couleur du matériau), mis à l'échelle en mètres.
+
+- [ ] **Step 1 : copier les modèles de décor dans le projet**
 
 ```bash
 SRC="/c/Users/mdemore/AppData/Local/Temp/claude/C--Users-mdemore-Desktop-proj-drift-club/3052ff09-7a6b-401c-8060-8a3cc2db44d4/scratchpad/kenney"
-mkdir -p public/models/cars/Textures public/models/nature
-for f in sedan-sports hatchback-sports suv-luxury wheel-dark; do cp "$SRC/car/Models/GLB format/$f.glb" public/models/cars/; done
-cp "$SRC/car/Models/GLB format/Textures/colormap.png" public/models/cars/Textures/
+mkdir -p public/models/nature
 for f in tree_pineTallA tree_pineDefaultA tree_pineRoundA tree_default tree_oak tree_fat rock_largeA rock_largeB rock_tallA sign; do cp "$SRC/nature/Models/GLTF format/$f.glb" public/models/nature/; done
-{ echo "Modèles 3D : Kenney (www.kenney.nl) — licence CC0 (domaine public)."; echo; echo "=== Car Kit ==="; cat "$SRC/car/License.txt"; echo; echo "=== Nature Kit ==="; cat "$SRC/nature/License.txt"; } > public/models/LICENCE-kenney.txt
+{ echo "Modèles de décor : Kenney Nature Kit (www.kenney.nl) — licence CC0 (domaine public)."; echo; cat "$SRC/nature/License.txt"; } > public/models/LICENCE-kenney.txt
 ls -R public/models
 ```
-Expected : 4 fichiers dans `cars/`, `cars/Textures/colormap.png`, 10 fichiers dans `nature/`, `LICENCE-kenney.txt`.
+Expected : 10 fichiers `.glb` dans `nature/`, et `LICENCE-kenney.txt`.
 
-- [ ] **Step 2 : écrire les tests** (tout ce qui ne dépend pas du DOM)
+- [ ] **Step 2 : écrire les tests** (rien ici ne dépend du DOM)
 
 `tests/render/assets.test.ts` :
 ```ts
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import { toonGradient, toonMaterial, outlineGeometry, outlineMaterial } from '../../src/render/materials';
-import { coloredBox, borneGeometry, chevronGeometry, barrierGeometry, tireStack } from '../../src/render/procedural';
-import { bakeMesh, normalizeGeometry, dominantColor, paintGeometry, decorKey } from '../../src/render/assets';
+import { coloredBox, wheelGeometry, borneGeometry, chevronGeometry, barrierGeometry, tireStack } from '../../src/render/procedural';
+import { buildJdmCar, CAR_SHAPES, PAINT, bodyProfile } from '../../src/render/jdmCars';
+import { bakeMesh, normalizeGeometry, paintGeometry, decorKey } from '../../src/render/assets';
+import { CARS, CAR_IDS } from '../../src/core/physics/cars';
 
 const finite = (g: THREE.BufferGeometry) => Array.from(g.getAttribute('position').array as Float32Array).every(Number.isFinite);
+const bbox = (g: THREE.BufferGeometry) => { g.computeBoundingBox(); return g.boundingBox!; };
+const countColor = (g: THREE.BufferGeometry, c: THREE.Color) => {
+  const col = g.getAttribute('color');
+  let n = 0;
+  for (let i = 0; i < col.count; i++) if (Math.abs(col.getX(i) - c.r) + Math.abs(col.getY(i) - c.g) + Math.abs(col.getZ(i) - c.b) < 1e-3) n++;
+  return n;
+};
 
 describe('matériaux', () => {
   it('rampe toon 3 tons', () => {
@@ -3816,79 +3829,91 @@ describe('matériaux', () => {
       expect(Math.abs(n.getX(i))).toBeCloseTo(1 / Math.sqrt(3), 4);
       expect(Math.sign(n.getX(i))).toBe(Math.sign(p.getX(i)));
     }
-    const m = outlineMaterial(0.05);
-    expect(m.side).toBe(THREE.BackSide);
+    expect(outlineMaterial(0.05).side).toBe(THREE.BackSide);
   });
 });
 
 describe('géométries procédurales', () => {
-  it('ont des couleurs et des positions finies', () => {
-    for (const g of [coloredBox(1, 2, 3, 0, 0, 0, 0xff0000), borneGeometry(), chevronGeometry(), barrierGeometry()]) {
+  it('ont des couleurs, pas d’UV, des positions finies', () => {
+    for (const g of [coloredBox(1, 2, 3, 0, 0, 0, 0xff0000), wheelGeometry(0.32, 0.24), borneGeometry(), chevronGeometry(), barrierGeometry()]) {
       expect(g.getAttribute('color')).toBeDefined();
       expect(g.getAttribute('uv')).toBeUndefined();
       expect(finite(g)).toBe(true);
     }
   });
-  it('borne ≈ 0,9 m de haut, barrière d’1 m de long sur z', () => {
-    const b = borneGeometry(); b.computeBoundingBox();
-    expect(b.boundingBox!.max.y).toBeGreaterThan(0.85);
-    const r = barrierGeometry(); r.computeBoundingBox();
-    expect(r.boundingBox!.max.z - r.boundingBox!.min.z).toBeCloseTo(1, 2);
+  it('roue : diamètre 2r, axe selon x', () => {
+    const b = bbox(wheelGeometry(0.32, 0.24));
+    expect(b.max.y - b.min.y).toBeGreaterThan(0.6);
+    expect(b.max.y - b.min.y).toBeLessThan(0.66);
+    expect(b.max.x - b.min.x).toBeLessThan(0.35);
   });
-  it('pile de 3 pneus : 3 fois plus haute qu’un pneu couché', () => {
-    const wheel = coloredBox(0.3, 0.75, 0.75, 0, 0, 0, 0x222222);
-    const s = tireStack(wheel); s.computeBoundingBox();
-    expect(s.boundingBox!.max.y - s.boundingBox!.min.y).toBeCloseTo(0.9, 2);
-    expect(s.boundingBox!.min.y).toBeCloseTo(0, 5);
+  it('borne ≈ 0,9 m de haut, barrière d’1 m de long sur z', () => {
+    expect(bbox(borneGeometry()).max.y).toBeGreaterThan(0.85);
+    const r = bbox(barrierGeometry());
+    expect(r.max.z - r.min.z).toBeCloseTo(1, 2);
+  });
+  it('pile de 3 pneus couchés, posée au sol', () => {
+    const b = bbox(tireStack(wheelGeometry(0.375, 0.3)));
+    expect(b.max.y - b.min.y).toBeGreaterThan(0.85);
+    expect(b.max.y - b.min.y).toBeLessThan(1.1);
+    expect(b.min.y).toBeCloseTo(0, 5);
   });
 });
 
-describe('préparation des modèles', () => {
+describe('voitures JDM', () => {
+  for (const id of CAR_IDS) {
+    it(`${id} : dimensions, peinture, roues aux essieux de la physique`, () => {
+      const s = CAR_SHAPES[id];
+      const car = buildJdmCar(s);
+      expect(finite(car.body)).toBe(true);
+      const b = bbox(car.body);
+      expect(b.max.z - b.min.z).toBeGreaterThan(s.length - 0.05);
+      expect(b.max.z - b.min.z).toBeLessThan(s.length + 0.2);
+      expect(b.max.x - b.min.x).toBeLessThan(s.width + 0.1);
+      expect(b.min.y).toBeGreaterThan(0.1);
+      expect(b.max.y).toBeGreaterThan(s.roofY);
+      expect(countColor(car.body, PAINT)).toBeGreaterThan(20);
+      expect(car.wheels.length).toBe(4);
+      const fl = car.wheels.find((w) => w.front && w.left)!;
+      expect(fl.position.z).toBeCloseTo(CARS[id].cgToFront, 5);
+      expect(fl.position.x).toBeGreaterThan(0);
+      const rear = car.wheels.find((w) => !w.front)!;
+      expect(rear.position.z).toBeCloseTo(CARS[id].cgToFront - CARS[id].wheelbase, 5);
+      expect(Math.abs(s.length - CARS[id].length)).toBeLessThan(1e-9);
+    });
+  }
+  it('profil de caisse fermé et fini', () => {
+    const p = bodyProfile(CAR_SHAPES.turbo);
+    expect(p.length).toBeGreaterThan(15);
+    expect(p.every(([z, y]) => Number.isFinite(z) && Number.isFinite(y))).toBe(true);
+  });
+  it('paintGeometry : repeint seulement la peinture, sans toucher l’original', () => {
+    const car = buildJdmCar(CAR_SHAPES.equilibree);
+    const blue = new THREE.Color(0x3a6ff0);
+    const before = countColor(car.body, PAINT);
+    const out = paintGeometry(car.body, PAINT, blue);
+    expect(countColor(out, PAINT)).toBe(0);
+    expect(countColor(out, blue)).toBe(before);
+    expect(countColor(car.body, PAINT)).toBe(before);
+  });
+});
+
+describe('préparation des modèles de décor', () => {
   it('bakeMesh : couleur du matériau et matrice appliquées', () => {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: 0xff0000 }));
-    const g = bakeMesh(mesh, null, new THREE.Matrix4().makeTranslation(0, 5, 0));
+    const g = bakeMesh(mesh, new THREE.Matrix4().makeTranslation(0, 5, 0));
     const c = g.getAttribute('color');
     expect(c.getX(0)).toBeCloseTo(1, 5);
     expect(c.getY(0)).toBeCloseTo(0, 5);
-    g.computeBoundingBox();
-    expect(g.boundingBox!.min.y).toBeCloseTo(4.5, 5);
+    expect(bbox(g).min.y).toBeCloseTo(4.5, 5);
     expect(g.index).toBeNull();
   });
   it('normalizeGeometry : taille visée, base au sol, centrée', () => {
-    const g = normalizeGeometry(new THREE.BoxGeometry(2, 4, 2).translate(10, 3, -7), 8, 'y');
-    g.computeBoundingBox();
-    const bb = g.boundingBox!;
+    const bb = bbox(normalizeGeometry(new THREE.BoxGeometry(2, 4, 2).translate(10, 3, -7), 8, 'y'));
     expect(bb.max.y - bb.min.y).toBeCloseTo(8, 5);
     expect(bb.min.y).toBeCloseTo(0, 5);
     expect((bb.min.x + bb.max.x) / 2).toBeCloseTo(0, 5);
     expect((bb.min.z + bb.max.z) / 2).toBeCloseTo(0, 5);
-  });
-  it('dominantColor et paintGeometry : repeint seulement la couleur de carrosserie', () => {
-    const a = coloredBox(1, 1, 1, 0, 0, 0, 0xff0000);
-    const b = coloredBox(1, 1, 1, 2, 0, 0, 0xff0000);
-    const glass = coloredBox(0.5, 0.5, 0.5, 0, 1, 0, 0x202040);
-    const body = new THREE.BufferGeometry();
-    const parts = [a, b, glass];
-    const count = parts.reduce((s, g) => s + g.getAttribute('position').count, 0);
-    const pos = new Float32Array(count * 3), col = new Float32Array(count * 3), nor = new Float32Array(count * 3);
-    let o = 0;
-    for (const g of parts) {
-      pos.set(g.getAttribute('position').array as Float32Array, o);
-      col.set(g.getAttribute('color').array as Float32Array, o);
-      nor.set(g.getAttribute('normal').array as Float32Array, o);
-      o += g.getAttribute('position').count * 3;
-    }
-    body.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    body.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
-    body.setAttribute('color', new THREE.BufferAttribute(col, 3));
-    const paint = dominantColor(body);
-    expect(paint.r).toBeCloseTo(1, 2);
-    const blue = new THREE.Color(0x0000ff);
-    const out = paintGeometry(body, paint, blue);
-    const c = out.getAttribute('color');
-    expect(c.getZ(0)).toBeCloseTo(blue.b, 5);
-    expect(c.getX(c.count - 1)).toBeCloseTo(new THREE.Color(0x202040).r, 5);
-    expect(body.getAttribute('color').getX(0)).toBeCloseTo(1, 5);
   });
   it('decorKey', () => {
     expect(decorKey('sapin', 2)).toBe('sapin2');
@@ -3898,7 +3923,7 @@ describe('préparation des modèles', () => {
 
 Run : `npx vitest run tests/render/assets.test.ts` → FAIL.
 
-- [ ] **Step 3 : matériaux et géométries procédurales**
+- [ ] **Step 3 : matériaux**
 
 `src/render/materials.ts` :
 ```ts
@@ -3968,22 +3993,28 @@ export function outlineGeometry(src: THREE.BufferGeometry): THREE.BufferGeometry
 }
 ```
 
+- [ ] **Step 4 : géométries procédurales (roues, bornes, chevrons, glissières, pneus)**
+
 `src/render/procedural.ts` :
 ```ts
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
-/** Boîte non indexée avec couleurs de sommets (position, normal, color). */
-export function coloredBox(w: number, h: number, d: number, x: number, y: number, z: number, color: THREE.ColorRepresentation): THREE.BufferGeometry {
-  const g = new THREE.BoxGeometry(w, h, d).toNonIndexed();
-  g.deleteAttribute('uv');
-  g.translate(x, y, z);
+/** Rend la géométrie non indexée, sans UV, avec normales plates et une couleur unie par sommet. */
+export function colorize(g: THREE.BufferGeometry, color: THREE.ColorRepresentation): THREE.BufferGeometry {
+  const out = g.index ? g.toNonIndexed() : g;
+  if (out.getAttribute('uv')) out.deleteAttribute('uv');
+  out.computeVertexNormals();
   const c = new THREE.Color(color);
-  const n = g.getAttribute('position').count;
+  const n = out.getAttribute('position').count;
   const arr = new Float32Array(n * 3);
   for (let i = 0; i < n; i++) { arr[i * 3] = c.r; arr[i * 3 + 1] = c.g; arr[i * 3 + 2] = c.b; }
-  g.setAttribute('color', new THREE.BufferAttribute(arr, 3));
-  return g;
+  out.setAttribute('color', new THREE.BufferAttribute(arr, 3));
+  return out;
+}
+
+export function coloredBox(w: number, h: number, d: number, x: number, y: number, z: number, color: THREE.ColorRepresentation): THREE.BufferGeometry {
+  return colorize(new THREE.BoxGeometry(w, h, d).translate(x, y, z), color);
 }
 
 const merge = (parts: THREE.BufferGeometry[]): THREE.BufferGeometry => {
@@ -3991,6 +4022,15 @@ const merge = (parts: THREE.BufferGeometry[]): THREE.BufferGeometry => {
   if (!g) throw new Error('fusion de géométries impossible');
   return g;
 };
+
+/** Roue centrée sur l'origine, axe selon x : pneu, jante, moyeu et 3 rayons (6 branches) visibles en rotation. */
+export function wheelGeometry(r: number, width: number): THREE.BufferGeometry {
+  const cyl = (radius: number, len: number, seg: number, color: number) =>
+    colorize(new THREE.CylinderGeometry(radius, radius, len, seg, 1).rotateZ(Math.PI / 2), color);
+  const parts = [cyl(r, width, 14, 0x1d1d24), cyl(r * 0.62, width + 0.02, 10, 0xc9ced6), cyl(r * 0.2, width + 0.05, 6, 0x6b6f7a)];
+  for (let k = 0; k < 3; k++) parts.push(coloredBox(width + 0.03, r * 1.12, 0.06, 0, 0, 0, 0x8a8f99).rotateX((k * Math.PI) / 3));
+  return merge(parts);
+}
 
 /** Borne de bord de route : poteau blanc à bande rouge. */
 export function borneGeometry(): THREE.BufferGeometry {
@@ -4030,19 +4070,164 @@ export function tireStack(wheel: THREE.BufferGeometry): THREE.BufferGeometry {
 }
 ```
 
-- [ ] **Step 4 : chargement et préparation des modèles**
+- [ ] **Step 5 : les voitures JDM**
+
+Profil latéral dans le plan (z = avant, y = hauteur), extrudé le long de x. `ExtrudeGeometry` extrude selon +z ; après `rotateY(−π/2)`, le x du profil devient le z du monde et l'extrusion devient l'axe x.
+
+`src/render/jdmCars.ts` :
+```ts
+import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import type { CarId } from '../core/physics/types';
+import { colorize, coloredBox, wheelGeometry } from './procedural';
+import type { CarModel, WheelModel } from './assets';
+
+/** Couleur « sentinelle » de la peinture, remplacée par la couleur choisie (paintGeometry). */
+export const PAINT = new THREE.Color(1, 0, 1);
+const GLASS = 0x28303f;
+const TRIM = 0x1d1d24;
+const LIGHT_FRONT = 0xfff4c2;
+const LIGHT_REAR = 0xd9302a;
+const POPUP = 0xdfe3ea;
+
+/** Silhouette d'une voiture (m). z = 0 au centre de gravité, avant vers +z. */
+export interface CarShape {
+  length: number;
+  width: number;
+  groundClear: number;
+  wheelR: number;
+  frontAxle: number;
+  rearAxle: number;
+  noseY: number;
+  hoodFrontY: number;
+  cowlZ: number;
+  cowlY: number;
+  deckZ: number;
+  deckY: number;
+  tailY: number;
+  roofFrontZ: number;
+  roofRearZ: number;
+  roofY: number;
+  aileron: 'aucun' | 'petit' | 'grand';
+  phares: 'escamotables' | 'fixes';
+}
+
+/** Longueurs et essieux alignés sur la physique (CARS : length, cgToFront, cgToFront − wheelbase). */
+export const CAR_SHAPES: Record<CarId, CarShape> = {
+  legere: {
+    length: 4.1, width: 1.68, groundClear: 0.24, wheelR: 0.31, frontAxle: 1.15, rearAxle: -1.3,
+    noseY: 0.4, hoodFrontY: 0.58, cowlZ: 0.62, cowlY: 0.76, deckZ: -1.85, deckY: 0.8, tailY: 0.78,
+    roofFrontZ: 0.02, roofRearZ: -1.05, roofY: 1.24, aileron: 'aucun', phares: 'escamotables',
+  },
+  equilibree: {
+    length: 4.4, width: 1.74, groundClear: 0.25, wheelR: 0.32, frontAxle: 1.25, rearAxle: -1.35,
+    noseY: 0.42, hoodFrontY: 0.62, cowlZ: 0.72, cowlY: 0.8, deckZ: -1.45, deckY: 0.84, tailY: 0.8,
+    roofFrontZ: 0.05, roofRearZ: -0.6, roofY: 1.22, aileron: 'petit', phares: 'fixes',
+  },
+  turbo: {
+    length: 4.6, width: 1.82, groundClear: 0.24, wheelR: 0.34, frontAxle: 1.45, rearAxle: -1.35,
+    noseY: 0.42, hoodFrontY: 0.64, cowlZ: 0.55, cowlY: 0.84, deckZ: -1.55, deckY: 0.88, tailY: 0.86,
+    roofFrontZ: -0.12, roofRearZ: -0.75, roofY: 1.24, aileron: 'grand', phares: 'fixes',
+  },
+};
+
+function arch(cz: number, y0: number, r: number, n = 6): [number, number][] {
+  const pts: [number, number][] = [];
+  for (let i = 0; i <= n; i++) {
+    const a = Math.PI * (1 - i / n);
+    pts.push([cz + r * Math.cos(a), y0 + r * Math.sin(a)]);
+  }
+  return pts;
+}
+
+/** Contour de la caisse : dessous (avec passages de roues), nez, capot, ligne de caisse, arrière. */
+export function bodyProfile(s: CarShape): [number, number][] {
+  const h = s.length / 2, y0 = s.groundClear, ar = s.wheelR + 0.09;
+  return [
+    [-h + 0.08, y0],
+    ...arch(s.rearAxle, y0, ar),
+    ...arch(s.frontAxle, y0, ar),
+    [h - 0.08, y0 + 0.03],
+    [h, s.noseY],
+    [h - 0.03, s.hoodFrontY],
+    [h - 0.25, s.hoodFrontY + 0.04],
+    [s.cowlZ, s.cowlY],
+    [s.deckZ, s.deckY],
+    [-h + 0.15, s.deckY],
+    [-h, s.tailY],
+    [-h, y0 + 0.15],
+  ];
+}
+
+/** Habitacle vitré : pare-brise, toit, lunette. */
+export function cabinProfile(s: CarShape): [number, number][] {
+  return [[s.cowlZ, s.cowlY], [s.roofFrontZ, s.roofY], [s.roofRearZ, s.roofY], [s.deckZ, s.deckY + 0.02]];
+}
+
+/** Extrude un profil (z, y) sur la largeur `width` (centrée sur x = 0), arêtes chanfreinées. */
+export function extrudeProfile(points: [number, number][], width: number, color: THREE.ColorRepresentation, bevel = 0.04): THREE.BufferGeometry {
+  const shape = new THREE.Shape(points.map(([z, y]) => new THREE.Vector2(z, y)));
+  const depth = Math.max(0.01, width - 2 * bevel);
+  const g = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 1, curveSegments: 1 });
+  g.translate(0, 0, -depth / 2);
+  g.rotateY(-Math.PI / 2);
+  return colorize(g, color);
+}
+
+export function buildJdmCar(s: CarShape): CarModel {
+  const w = s.width, h = s.length / 2, cw = w - 0.3;
+  const both = (f: (side: number) => THREE.BufferGeometry) => [f(1), f(-1)];
+  const parts: THREE.BufferGeometry[] = [
+    extrudeProfile(bodyProfile(s), w, PAINT, 0.04),
+    extrudeProfile(cabinProfile(s), cw, GLASS, 0.03),
+    coloredBox(cw - 0.02, 0.05, s.roofFrontZ - s.roofRearZ + 0.08, 0, s.roofY + 0.03, (s.roofFrontZ + s.roofRearZ) / 2, PAINT),
+    coloredBox(w - 0.1, 0.1, 0.14, 0, s.groundClear + 0.05, h - 0.02, TRIM),
+    coloredBox(w - 0.1, 0.1, 0.14, 0, s.groundClear + 0.05, -h + 0.02, TRIM),
+    coloredBox(0.7, 0.08, 0.04, 0, s.noseY + 0.02, h + 0.02, TRIM),
+    ...both((side) => coloredBox(0.4, 0.1, 0.04, side * (w / 2 - 0.3), s.tailY - 0.14, -h - 0.02, LIGHT_REAR)),
+    ...both((side) => coloredBox(0.12, 0.08, 0.14, side * (cw / 2 + 0.06), s.cowlY + 0.1, s.cowlZ - 0.2, PAINT)),
+  ];
+  if (s.phares === 'escamotables') {
+    parts.push(...both((side) => coloredBox(0.36, 0.04, 0.22, side * (w / 2 - 0.32), s.hoodFrontY + 0.03, h - 0.3, POPUP)));
+  } else {
+    parts.push(...both((side) => coloredBox(0.34, 0.1, 0.04, side * (w / 2 - 0.3), s.noseY + 0.12, h + 0.02, LIGHT_FRONT)));
+  }
+  if (s.aileron === 'petit') parts.push(coloredBox(w - 0.3, 0.05, 0.2, 0, s.deckY + 0.04, -h + 0.22, PAINT));
+  if (s.aileron === 'grand') {
+    parts.push(
+      ...both((side) => coloredBox(0.06, 0.3, 0.12, side * 0.55, s.deckY + 0.15, -h + 0.3, TRIM)),
+      coloredBox(w - 0.1, 0.06, 0.4, 0, s.deckY + 0.32, -h + 0.28, PAINT),
+      ...both((side) => coloredBox(0.04, 0.18, 0.42, side * (w / 2 - 0.05), s.deckY + 0.3, -h + 0.28, TRIM)),
+    );
+  }
+  const body = mergeGeometries(parts);
+  if (!body) throw new Error('carrosserie impossible à assembler');
+  body.computeBoundingSphere();
+
+  const wheel = wheelGeometry(s.wheelR, 0.24);
+  const wx = w / 2 - 0.12;
+  const wheels: WheelModel[] = [];
+  for (const [z, front] of [[s.frontAxle, true], [s.rearAxle, false]] as const) {
+    for (const side of [1, -1]) {
+      wheels.push({ geometry: wheel, position: new THREE.Vector3(side * wx, s.wheelR, z), front, left: side > 0 });
+    }
+  }
+  return { body, wheels, paint: PAINT.clone() };
+}
+```
+
+- [ ] **Step 6 : chargement du décor et assemblage**
 
 `src/render/assets.ts` :
 ```ts
 import * as THREE from 'three';
-import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { CarId } from '../core/physics/types';
 import type { DecorKind } from '../core/env/types';
-import { CARS, CAR_IDS } from '../core/physics/cars';
-import { borneGeometry, chevronGeometry, barrierGeometry, tireStack } from './procedural';
-
-export type Sampler = (u: number, v: number, out: THREE.Color) => void;
+import { CAR_IDS } from '../core/physics/cars';
+import { borneGeometry, chevronGeometry, barrierGeometry, tireStack, wheelGeometry } from './procedural';
+import { buildJdmCar, CAR_SHAPES } from './jdmCars';
 
 export interface WheelModel { geometry: THREE.BufferGeometry; position: THREE.Vector3; front: boolean; left: boolean }
 export interface CarModel { body: THREE.BufferGeometry; wheels: WheelModel[]; paint: THREE.Color }
@@ -4050,7 +4235,7 @@ export interface Assets { cars: Record<CarId, CarModel>; decor: Record<string, T
 
 export const decorKey = (kind: DecorKind, variant: number): string => `${kind}${variant}`;
 
-/** Modèles de décor : fichier, taille visée (m) et axe mesuré. */
+/** Modèles de décor Kenney : fichier, taille visée (m) et axe mesuré. */
 export const DECOR_FILES: Record<string, { file: string; size: number; axis: 'x' | 'y' }> = {
   sapin0: { file: 'nature/tree_pineTallA.glb', size: 11, axis: 'y' },
   sapin1: { file: 'nature/tree_pineDefaultA.glb', size: 10, axis: 'y' },
@@ -4062,50 +4247,22 @@ export const DECOR_FILES: Record<string, { file: string; size: number; axis: 'x'
   rocher1: { file: 'nature/rock_largeB.glb', size: 3.2, axis: 'x' },
   rocherHaut0: { file: 'nature/rock_tallA.glb', size: 3.5, axis: 'y' },
   panneau0: { file: 'nature/sign.glb', size: 1.8, axis: 'y' },
-  pneus0: { file: 'cars/wheel-dark.glb', size: 0.75, axis: 'y' },
 };
 
-/** Lit la palette d'une texture (DOM). UV (0,0) = coin haut gauche (glTF, flipY = false). */
-export function textureSampler(tex: THREE.Texture): Sampler {
-  const img = tex.image as CanvasImageSource & { width: number; height: number };
-  const canvas = document.createElement('canvas');
-  canvas.width = img.width;
-  canvas.height = img.height;
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  if (!ctx) throw new Error('canvas 2D indisponible');
-  ctx.drawImage(img, 0, 0);
-  const data = ctx.getImageData(0, 0, img.width, img.height).data;
-  return (u, v, out) => {
-    const uu = u - Math.floor(u), vv = v - Math.floor(v);
-    const x = Math.min(img.width - 1, Math.floor(uu * img.width));
-    const y = Math.min(img.height - 1, Math.floor(vv * img.height));
-    const o = (y * img.width + x) * 4;
-    out.setRGB(data[o] / 255, data[o + 1] / 255, data[o + 2] / 255, THREE.SRGBColorSpace);
-  };
-}
-
-/** Géométrie non indexée (position, normal, color) transformée par `matrix`. */
-export function bakeMesh(mesh: THREE.Mesh, sampler: Sampler | null, matrix: THREE.Matrix4): THREE.BufferGeometry {
+/** Géométrie non indexée (position, normal, color) transformée par `matrix` ; couleur = couleur du matériau. */
+export function bakeMesh(mesh: THREE.Mesh, matrix: THREE.Matrix4): THREE.BufferGeometry {
   let geo = mesh.geometry.clone();
   if (geo.index) geo = geo.toNonIndexed();
   geo.applyMatrix4(matrix);
+  if (!geo.getAttribute('normal')) geo.computeVertexNormals();
   const mat = (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material) as THREE.MeshStandardMaterial;
   const pos = geo.getAttribute('position');
-  const uv = geo.getAttribute('uv');
   const colors = new Float32Array(pos.count * 3);
-  const c = new THREE.Color();
   for (let i = 0; i < pos.count; i++) {
-    if (sampler && mat.map && uv) {
-      sampler(uv.getX(i), uv.getY(i), c);
-      c.multiply(mat.color);
-    } else {
-      c.copy(mat.color);
-    }
-    colors[i * 3] = c.r; colors[i * 3 + 1] = c.g; colors[i * 3 + 2] = c.b;
+    colors[i * 3] = mat.color.r; colors[i * 3 + 1] = mat.color.g; colors[i * 3 + 2] = mat.color.b;
   }
   const out = new THREE.BufferGeometry();
   out.setAttribute('position', pos);
-  if (!geo.getAttribute('normal')) geo.computeVertexNormals();
   out.setAttribute('normal', geo.getAttribute('normal'));
   out.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   return out;
@@ -4123,22 +4280,6 @@ export function normalizeGeometry(geo: THREE.BufferGeometry, size: number, axis:
   return geo;
 }
 
-/** Couleur la plus fréquente (quantifiée) : la peinture de carrosserie. */
-export function dominantColor(geo: THREE.BufferGeometry): THREE.Color {
-  const col = geo.getAttribute('color');
-  const counts = new Map<string, { n: number; r: number; g: number; b: number }>();
-  for (let i = 0; i < col.count; i++) {
-    const r = col.getX(i), g = col.getY(i), b = col.getZ(i);
-    const k = `${Math.round(r * 32)},${Math.round(g * 32)},${Math.round(b * 32)}`;
-    const e = counts.get(k) ?? { n: 0, r, g, b };
-    e.n++;
-    counts.set(k, e);
-  }
-  let best = { n: -1, r: 1, g: 1, b: 1 };
-  for (const e of counts.values()) if (e.n > best.n) best = e;
-  return new THREE.Color(best.r, best.g, best.b);
-}
-
 /** Copie de la carrosserie où la couleur `paint` est remplacée par `color`. */
 export function paintGeometry(src: THREE.BufferGeometry, paint: THREE.Color, color: THREE.Color): THREE.BufferGeometry {
   const geo = src.clone();
@@ -4151,100 +4292,47 @@ export function paintGeometry(src: THREE.BufferGeometry, paint: THREE.Color, col
   return geo;
 }
 
-function meshName(o: THREE.Object3D): string {
-  return `${o.name} ${o.parent?.name ?? ''}`;
-}
-
-function bakeScene(scene: THREE.Object3D, sampler: Sampler | null): THREE.BufferGeometry {
+function bakeScene(scene: THREE.Object3D): THREE.BufferGeometry {
   scene.updateMatrixWorld(true);
   const parts: THREE.BufferGeometry[] = [];
   scene.traverse((o) => {
     const mesh = o as THREE.Mesh;
-    if (mesh.isMesh) parts.push(bakeMesh(mesh, sampler, mesh.matrixWorld));
+    if (mesh.isMesh) parts.push(bakeMesh(mesh, mesh.matrixWorld));
   });
   const g = mergeGeometries(parts);
   if (!g) throw new Error('modèle vide');
   return g;
 }
 
-function bakeCar(gltf: GLTF, sampler: Sampler | null, length: number): CarModel {
-  const scene = gltf.scene;
-  scene.updateMatrixWorld(true);
-  const box = new THREE.Box3().setFromObject(scene);
-  const s = length / (box.max.z - box.min.z);
-  const scaleM = new THREE.Matrix4().makeScale(s, s, s);
-  const lift = -box.min.y * s;
-  const bodyParts: THREE.BufferGeometry[] = [];
-  const wheels: WheelModel[] = [];
-  scene.traverse((o) => {
-    const mesh = o as THREE.Mesh;
-    if (!mesh.isMesh) return;
-    const geo = bakeMesh(mesh, sampler, new THREE.Matrix4().multiplyMatrices(scaleM, mesh.matrixWorld));
-    geo.translate(0, lift, 0);
-    if (/wheel/i.test(meshName(mesh))) {
-      geo.computeBoundingBox();
-      const center = new THREE.Vector3();
-      geo.boundingBox!.getCenter(center);
-      geo.translate(-center.x, -center.y, -center.z);
-      wheels.push({ geometry: geo, position: center, front: center.z > 0, left: center.x > 0 });
-    } else {
-      bodyParts.push(geo);
-    }
-  });
-  const body = mergeGeometries(bodyParts);
-  if (!body) throw new Error('carrosserie introuvable');
-  body.computeBoundingSphere();
-  return { body, wheels, paint: dominantColor(body) };
-}
-
-function findSampler(gltf: GLTF): Sampler | null {
-  let tex: THREE.Texture | null = null;
-  gltf.scene.traverse((o) => {
-    const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
-    if (!tex && m && m.map) tex = m.map;
-  });
-  return tex ? textureSampler(tex) : null;
-}
-
-/** Charge et prépare tous les modèles. `baseUrl` se termine par « / » (ex. `${import.meta.env.BASE_URL}models/`). */
+/** Construit les voitures et charge le décor. `baseUrl` se termine par « / » (ex. `${import.meta.env.BASE_URL}models/`). */
 export async function loadAssets(baseUrl: string, onProgress?: (p: number) => void): Promise<Assets> {
   const loader = new GLTFLoader();
   const entries = Object.entries(DECOR_FILES);
-  const total = CAR_IDS.length + entries.length;
   let done = 0;
-  const tick = () => onProgress?.(++done / total);
-
-  const carList = await Promise.all(CAR_IDS.map(async (id) => {
-    const gltf = await loader.loadAsync(`${baseUrl}cars/${CARS[id].modele}.glb`);
-    const model = bakeCar(gltf, findSampler(gltf), CARS[id].length);
-    tick();
-    return [id, model] as const;
-  }));
   const decorList = await Promise.all(entries.map(async ([key, def]) => {
     const gltf = await loader.loadAsync(baseUrl + def.file);
-    let geo = normalizeGeometry(bakeScene(gltf.scene, findSampler(gltf)), def.size, def.axis);
-    if (key === 'pneus0') geo = tireStack(geo);
-    tick();
+    const geo = normalizeGeometry(bakeScene(gltf.scene), def.size, def.axis);
+    onProgress?.(++done / entries.length);
     return [key, geo] as const;
   }));
-
-  const cars = Object.fromEntries(carList) as Record<CarId, CarModel>;
   const decor: Record<string, THREE.BufferGeometry> = Object.fromEntries(decorList);
+  decor.pneus0 = tireStack(wheelGeometry(0.375, 0.3));
   decor.chevron0 = chevronGeometry();
   decor.borne0 = borneGeometry();
   decor.barriere = barrierGeometry();
   for (const g of Object.values(decor)) g.computeBoundingSphere();
+  const cars = Object.fromEntries(CAR_IDS.map((id) => [id, buildJdmCar(CAR_SHAPES[id])])) as Record<CarId, CarModel>;
   return { cars, decor };
 }
 ```
 
-- [ ] **Step 5 : vérifier** — `npx vitest run tests/render/assets.test.ts` → PASS ; `npx tsc --noEmit` → OK. (Le chargement réel des modèles sera vérifié dans le navigateur par le contrôleur après la Tâche 19.)
+- [ ] **Step 7 : vérifier** — `npx vitest run tests/render/assets.test.ts` → PASS ; `npx tsc --noEmit` → OK. (L'allure des voitures sera vérifiée dans le navigateur par le contrôleur après la Tâche 19 ; il pourra retoucher `CAR_SHAPES`.)
 
-- [ ] **Step 6 : commit**
+- [ ] **Step 8 : commit**
 
 ```bash
-git add public/models src/render/materials.ts src/render/procedural.ts src/render/assets.ts tests/render/assets.test.ts
-git commit -m "Modèles Kenney, matériaux toon avec contours et préparation des modèles"
+git add public/models src/render/materials.ts src/render/procedural.ts src/render/jdmCars.ts src/render/assets.ts tests/render/assets.test.ts
+git commit -m "Voitures JDM générées par code, décor Kenney, matériaux toon avec contours"
 ```
 
 ---
@@ -4857,7 +4945,7 @@ const carModel = (): CarModel => ({
   paint: new THREE.Color(0xff0000),
 });
 const fakeAssets = (): Assets => ({
-  cars: { equilibree: carModel(), legere: carModel(), muscle: carModel() },
+  cars: { equilibree: carModel(), legere: carModel(), turbo: carModel() },
   decor: { sapin0: box(), sapin1: box(), sapin2: box(), feuillu0: box(), feuillu1: box(), feuillu2: box(), rocher0: box(), rocher1: box(), rocherHaut0: box(), panneau0: box(), pneus0: box(), chevron0: box(), borne0: box(), barriere: box() },
 });
 
@@ -6898,9 +6986,9 @@ export function h<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Attrs = 
 }
 
 const DESCRIPTIONS_VOITURES: Record<CarId, string> = {
-  equilibree: 'Prévisible, pour débuter.',
-  legere: 'Agile, on la fait glisser par le poids.',
-  muscle: 'Lourde et puissante, décroche au gaz.',
+  equilibree: 'Coupé fastback prévisible, pour débuter.',
+  legere: 'Petit coupé des années 80, agile : on la fait glisser par le poids.',
+  turbo: 'Grosse GT turbo, puissante : décroche au moindre coup de gaz.',
 };
 
 const DESCRIPTIONS_MODES: Record<ModeId, string> = {
@@ -7649,7 +7737,7 @@ Jeu de drift en 3D dans le navigateur : enchaîne les drifts sur des routes de m
 | **Semi-arcade** | On lance le drift soi-même (frein à main, coup de gaz), contre-braquage aidé. |
 | **Exigeant** | Aucune aide. |
 
-Trois voitures : **L'Équilibrée** (pour débuter), **La Légère** (agile) et **La Muscle** (puissante). Les records sont enregistrés par niveau et par mode.
+Trois voitures : **L'Équilibrée** (pour débuter), **La Légère** (agile) et **La Turbo** (puissante). Les records sont enregistrés par niveau et par mode.
 
 ## Commandes
 
@@ -7681,7 +7769,7 @@ Chaque push sur `main` lance les tests puis publie le jeu sur GitHub Pages (Sett
 
 ## Crédits
 
-Modèles 3D : [Kenney](https://www.kenney.nl) (Car Kit, Nature Kit), licence CC0 — voir `public/models/LICENCE-kenney.txt`.
+Décor 3D : [Kenney](https://www.kenney.nl) (Nature Kit), licence CC0 — voir `public/models/LICENCE-kenney.txt`. Les voitures, d'inspiration japonaise, sont générées par le code du jeu.
 ````
 
 - [ ] **Step 2 : vérification finale**
