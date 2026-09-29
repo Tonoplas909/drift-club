@@ -1,4 +1,4 @@
 import './styles.css';
-import { startApp } from './app';
+import { App } from './app';
 
-void startApp();
+void new App().start();
