@@ -5,8 +5,8 @@ import { Terrain } from '../src/core/track/terrain';
 import { generateEnvironment } from '../src/core/env/generate';
 
 describe('niveaux officiels', () => {
-  it('trois niveaux dans le bon ordre, identifiants uniques', () => {
-    expect(NIVEAUX_OFFICIELS.map((n) => n.id)).toEqual(['premiers-virages', 'foret-des-pins', 'col-du-loup']);
+  it('cinq niveaux dans le bon ordre, identifiants uniques', () => {
+    expect(NIVEAUX_OFFICIELS.map((n) => n.id)).toEqual(['premiers-virages', 'foret-des-pins', 'col-du-loup', 'lacets-du-belvedere', 'vallee-des-cretes']);
     expect(cleNiveauOfficiel('col-du-loup')).toBe('off:col-du-loup');
   });
   for (const n of NIVEAUX_OFFICIELS) {
@@ -20,7 +20,7 @@ describe('niveaux officiels', () => {
       const terrain = new Terrain(r.track, r.level.decor.graine);
       const env = generateEnvironment(r.level, r.track, terrain);
       expect(env.items.length).toBeGreaterThan(300);
-      if (n.id === 'col-du-loup') expect(env.segments.length).toBeGreaterThan(0);
+      if (['col-du-loup', 'lacets-du-belvedere', 'vallee-des-cretes'].includes(n.id)) expect(env.segments.length).toBeGreaterThan(0);
     });
   }
 });
