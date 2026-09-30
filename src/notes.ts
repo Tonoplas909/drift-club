@@ -13,6 +13,17 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.3.6',
+    date: '30/09/2026',
+    titre: 'Livrées et clés liées à ton compte',
+    notes: [
+      'Connecté, tes livrées débloquées et tes clés sont enregistrées dans ton compte : tu les retrouves sur tous tes appareils.',
+      'À la première connexion, la progression de cet appareil est ajoutée à ton compte (une seule fois, 30 clés au plus).',
+      'Les caisses sont tirées par le serveur et les clés gagnées en fin de course sont créditées par le serveur.',
+      'Sans compte, tout fonctionne comme avant, avec une progression propre à ton navigateur.',
+    ],
+  },
+  {
     version: '0.3.5',
     date: '30/09/2026',
     titre: 'Plus de 100 livrées',
