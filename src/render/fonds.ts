@@ -89,8 +89,11 @@ export function buildIles(track: TrackData, p: Palette, seed: number, niveau: nu
   // galion : à l'écart des îles, cap tangent à l'anneau
   const as = rng() * Math.PI * 2, rs = c.R + 90;
   const teinte = (hex: number, k: number): THREE.Color => new THREE.Color(hex).lerp(c.fog, hex === 0xe9dfc4 ? 0.3 : 0.42).multiplyScalar(k);
-  parts.push(...galion(teinte, new THREE.Vector3(c.cx + Math.sin(as) * rs, mer - 2.5, c.cz + Math.cos(as) * rs), 1.7, as + Math.PI / 2 + 0.25));
-  return finir(parts);
+  const pos = new THREE.Vector3(c.cx + Math.sin(as) * rs, mer - 2.5, c.cz + Math.cos(as) * rs);
+  parts.push(...galion(teinte, pos, 2.4, as + 0.7));
+  const mesh = finir(parts);
+  mesh.userData.galion = { x: pos.x, y: pos.y, z: pos.z };
+  return mesh;
 }
 
 /** Panneaux de murs sans fin : deux rangs de grands panneaux beiges (bande sombre en bas, liseré clair en haut). */

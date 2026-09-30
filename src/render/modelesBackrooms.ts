@@ -1,12 +1,19 @@
 import * as THREE from 'three';
 import type { Ambiance } from '../core/level/types';
-import { barre, boiteRot, coloredBox, lumineux, merge, tube, type Part } from './formes';
+import { barre, boiteRot, coloredBox, colorize, lumineux, merge, tube, type Part } from './formes';
 import { outlineGeometry } from './materials';
 
 /**
  * Modèles du thème « backrooms » : cloisons en papier peint jaune rayé, piliers, lampadaires à néon, dalles lumineuses
  * suspendues, portes isolées, cartons. Le contour n'est tracé que sur le corps des murs (pas sur les rayures).
  */
+
+/** Rayure : un simple quad (2 triangles) plaqué sur une face, tourné vers ±x (`axe` 'x') ou ±z ('z'), `sens` = ±1. */
+function rayure(l: number, h: number, axe: 'x' | 'z', sens: number, x: number, y: number, z: number, color: number): Part {
+  const g = new THREE.PlaneGeometry(l, h);
+  if (axe === 'x') g.rotateY(sens * Math.PI / 2); else if (sens < 0) g.rotateY(Math.PI);
+  return colorize(g.translate(x, y, z), color);
+}
 
 const PAPIER = 0xd8c35a, RAYURE = 0xc4ad40, PLINTHE = 0x7d6b2c, MOULURE = 0xb59e3c, SOMBRE = 0x4a3a20, GRIS = 0x8a8a84;
 
@@ -22,7 +29,7 @@ function panneau(longueur: number, hauteur: number, porte: boolean): Part {
   const n = Math.floor(longueur / 0.5);
   for (let i = 0; i < n; i++) {
     const z = -longueur / 2 + (i + 0.5) * (longueur / n);
-    for (const s of [-1, 1]) details.push(coloredBox(0.03, hauteur - 0.6, 0.2, s * (e / 2 + 0.005), 0.3 + (hauteur - 0.6) / 2, z, RAYURE));
+    for (const s of [-1, 1]) details.push(rayure(0.2, hauteur - 0.6, 'x', s, s * (e / 2 + 0.005), 0.3 + (hauteur - 0.6) / 2, z, RAYURE));
   }
   if (porte) {
     for (const s of [-1, 1]) {
@@ -46,8 +53,8 @@ function pilier(): Part {
   ];
   const d: Part[] = [];
   for (const o of [-0.25, 0.25]) for (const s of [-1, 1]) {
-    d.push(coloredBox(0.22, H - 0.6, 0.03, o, 0.3 + (H - 0.6) / 2, s * 0.505, RAYURE));
-    d.push(coloredBox(0.03, H - 0.6, 0.22, s * 0.505, 0.3 + (H - 0.6) / 2, o, RAYURE));
+    d.push(rayure(0.22, H - 0.6, 'z', s, o, 0.3 + (H - 0.6) / 2, s * 0.505, RAYURE));
+    d.push(rayure(0.22, H - 0.6, 'x', s, s * 0.505, 0.3 + (H - 0.6) / 2, o, RAYURE));
   }
   const g = merge([...corps, ...d]);
   g.userData.contour = outlineGeometry(merge(corps));

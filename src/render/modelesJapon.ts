@@ -15,24 +15,25 @@ const ECORCE = 0x5a3d33, ROUGE = 0xd6382b, NOIR = 0x22201f, PIERRE = 0xa9a8a4, P
 export function cerisierGeometry(variant: number): Part {
   const rng = mulberry32(300 + variant);
   const parts: Part[] = [];
-  const touffe = (r: number, x: number, y: number, z: number, sy = 0.85): void => {
-    parts.push(blob(r, 1, sy, 1, x, y, z, ROSES[Math.floor(rng() * ROSES.length)], 1));
+  // touffes : icosaèdres (20 faces) aplatis, le plus gros seul en 80 faces ; le décor compte des milliers de cerisiers
+  const touffe = (r: number, x: number, y: number, z: number, sy = 0.85, detail = 0): void => {
+    parts.push(blob(r, 1, sy, 1, x, y, z, ROSES[Math.floor(rng() * ROSES.length)], detail));
   };
   if (variant === 0) {
-    parts.push(barre([0, -0.3, 0], [0.15, 1.9, 0.05], 0.26, ECORCE, 6));
-    for (const [x, y, z] of [[-1.3, 3.5, 0.4], [1.4, 3.7, -0.3], [0.1, 4.3, 1.2], [0.2, 4.6, -1.0]] as [number, number, number][]) {
-      parts.push(barre([0.15, 1.9, 0.05], [x, y, z], 0.14, ECORCE, 5));
-      touffe(1.5 + rng() * 0.5, x, y + 0.6, z);
+    parts.push(barre([0, -0.3, 0], [0.15, 1.9, 0.05], 0.26, ECORCE, 5));
+    for (const [x, y, z] of [[-1.3, 3.5, 0.4], [1.4, 3.7, -0.3], [0.2, 4.4, 1.0]] as [number, number, number][]) {
+      parts.push(barre([0.15, 1.9, 0.05], [x, y, z], 0.14, ECORCE, 4));
+      touffe(1.6 + rng() * 0.5, x, y + 0.6, z);
     }
-    touffe(2.1, 0, 4.9, 0.1);
-    touffe(1.4, -1.9, 3.4, -0.8); touffe(1.3, 1.9, 3.3, 0.9);
+    touffe(2.3, 0, 4.7, 0.1, 0.85, 1);
+    touffe(1.6, -1.9, 3.4, -0.8); touffe(1.5, 1.9, 3.3, 0.9);
   } else if (variant === 1) {
     parts.push(barre([0, -0.3, 0], [-0.3, 2.2, 0], 0.27, ECORCE, 6), barre([-0.3, 2.2, 0], [0.6, 3.6, 0.2], 0.15, ECORCE, 5), barre([-0.3, 2.2, 0], [-1.3, 3.3, -0.3], 0.13, ECORCE, 5));
-    touffe(2.3, 0.3, 4.1, 0.1, 0.55); touffe(1.6, -1.5, 3.6, -0.4, 0.55);
+    touffe(2.4, 0.3, 4.1, 0.1, 0.55, 1); touffe(1.6, -1.5, 3.6, -0.4, 0.55);
     // franges pendantes
-    for (let i = 0; i < 9; i++) {
-      const a = (i / 9) * Math.PI * 2, r = 1.9 + rng() * 0.4;
-      parts.push(blob(0.5, 0.7, 1.7, 0.7, 0.3 + Math.cos(a) * r, 2.7, 0.1 + Math.sin(a) * r, ROSES[i % ROSES.length], 1));
+    for (let i = 0; i < 7; i++) {
+      const a = (i / 7) * Math.PI * 2, r = 1.9 + rng() * 0.4;
+      parts.push(blob(0.5, 0.7, 1.7, 0.7, 0.3 + Math.cos(a) * r, 2.7, 0.1 + Math.sin(a) * r, ROSES[i % ROSES.length], 0));
     }
   } else {
     parts.push(barre([0, -0.3, 0], [0.1, 2.4, 0], 0.13, ECORCE, 5));
@@ -101,21 +102,20 @@ export function pagodeGeometry(variant: number): Part {
 export function bambouGeometry(variant: number): Part {
   const rng = mulberry32(700 + variant);
   const parts: Part[] = [];
-  const n = variant === 0 ? 9 : 6;
+  const n = variant === 0 ? 5 : 4;
   for (let i = 0; i < n; i++) {
     const a = rng() * Math.PI * 2, r = 0.1 + rng() * 0.45;
     const x0 = Math.cos(a) * r, z0 = Math.sin(a) * r;
     const H = 5 + rng() * 3.2, lx = Math.cos(a) * (0.3 + rng() * 0.5), lz = Math.sin(a) * (0.3 + rng() * 0.5);
     let prev: [number, number, number] = [x0, -0.3, z0];
-    for (let k = 1; k <= 3; k++) {
-      const t = k / 3;
+    for (let k = 1; k <= 2; k++) {
+      const t = k / 2;
       const p: [number, number, number] = [x0 + lx * t * t, -0.3 + (H + 0.3) * t, z0 + lz * t * t];
       parts.push(barre(prev, p, 0.075, (k + i) % 2 ? 0x8cc060 : 0x74ac4c, 5));
       prev = p;
     }
     // panaches de feuilles : boules aplaties au sommet et à mi-hauteur
-    parts.push(blob(0.7, 1, 0.45, 1, prev[0], prev[1] - 0.4, prev[2], i % 2 ? 0x8ccc5c : 0x6fb84e, 1));
-    parts.push(blob(0.5, 1, 0.4, 1, x0 + lx * 0.3, -0.3 + H * 0.68, z0 + lz * 0.3, 0x7cc257, 0));
+    parts.push(blob(0.75, 1, 0.45, 1, prev[0], prev[1] - 0.4, prev[2], i % 2 ? 0x8ccc5c : 0x6fb84e, 0));
   }
   return merge(parts);
 }
@@ -135,9 +135,9 @@ export function sanctuaireGeometry(): Part {
 
 /** Buisson japonais : 0 = azalée rose, 1 = buisson vert mouchetée de fleurs. */
 export function azaleeGeometry(variant: number): Part {
-  const parts: Part[] = [blob(0.6, 1, 0.75, 1, 0, 0.3, 0, 0x4a9a4a), blob(0.45, 1, 0.75, 1, 0.5, 0.25, 0.2, 0x58a856), blob(0.4, 1, 0.75, 1, -0.4, 0.22, -0.3, 0x3f8a44)];
-  if (variant === 0) parts.push(blob(0.55, 1, 0.6, 1, 0.05, 0.55, 0, 0xe86d9a), blob(0.4, 1, 0.6, 1, 0.5, 0.45, 0.25, 0xf28cb2), blob(0.35, 1, 0.6, 1, -0.4, 0.4, -0.25, 0xf7a8c4));
-  else for (const [x, y, z] of [[0.1, 0.72, 0.2], [-0.3, 0.6, -0.1], [0.45, 0.55, 0.05], [0.0, 0.66, -0.35]]) parts.push(blob(0.16, 1, 1, 1, x, y, z, 0xf7a8c4, 0));
+  const parts: Part[] = [blob(0.6, 1, 0.75, 1, 0, 0.3, 0, 0x4a9a4a, 0), blob(0.45, 1, 0.75, 1, 0.5, 0.25, 0.2, 0x58a856, 0)];
+  if (variant === 0) parts.push(blob(0.6, 1, 0.6, 1, 0.05, 0.55, 0, 0xe86d9a, 0), blob(0.42, 1, 0.6, 1, 0.5, 0.45, 0.25, 0xf28cb2, 0));
+  else for (const [x, y, z] of [[0.1, 0.72, 0.2], [-0.3, 0.6, -0.1], [0.45, 0.55, 0.05]]) parts.push(blob(0.16, 1, 1, 1, x, y, z, 0xf7a8c4, 0));
   return merge(parts);
 }
 

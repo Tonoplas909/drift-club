@@ -225,13 +225,13 @@ export const THEMES: Record<Environnement, ThemeRegles> = {
     description: 'Plages, dunes et mer turquoise, palmiers, pontons, tonneaux, canons, épaves et drapeaux à tête de mort.',
     fondEditeur: '#e8d29a',
     relief: 0.35,
-    terrain: { mer: { decalage: -2.5, profondeur: 7, depart: 26, rampe: 70, seuil: [0.44, 0.56], echelle: 240, lointain: [200, 330] } },
+    terrain: { mer: { decalage: -2.5, profondeur: 7, depart: 26, rampe: 70, seuil: [0.41, 0.53], echelle: 240, lointain: [200, 330] } },
     arbres: {
       essences: [
         { kind: 'palmier', bas: 0.75, haut: 0.35, echelle: [0.8, 0.5] },
         { kind: 'buisson', bas: 0.25, haut: 0.65, echelle: [0.8, 0.7] },
       ],
-      pForet: 0.5, pHors: 0.07,
+      pForet: 0.4, pHors: 0.06,
     },
     rochers: { base: 0.03, pente: 0.3, normal: 'rocher', haut: 'rocherHaut', partHauts: 0.2, echelle: [0.8, 0.6] },
     bord: {
@@ -243,7 +243,7 @@ export const THEMES: Record<Environnement, ThemeRegles> = {
         { kind: 'canon', tousLes: 90, decalage: 4.2, probabilite: 0.4 },
         { kind: 'ancre', tousLes: 110, decalage: 4, probabilite: 0.4 },
         { kind: 'coffre', tousLes: 160, decalage: 4.4, probabilite: 0.45, orientation: 'route', echelle: [1, 0] },
-        { kind: 'buisson', tousLes: 18, decalage: 3.6, probabilite: 0.35 },
+        { kind: 'buisson', tousLes: 18, decalage: 3.6, probabilite: 0.25 },
       ],
     },
     fond: [
@@ -272,8 +272,8 @@ export const THEMES: Record<Environnement, ThemeRegles> = {
       suspendus: [{ kind: 'dalleLumiere', tousLes: 13, probabilite: 0.85, lateral: 14 }],
     },
     fond: [
-      { kind: 'mur', cellule: 18, probabilite: 0.55, dMin: 14, dMax: 130, orientation: 'quart', echelle: [1, 0] },
-      { kind: 'pilier', cellule: 12, probabilite: 0.5, dMin: 12, dMax: 110, orientation: 'quart', echelle: [1, 0] },
+      { kind: 'mur', cellule: 18, probabilite: 0.55, dMin: 14, dMax: 100, orientation: 'quart', echelle: [1, 0] },
+      { kind: 'pilier', cellule: 16, probabilite: 0.5, dMin: 12, dMax: 90, orientation: 'quart', echelle: [1, 0] },
     ],
     objets: { arbre: 'pilier', sapin: 'lampeBureau', rocher: 'mur', pneus: 'carton', panneau: 'porteBureau' },
     nomsObjets: { arbre: 'Pilier', sapin: 'Lampadaire néon', rocher: 'Cloison', pneus: 'Cartons', panneau: 'Porte' },
@@ -313,10 +313,10 @@ export const THEMES: Record<Environnement, ThemeRegles> = {
     arbres: {
       essences: [
         { kind: 'cerisier', bas: 0.7, haut: 0.5, echelle: [0.8, 0.5] },
-        { kind: 'bambou', bas: 0.15, haut: 0.3, echelle: [0.8, 0.5] },
-        { kind: 'buisson', bas: 0.15, haut: 0.2, echelle: [0.8, 0.6] },
+        { kind: 'bambou', bas: 0.12, haut: 0.25, echelle: [0.8, 0.5] },
+        { kind: 'buisson', bas: 0.18, haut: 0.25, echelle: [0.8, 0.6] },
       ],
-      pForet: 0.75, pHors: 0.1,
+      pForet: 0.42, pHors: 0.06,
     },
     rochers: { base: 0.02, pente: 0.22, normal: 'rocher', haut: 'rocherHaut', partHauts: 0.15, echelle: [0.8, 0.5] },
     bord: {
