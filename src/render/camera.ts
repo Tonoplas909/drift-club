@@ -3,8 +3,8 @@ import type { Ground } from '../core/track/terrain';
 import { lerp, smoothstep, wrapAngle } from '../core/math/vec';
 
 export interface ChaseConfig { dist: number; height: number; lookAhead: number; fovMin: number; fovMax: number }
-export const CAMERA_PROCHE: ChaseConfig = { dist: 7, height: 2.8, lookAhead: 4, fovMin: 60, fovMax: 72 };
-export const CAMERA_LOIN: ChaseConfig = { dist: 10, height: 4, lookAhead: 5, fovMin: 60, fovMax: 72 };
+export const CAMERA_PROCHE: ChaseConfig = { dist: 7, height: 3.8, lookAhead: 4, fovMin: 60, fovMax: 72 };
+export const CAMERA_LOIN: ChaseConfig = { dist: 10, height: 5.2, lookAhead: 5, fovMin: 60, fovMax: 72 };
 
 export interface CameraTarget { x: number; y: number; z: number; heading: number; vx: number; vz: number; speed: number }
 
