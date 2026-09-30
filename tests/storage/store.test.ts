@@ -166,3 +166,18 @@ describe('accélération automatique (tactile)', () => {
     expect(st.loadReglages(true).accelAuto).toBe(true);
   });
 });
+
+describe('réglages du HUD (v0.3.9)', () => {
+  it('activés par défaut, conservés, et anciens réglages sans ces champs chargés correctement', () => {
+    expect(defaultReglages(false).detailPoints).toBe(true);
+    expect(defaultReglages(false).indicateurAngle).toBe(true);
+    const st = new Store(memoryKV());
+    st.saveReglages({ ...defaultReglages(false), detailPoints: false, indicateurAngle: false });
+    const r = st.loadReglages(false);
+    expect(r.detailPoints).toBe(false);
+    expect(r.indicateurAngle).toBe(false);
+    const kv = memoryKV();
+    kv.setItem('driftclub.v1.reglages', JSON.stringify({ mode: 'semi' }));
+    expect(new Store(kv).loadReglages(false).detailPoints).toBe(true);
+  });
+});

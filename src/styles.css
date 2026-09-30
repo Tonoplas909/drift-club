@@ -63,6 +63,8 @@ html, body {
 .hud-facteurs .f-ms { color: #7dff6b; }
 .hud-facteurs .f-angle { color: #ffa53d; }
 .hud-facteurs .f-combo { color: var(--yellow); }
+/* éléments désactivables dans les Réglages */
+#hud.sans-detail .hud-facteurs, #hud.sans-angle .hud-angle { display: none; }
 /* indicateur d'angle de glisse, sous la voiture */
 .hud-angle { position: absolute; left: 50%; bottom: calc(max(16px, env(safe-area-inset-bottom)) + 26px); transform: translateX(-50%); width: 150px; text-align: center; opacity: .55; transition: opacity .2s; }
 .hud-angle.moyen, .hud-angle.ideal, .hud-angle.large, .hud-angle.trop { opacity: 1; }

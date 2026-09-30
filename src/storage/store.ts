@@ -25,6 +25,10 @@ export interface Reglages {
   qualite: Qualite;
   accelAuto: boolean;
   cameraLoin: boolean;
+  /** HUD : détail des points du drift (base × vitesse × durée × angle) */
+  detailPoints: boolean;
+  /** HUD : indicateur d'angle de glisse sous la voiture */
+  indicateurAngle: boolean;
 }
 
 export interface RecordEntry {
@@ -82,6 +86,8 @@ export function defaultReglages(touch: boolean): Reglages {
     // désactivée par défaut : sur téléphone la voiture avançait seule dès le premier toucher
     accelAuto: false,
     cameraLoin: false,
+    detailPoints: true,
+    indicateurAngle: true,
   };
 }
 
@@ -123,6 +129,8 @@ export class Store {
       // avant la v2 des réglages, accelAuto valait true par défaut sans choix du joueur : on l'ignore
       accelAuto: o.v === VERSION_REGLAGES && typeof o.accelAuto === 'boolean' ? o.accelAuto : d.accelAuto,
       cameraLoin: typeof o.cameraLoin === 'boolean' ? o.cameraLoin : d.cameraLoin,
+      detailPoints: typeof o.detailPoints === 'boolean' ? o.detailPoints : d.detailPoints,
+      indicateurAngle: typeof o.indicateurAngle === 'boolean' ? o.indicateurAngle : d.indicateurAngle,
     };
   }
 
