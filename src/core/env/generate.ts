@@ -7,10 +7,53 @@ import { fbm } from '../math/noise';
 import { smoothstep, DEG } from '../math/vec';
 import { COLLIDER_RADIUS, SOLID_DISTANCE, VARIANTS, type DecorKind, type EnvItem, type Environment } from './types';
 import { THEMES, type Essence } from './themes';
+import { batimentDe, boiteDe } from './ville';
 
-/** Au-dessus de ce seuil, le masque de forêt vaut « forêt ». */
-export function forestThreshold(densite: number): number {
-  return 1 - (0.35 + 0.5 * densite);
+/** Au-dessus de ce seuil, le masque de forêt vaut « forêt » (`min` : plancher du thème, ex. parcs rares en ville). */
+export function forestThreshold(densite: number, min = 0): number {
+  return Math.max(1 - (0.35 + 0.5 * densite), min);
+}
+
+/** Rectangle orienté au sol (emprise d'un bâtiment) : axes unitaires, demi-dimensions, rayon du cercle circonscrit. */
+interface Emprise { x: number; z: number; ex: number; ez: number; fx: number; fz: number; hw: number; hd: number; r: number }
+
+/** Emprise d'un objet de cap `rot` (convention ψ : x local = (cos ψ, −sin ψ), z local = (sin ψ, cos ψ)). */
+function empriseDe(x: number, z: number, rot: number, w: number, d: number): Emprise {
+  return { x, z, ex: Math.cos(rot), ez: -Math.sin(rot), fx: Math.sin(rot), fz: Math.cos(rot), hw: w / 2, hd: d / 2, r: Math.hypot(w, d) / 2 };
+}
+
+/** Sommets d'une emprise (dans l'ordre : autour du rectangle). */
+function sommets(e: Emprise): [number, number][] {
+  const c = (a: number, b: number): [number, number] => [e.x + a * e.hw * e.ex + b * e.hd * e.fx, e.z + a * e.hw * e.ez + b * e.hd * e.fz];
+  return [c(-1, -1), c(1, -1), c(1, 1), c(-1, 1)];
+}
+
+/** Deux rectangles orientés se chevauchent-ils (marge `m` m entre eux) ? Séparation par les 4 axes des côtés. */
+function chevauche(a: Emprise, b: Emprise, m: number): boolean {
+  const dx = b.x - a.x, dz = b.z - a.z;
+  for (const [ux, uz] of [[a.ex, a.ez], [a.fx, a.fz], [b.ex, b.ez], [b.fx, b.fz]]) {
+    const ra = a.hw * Math.abs(ux * a.ex + uz * a.ez) + a.hd * Math.abs(ux * a.fx + uz * a.fz);
+    const rb = b.hw * Math.abs(ux * b.ex + uz * b.ez) + b.hd * Math.abs(ux * b.fx + uz * b.fz);
+    if (Math.abs(dx * ux + dz * uz) > ra + rb + m) return false;
+  }
+  return true;
+}
+
+/** Le point (x, z) est-il dans l'emprise agrandie de `m` m ? */
+function contient(e: Emprise, x: number, z: number, m: number): boolean {
+  const dx = x - e.x, dz = z - e.z;
+  return Math.abs(dx * e.ex + dz * e.ez) <= e.hw + m && Math.abs(dx * e.fx + dz * e.fz) <= e.hd + m;
+}
+
+/** Points régulièrement espacés (≤ `pas` m) sur le pourtour d'une emprise, sommets compris. */
+function pourtour(e: Emprise, pas: number): [number, number][] {
+  const v = sommets(e), out: [number, number][] = [];
+  for (let k = 0; k < 4; k++) {
+    const [ax, az] = v[k], [bx, bz] = v[(k + 1) % 4];
+    const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / pas));
+    for (let j = 0; j < n; j++) out.push([ax + ((bx - ax) * j) / n, az + ((bz - az) * j) / n]);
+  }
+  return out;
 }
 
 export function forestMask(x: number, z: number, graine: number): number {
@@ -53,9 +96,21 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Ter
     const ns = nearestSampleWithin(track, x, z, 25);
     return ns !== null && ns.dist < S[ns.index].w + margin;
   };
+  const posés: { x: number; z: number; r: number }[] = [];
   const add = (item: EnvItem): void => {
     env.items.push(item);
-    if (item.solid) env.circles.push({ x: item.x, z: item.z, r: COLLIDER_RADIUS[item.kind] * item.scale });
+    const box = boiteDe(item.kind, item.variant);
+    if (theme.bord.sansChevauchement) {
+      posés.push({ x: item.x, z: item.z, r: box ? (Math.hypot(box[0], box[1]) / 2) * item.scale : COLLIDER_RADIUS[item.kind] * item.scale });
+    }
+    if (!item.solid) return;
+    if (box) {
+      // emprise rectangulaire : 4 segments (bâtiments, voitures garées, abribus…)
+      const v = sommets(empriseDe(item.x, item.z, item.rot, box[0] * item.scale, box[1] * item.scale));
+      for (let k = 0; k < 4; k++) env.segments.push({ ax: v[k][0], az: v[k][1], bx: v[(k + 1) % 4][0], bz: v[(k + 1) % 4][1] });
+    } else {
+      env.circles.push({ x: item.x, z: item.z, r: COLLIDER_RADIUS[item.kind] * item.scale });
+    }
   };
 
   // 1. Barrières du niveau (tronçons de 2 m, à w + 0,8 m de l'axe)
@@ -149,16 +204,99 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Ter
         const off = sp.w + ex.decalage;
         const x = sp.x + sp.nx * side * off, z = sp.z + sp.nz * side * off;
         if (nearManual(x, z, 3) || inCorridor(x, z, 3, terrain.distanceToRoad(x, z))) continue;
-        add({
-          kind: ex.kind, variant: Math.min(VARIANTS[ex.kind] - 1, Math.floor(variantR * VARIANTS[ex.kind])),
-          x, y: terrain.heightAt(x, z), z, rot: rotR * Math.PI * 2, scale: 0.8 + 0.5 * scaleR, solid: true, manual: false,
-        });
+        const variant = Math.min(VARIANTS[ex.kind] - 1, Math.floor(variantR * VARIANTS[ex.kind]));
+        const [eMin, eAmp] = ex.echelle ?? [0.8, 0.5];
+        const scale = eMin + eAmp * scaleR;
+        if (theme.bord.sansChevauchement) {
+          const box = boiteDe(ex.kind, variant);
+          const r = (box ? Math.hypot(box[0], box[1]) / 2 : COLLIDER_RADIUS[ex.kind]) * scale;
+          if (posés.some((p) => (p.x - x) * (p.x - x) + (p.z - z) * (p.z - z) < (p.r + r + 0.5) * (p.r + r + 0.5))) continue;
+        }
+        // cap : aléatoire, ou le long de la route (+x local vers l'extérieur, sens aléatoire pour `routeSym`)
+        const ori = ex.orientation ?? 'libre';
+        const alongRoad = Math.atan2(sp.tx, sp.tz) + (side > 0 ? 0 : Math.PI);
+        const rot = ori === 'libre' ? rotR * Math.PI * 2 : ori === 'route' ? alongRoad : alongRoad + (rotR < 0.5 ? 0 : Math.PI);
+        add({ kind: ex.kind, variant, x, y: terrain.heightAt(x, z), z, rot, scale, solid: true, manual: false });
+      }
+    }
+  }
+
+  // 4c. Bâtiments (thème ville) : trois rangs, générateur de nombres aléatoires à part (le reste du décor n'en dépend pas)
+  const thr = forestThreshold(densite, theme.arbres.seuilMin);
+  const emprises: Emprise[] = [];
+  const CASE = 48;
+  const grille = new Map<number, Emprise[]>();
+  const cle = (i: number, j: number): number => (j + 512) * 4096 + (i + 512);
+  const casesDe = (e: Emprise, m: number): number[] => {
+    const out: number[] = [];
+    for (let j = Math.floor((e.z - e.r - m) / CASE); j <= Math.floor((e.z + e.r + m) / CASE); j++) {
+      for (let i = Math.floor((e.x - e.r - m) / CASE); i <= Math.floor((e.x + e.r + m) / CASE); i++) out.push(cle(i, j));
+    }
+    return out;
+  };
+  const enBatiment = (x: number, z: number, m: number): boolean =>
+    emprises.length > 0 && (grille.get(cle(Math.floor(x / CASE), Math.floor(z / CASE))) ?? []).some((e) => contient(e, x, z, m));
+  const bat = theme.batiments;
+  if (bat) {
+    const rb = mulberry32(graine + 4099);
+    /** Pose (si la place est libre) un bâtiment de centre (x, z) et de cap `rot` ; renvoie s'il est posé. */
+    const poser = (kind: DecorKind, variant: number, x: number, z: number, rot: number): boolean => {
+      const b = batimentDe(kind, variant)!;
+      const e = empriseDe(x, z, rot, b.w, b.d);
+      if (nearManual(x, z, e.r + 2)) return false;
+      const pts = [...pourtour(e, 3.5), [x, z] as [number, number]];
+      let dMin = Infinity, yMin = Infinity;
+      for (const [px, pz] of pts) {
+        if (forestMask(px, pz, graine) > thr) return false; // parc
+        const ns = nearestSampleWithin(track, px, pz, 10 + bat.recul + 0.5);
+        if (ns && ns.dist < S[ns.index].w + bat.recul) return false;
+        dMin = Math.min(dMin, terrain.distanceToRoad(px, pz));
+        yMin = Math.min(yMin, terrain.heightAt(px, pz));
+      }
+      const cases = casesDe(e, 1);
+      for (const c of cases) {
+        for (const o of grille.get(c) ?? []) {
+          if ((o.x - x) * (o.x - x) + (o.z - z) * (o.z - z) < (o.r + e.r + 1) * (o.r + e.r + 1) && chevauche(o, e, 1)) return false;
+        }
+      }
+      emprises.push(e);
+      for (const c of cases) { const l = grille.get(c); if (l) l.push(e); else grille.set(c, [e]); }
+      add({ kind, variant, x, y: yMin - 0.1, z, rot, scale: 1, solid: dMin < SOLID_DISTANCE, manual: false });
+      return true;
+    };
+    // rangs le long de la route : le 2e rang (30 à 50 m) mêle des tours
+    const rang = (decale: number, amplitude: number, proba: number, partTours: number): void => {
+      for (const side of [1, -1]) {
+        for (let s = 3 + rb() * 6; s < track.length - 3;) {
+          const pick = rb(), kindR = rb(), variantR = rb(), gapR = rb(), offR = rb();
+          const kind: DecorKind = kindR < partTours ? 'tour' : 'immeuble';
+          const variant = Math.min(VARIANTS[kind] - 1, Math.floor(variantR * VARIANTS[kind]));
+          const b = batimentDe(kind, variant)!;
+          const sp = S[Math.min(S.length - 1, Math.round(s + b.w / 2))];
+          const off = sp.w + bat.recul + decale + offR * amplitude + b.d / 2;
+          const x = sp.x + sp.nx * side * off, z = sp.z + sp.nz * side * off;
+          const ok = pick < proba && poser(kind, variant, x, z, Math.atan2(-sp.tz, sp.tx));
+          s += ok ? b.w + bat.ecart[0] + bat.ecart[1] * gapR : 5;
+        }
+      }
+    };
+    rang(0, 2, bat.rang1, 0);
+    rang(24, 14, bat.rang2, 0.4);
+    // fond : tours et immeubles isolés jusqu'à 320 m (visuels, hors de portée de la voiture)
+    const bb = track.bounds, cell = bat.fond.cellule;
+    for (let gz = bb.minZ - 320; gz < bb.maxZ + 320; gz += cell) {
+      for (let gx = bb.minX - 320; gx < bb.maxX + 320; gx += cell) {
+        const x = gx + rb() * cell, z = gz + rb() * cell;
+        const pick = rb(), kindR = rb(), variantR = rb(), rotR = rb();
+        const d = terrain.distanceToRoad(x, z);
+        if (d < 45 || d >= 320 || pick >= bat.fond.probabilite) continue;
+        const kind: DecorKind = kindR < 0.35 ? 'tour' : 'immeuble';
+        poser(kind, Math.min(VARIANTS[kind] - 1, Math.floor(variantR * VARIANTS[kind])), x, z, Math.round(rotR * 4) * (Math.PI / 2));
       }
     }
   }
 
   // 5. Arbres en bosquets (6 tirages par case, toujours consommés → déterminisme)
-  const thr = forestThreshold(densite);
   const arbres = theme.arbres;
   const b = track.bounds;
   const trees = (cell: number, dMin: number, dMax: number): void => {
@@ -168,7 +306,7 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Ter
         const pick = rng(), kindR = rng(), variantR = rng(), rotR = rng(), scaleR = rng();
         const d = terrain.distanceToRoad(x, z);
         if (d < dMin || d >= dMax) continue;
-        if (inCorridor(x, z, 3, d) || nearManual(x, z, 4)) continue;
+        if (inCorridor(x, z, 3, d) || nearManual(x, z, 4) || enBatiment(x, z, 2.5)) continue;
         let p = forestMask(x, z, graine) > thr ? arbres.pForet : arbres.pHors * (0.5 + densite);
         if (d < 12) p *= 0.5;
         if (pick >= p) continue;
