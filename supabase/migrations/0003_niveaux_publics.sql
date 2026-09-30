@@ -23,7 +23,6 @@ create table if not exists public.niveaux_publics (
   parties   integer not null default 0,
   constraint niveaux_publics_nom_longueur     check (char_length(nom) between 1 and 40),
   constraint niveaux_publics_empreinte_format check (empreinte ~ '^[0-9a-f]{64}$'),
-  constraint niveaux_publics_empreinte_unique unique (empreinte),
   constraint niveaux_publics_longueur_valide  check (longueur >= 0 and longueur <= 3001),
   constraint niveaux_publics_donnees_objet    check (jsonb_typeof(donnees) = 'object'),
   constraint niveaux_publics_donnees_taille   check (octet_length(donnees::text) <= 60000),
@@ -34,6 +33,10 @@ create table if not exists public.niveaux_publics (
 create index if not exists niveaux_publics_recent_idx   on public.niveaux_publics (cree_le desc);
 create index if not exists niveaux_publics_populaire_idx on public.niveaux_publics (parties desc, cree_le desc);
 create index if not exists niveaux_publics_auteur_idx   on public.niveaux_publics (auteur, cree_le desc);
+-- Un même contenu une seule fois PAR AUTEUR (une unicité globale permettrait de « squatter »
+-- l'empreinte d'un niveau d'un autre joueur avec des données bidon avant qu'il ne le publie).
+create unique index if not exists niveaux_publics_auteur_empreinte on public.niveaux_publics (auteur, empreinte);
+create index if not exists niveaux_publics_empreinte_idx on public.niveaux_publics (empreinte);
 
 alter table public.niveaux_publics enable row level security;
 
@@ -47,7 +50,7 @@ revoke all on public.niveaux_publics from anon, authenticated;
 grant select on public.niveaux_publics to anon, authenticated;
 
 -- ---------------------------------------------------------------------------
--- 2. publier_niveau : publie un niveau (une seule fois par contenu)
+-- 2. publier_niveau : publie un niveau (une seule fois par contenu et par auteur)
 -- ---------------------------------------------------------------------------
 
 create or replace function public.publier_niveau(
@@ -107,8 +110,8 @@ begin
     raise exception 'Niveau invalide : longueur de route hors limites (3 km maximum).';
   end if;
 
-  -- Déjà publié (même contenu, par n'importe qui) : on renvoie l'existant, pas de doublon.
-  select n.id into v_id from public.niveaux_publics n where n.empreinte = p_empreinte;
+  -- Déjà publié par ce joueur (même contenu) : on renvoie l'existant, pas de doublon.
+  select n.id into v_id from public.niveaux_publics n where n.auteur = v_joueur and n.empreinte = p_empreinte;
   if found then
     return v_id;
   end if;
@@ -124,13 +127,7 @@ begin
   v_nom := btrim(p_donnees->>'nom');
   insert into public.niveaux_publics (auteur, nom, donnees, empreinte, longueur)
   values (v_joueur, v_nom, p_donnees, p_empreinte, p_longueur)
-  on conflict (empreinte) do nothing
   returning id into v_id;
-
-  if v_id is null then
-    -- publication simultanée du même contenu par quelqu'un d'autre
-    select n.id into v_id from public.niveaux_publics n where n.empreinte = p_empreinte;
-  end if;
   return v_id;
 end;
 $$;
