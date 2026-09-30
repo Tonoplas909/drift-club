@@ -29,6 +29,12 @@ export interface RangEnLigne {
   ameliore: boolean;
   rang: number;
   total: number;
+  /** clés créditées par le serveur pour cette arrivée (arrivée + record) ; absent si le serveur n'a pas la progression en ligne */
+  clesGagnees?: number;
+  /** part « record » de ces clés (0 ou 1) */
+  clesRecord?: number;
+  /** total de clés du compte après l'envoi */
+  cles?: number;
 }
 
 /** Place du joueur connecté sur un niveau (meilleur score tous modes). */
@@ -67,7 +73,14 @@ export class ClassementService {
       if (error) return { ok: false, message: messageErreur(error) };
       const l = premiere(data);
       if (!l) return { ok: false, message: 'Réponse inattendue du classement.' };
-      return { ok: true, valeur: { ameliore: l.ameliore === true, rang: nombre(l.rang), total: nombre(l.total) } };
+      const valeur: RangEnLigne = { ameliore: l.ameliore === true, rang: nombre(l.rang), total: nombre(l.total) };
+      // colonnes ajoutées par la migration 0005 (progression du compte) : absentes des anciens serveurs
+      if (l.cles_gagnees !== undefined && l.cles_gagnees !== null && Number.isFinite(nombre(l.cles_gagnees))) {
+        valeur.clesGagnees = nombre(l.cles_gagnees);
+        valeur.clesRecord = nombre(l.cles_record ?? 0);
+        if (Number.isFinite(nombre(l.cles))) valeur.cles = nombre(l.cles);
+      }
+      return { ok: true, valeur };
     } catch (e) {
       return { ok: false, message: messageErreur(e) };
     }
