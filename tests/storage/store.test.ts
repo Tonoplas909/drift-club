@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Store, memoryKV, safeStorage, defaultReglages, cleNiveauPerso, type KV } from '../../src/storage/store';
+import { skinChoisie } from '../../src/core/skins';
 import { straightLevel } from '../fixtures/levels';
 
 const throwingKV: KV = { getItem: () => { throw new Error('refusé'); }, setItem: () => { throw new Error('refusé'); } };
@@ -32,6 +33,31 @@ describe('Store', () => {
     const r = { ...defaultReglages(false), voiture: 'turbo' as const, couleur: '#3a6ff0', volume: 0.3, cameraLoin: true };
     st.saveReglages(r);
     expect(st.loadReglages(false)).toEqual(r);
+  });
+  it('livrées : aller-retour, mémorisées par voiture', () => {
+    const st = new Store(memoryKV());
+    const r = { ...defaultReglages(false), voiture: 'legere' as const, skins: { legere: 'bande', turbo: 'carbone' } };
+    st.saveReglages(r);
+    const l = st.loadReglages(false);
+    expect(l).toEqual(r);
+    expect(l.skins.equilibree).toBeUndefined();
+  });
+  it('livrées : anciennes données sans champ « skins » → chargées, livrée par défaut', () => {
+    const kv = memoryKV();
+    kv.setItem('driftclub.v1.reglages', JSON.stringify({ mode: 'exigeant', voiture: 'turbo', couleur: '#3a6ff0', volume: 0.5, muet: true, qualite: 'haute', accelAuto: false, cameraLoin: true }));
+    const r = new Store(kv).loadReglages(false);
+    expect(r.voiture).toBe('turbo');
+    expect(r.couleur).toBe('#3a6ff0');
+    expect(r.skins).toEqual({});
+    expect(skinChoisie(r.skins, 'turbo')).toBe('unie');
+  });
+  it('livrées : inconnue ou mal formée → « unie »', () => {
+    const kv = memoryKV();
+    kv.setItem('driftclub.v1.reglages', JSON.stringify({ skins: { turbo: 'fantome', legere: 42, equilibree: 'touge' } }));
+    const r = new Store(kv).loadReglages(false);
+    expect(r.skins).toEqual({ turbo: 'unie', legere: 'unie', equilibree: 'touge' });
+    kv.setItem('driftclub.v1.reglages', JSON.stringify({ skins: 'n_importe_quoi' }));
+    expect(new Store(kv).loadReglages(false).skins).toEqual({});
   });
   it('JSON corrompu ou valeurs invalides → defauts', () => {
     const kv = memoryKV();

@@ -279,7 +279,7 @@ Touches lues par **position physique** (`KeyboardEvent.code`) : AZERTY et QWERTY
 ### 8.3 Écrans
 - **Accueil** : Jouer, Éditeur (lot 2), Réglages.
 - **Choix du niveau** : Officiels, Mes niveaux (lot 2), Importer (lot 2) ; record affiché pour le mode courant.
-- **Garage** : 3 voitures (aperçu 3D tournant), 8 couleurs.
+- **Garage** : 3 voitures (aperçu 3D tournant), 8 couleurs, plusieurs livrées par voiture (décors procéduraux posés sur la couleur choisie ; « Unie » par défaut ; livrée mémorisée par voiture).
 - **Réglages** : mode de conduite, volume, qualité graphique (Auto/Basse/Haute), options tactiles.
 - Style : menus HTML/CSS colorés, formes arrondies, contours marqués, cohérents avec le toon. Lisibles sur mobile.
 
@@ -360,7 +360,7 @@ Accueil → Éditeur : **Nouveau niveau**, modifier un de **Mes niveaux**, ou **
 
 | Clé | Contenu |
 |---|---|
-| `driftclub.v1.reglages` | mode, voiture, couleur, volume, qualité, options tactiles |
+| `driftclub.v1.reglages` | mode, voiture, couleur, livrée par voiture (`skins`, optionnel : absent = « unie »), volume, qualité, options tactiles |
 | `driftclub.v1.records` | `{ [cléNiveau]: { [mode]: { score, temps, voiture, meilleurDrift, date } } }` |
 | `driftclub.v1.niveaux` | mes niveaux (lot 2) |
 
