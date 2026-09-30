@@ -13,6 +13,16 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.3.9',
+    date: '30/09/2026',
+    titre: 'Le détail de tes points de drift',
+    notes: [
+      'Pendant un drift, le calcul de tes points s\'affiche au-dessus du score : base × vitesse moyenne × durée × angle moyen (× combo). Le résultat est exactement le nombre de points affiché.',
+      'Vitesse et angle sont des moyennes sur tout le drift : un libellé sous chaque valeur le rappelle.',
+      'Nouvel indicateur d\'angle de glisse sous la voiture : l\'aiguille passe au vert dans la zone idéale (25 à 60°).',
+    ],
+  },
+  {
     version: '0.3.8',
     date: '30/09/2026',
     titre: 'Nouveau son',
