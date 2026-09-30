@@ -8,7 +8,7 @@ import type { QualityLevel } from './quality';
  * Un InstancedMesh par modèle et par distance (proche = solide, lointain = visuel).
  * Qualité Basse : un objet lointain sur trois, contours seulement sur les objets proches.
  */
-export function buildDecor(env: Environment, assets: Assets, q: QualityLevel, shadows: boolean): THREE.Group {
+export function buildDecor(env: Environment, assets: Assets, q: QualityLevel, shadows: boolean, decor: Record<string, THREE.BufferGeometry> = assets.decor): THREE.Group {
   const root = new THREE.Group();
   root.name = 'decor';
   const mat = toonMaterial({ vertexColors: true });
@@ -28,7 +28,7 @@ export function buildDecor(env: Environment, assets: Assets, q: QualityLevel, sh
   const outlines = new Map<string, THREE.BufferGeometry>();
 
   for (const [key, lists] of groups) {
-    const geo = assets.decor[key];
+    const geo = decor[key];
     if (!geo) continue;
     lists.forEach((list, li) => {
       if (list.length === 0) return;
@@ -55,8 +55,8 @@ export function buildDecor(env: Environment, assets: Assets, q: QualityLevel, sh
     });
   }
 
-  if (env.barriers.length > 0 && assets.decor.barriere) {
-    const geo = assets.decor.barriere;
+  if (env.barriers.length > 0 && decor.barriere) {
+    const geo = decor.barriere;
     const mesh = new THREE.InstancedMesh(geo, mat, env.barriers.length);
     env.barriers.forEach((b, i) => {
       qt.setFromAxisAngle(up, b.rot);

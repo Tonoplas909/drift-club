@@ -5,7 +5,9 @@ import type { Terrain } from '../core/track/terrain';
 import type { Environment } from '../core/env/types';
 import type { CarId, CarState } from '../core/physics/types';
 import type { Assets } from './assets';
-import { PALETTES, type Palette } from './palettes';
+import { paletteDe, type Palette } from './palettes';
+import { decorDuTheme, THEMES_VISUELS } from './themes';
+import { Snowfall } from './weather';
 import { QUALITY, type QualityLevel } from './quality';
 import { createSky } from './sky';
 import { buildRoad, createRoadTextures } from './road';
@@ -40,6 +42,8 @@ export class World {
   private readonly palette: Palette;
   private readonly sun: THREE.DirectionalLight;
   private readonly sky: THREE.Mesh;
+  private readonly decor: Record<string, THREE.BufferGeometry>;
+  private readonly snow: Snowfall | null = null;
   private readonly terrainGroup: THREE.Group;
   private readonly carView: CarView;
   private readonly gauge = new SpeedGauge();
@@ -56,14 +60,14 @@ export class World {
     const { renderer, level, track, terrain, env, assets, quality } = init;
     this.quality = quality;
     const q = QUALITY[quality];
-    const p = (this.palette = PALETTES[level.ambiance]);
+    const p = (this.palette = paletteDe(level.environnement, level.ambiance));
 
     renderer.shadowMap.enabled = q.shadows;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, q.maxPixelRatio));
 
     this.scene.background = new THREE.Color(p.fog);
-    this.scene.fog = new THREE.Fog(p.fog, q.fogFar * 0.3, q.fogFar);
+    this.scene.fog = new THREE.Fog(p.fog, q.fogFar * p.brume * 0.3, q.fogFar * p.brume);
 
     this.scene.add(new THREE.HemisphereLight(p.hemiSky, p.hemiGround, p.hemiIntensity));
     this.sun = new THREE.DirectionalLight(p.sun, p.sunIntensity);
@@ -84,12 +88,19 @@ export class World {
     this.terrainGroup = buildTerrain(level, track, terrain, p, quality);
     this.scene.add(this.terrainGroup);
     this.scene.add(buildMountains(track, p, level.decor.graine));
-    this.scene.add(buildDecor(env, assets, quality, q.shadows));
+    this.decor = decorDuTheme(assets, level.environnement);
+    this.scene.add(buildDecor(env, assets, quality, q.shadows, this.decor));
+    const meteo = THEMES_VISUELS[level.environnement].meteo;
+    if (meteo) {
+      this.snow = new Snowfall(meteo.nombre);
+      this.snow.points.visible = quality === 'haute';
+      this.scene.add(this.snow.points);
+    }
 
     this.carView = new CarView(assets.cars[init.carId], init.color, q.shadows, skinDef(init.carId, init.skin));
     this.scene.add(this.carView.root, this.gauge.root);
     this.gaugeMax = vitessePratique(CARS[init.carId]);
-    this.smoke = new SmokeSystem(q.smokeMax, 0xe9e6e1);
+    this.smoke = new SmokeSystem(q.smokeMax, p.fumee);
     this.skids = new SkidMarks(q.skidMax);
     this.scene.add(this.smoke.mesh, this.skids.mesh);
   }
@@ -101,8 +112,9 @@ export class World {
     this.init.renderer.setPixelRatio(Math.min(window.devicePixelRatio, q.maxPixelRatio));
     this.sun.castShadow = q.shadows;
     const fog = this.scene.fog as THREE.Fog;
-    fog.near = q.fogFar * 0.3;
-    fog.far = q.fogFar;
+    fog.near = q.fogFar * this.palette.brume * 0.3;
+    fog.far = q.fogFar * this.palette.brume;
+    if (this.snow) this.snow.points.visible = level === 'haute';
   }
 
   resize(w: number, h: number): void {
@@ -142,6 +154,7 @@ export class World {
     this.setTarget(car, pose.x, pose.y, pose.z);
     this.chase.update(this.target, cfg, dt, this.init.terrain);
     this.sky.position.copy(this.camera.position);
+    if (this.snow?.points.visible) this.snow.update(dt, this.camera.position);
     const params = CARS[this.init.carId];
     this.gauge.update(pose.x, pose.y, pose.z, params.width, gaugeRatio(car.speed, car.reverse, this.gaugeMax), this.camera, dt);
 
@@ -163,7 +176,7 @@ export class World {
 
   /** Libère ce que ce monde a créé (les modèles partagés de `assets` ne sont pas libérés). */
   dispose(): void {
-    const shared = new Set<THREE.BufferGeometry>(Object.values(this.init.assets.decor));
+    const shared = new Set<THREE.BufferGeometry>([...Object.values(this.init.assets.decor), ...Object.values(this.decor)]);
     for (const m of Object.values(this.init.assets.cars)) {
       shared.add(m.body);
       for (const w of m.wheels) shared.add(w.geometry);
@@ -172,6 +185,7 @@ export class World {
     this.gauge.dispose();
     this.smoke.dispose();
     this.skids.dispose();
+    this.snow?.dispose();
     this.scene.traverse((o) => {
       const mesh = o as THREE.Mesh;
       if (mesh.isMesh && mesh.geometry && !shared.has(mesh.geometry)) mesh.geometry.dispose();

@@ -9,7 +9,7 @@ import { mulberry32 } from '../core/math/rng';
 import { smoothstep } from '../core/math/vec';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { toonMaterial } from './materials';
-import type { Palette } from './palettes';
+import { epauleDe, type Palette } from './palettes';
 import type { QualityLevel } from './quality';
 
 const CHUNK = 128;
@@ -29,7 +29,7 @@ export function buildTerrain(level: Level, track: TrackData, terrain: Terrain, p
   const seed = level.decor.graine;
   const thr = forestThreshold(level.decor.densite);
   const cA = new THREE.Color(p.grassA), cB = new THREE.Color(p.grassB), cF = new THREE.Color(p.forestFloor);
-  const cR = new THREE.Color(p.rock), cS = new THREE.Color(p.asphalt).multiplyScalar(0.7);
+  const cR = new THREE.Color(p.rock), cS = epauleDe(p);
   const c = new THREE.Color();
 
   for (let z0 = terrain.minZ; z0 < terrain.maxZ; z0 += CHUNK) {
@@ -119,7 +119,7 @@ export function buildTerrain(level: Level, track: TrackData, terrain: Terrain, p
   return group;
 }
 
-/** Anneau de montagnes lointaines (sans brouillard, couleurs déjà « noyées » dans la brume). */
+/** Anneau de reliefs lointains (sans brouillard, couleurs déjà « noyées » dans la brume) : montagnes ou mesas selon la palette. */
 export function buildMountains(track: TrackData, p: Palette, seed: number): THREE.Mesh {
   const b = track.bounds;
   const cx = (b.minX + b.maxX) / 2, cz = (b.minZ + b.maxZ) / 2;
@@ -127,22 +127,26 @@ export function buildMountains(track: TrackData, p: Palette, seed: number): THRE
   const lowest = track.samples.reduce((m, s) => Math.min(m, s.y), Infinity);
   const rng = mulberry32(seed + 3);
   const fog = new THREE.Color(p.fog);
-  const rock = new THREE.Color(p.rock).lerp(fog, 0.55);
-  const snow = new THREE.Color(0xf4f6fa).lerp(fog, 0.35);
+  const rel = p.reliefs;
+  const rock = new THREE.Color(rel.roche).lerp(fog, 0.55);
+  const snow = new THREE.Color(rel.cime).lerp(fog, 0.35);
+  const mesas = rel.forme === 'mesas';
   const parts: THREE.BufferGeometry[] = [];
   for (let i = 0; i < 40; i++) {
     const a = (i / 40) * Math.PI * 2 + rng() * 0.1;
     const r = R + rng() * 250;
-    const h = 180 + rng() * 260;
+    const h = mesas ? 90 + rng() * 130 : 180 + rng() * 260;
     const rad = 160 + rng() * 140;
-    const g = new THREE.ConeGeometry(rad, h, 6 + Math.floor(rng() * 3), 1).toNonIndexed();
+    const sides = 6 + Math.floor(rng() * 3);
+    // mesa : flancs raides et sommet plat ; montagne : cône pointu
+    const g = (mesas ? new THREE.CylinderGeometry(rad * 0.5, rad * 0.9, h, sides, 1) : new THREE.ConeGeometry(rad, h, sides, 1)).toNonIndexed();
     g.deleteAttribute('uv');
     const base = lowest - 30;
     g.translate(cx + Math.sin(a) * r, base + h / 2, cz + Math.cos(a) * r);
     const pos = g.getAttribute('position');
     const col = new Float32Array(pos.count * 3);
     for (let k = 0; k < pos.count; k++) {
-      const cc = pos.getY(k) > base + h * 0.72 ? snow : rock;
+      const cc = pos.getY(k) > base + h * rel.ligne ? snow : rock;
       col[k * 3] = cc.r; col[k * 3 + 1] = cc.g; col[k * 3 + 2] = cc.b;
     }
     g.setAttribute('color', new THREE.BufferAttribute(col, 3));
