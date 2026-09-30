@@ -144,7 +144,7 @@ export class Screens {
       const onglet = this.ongletNiveaux;
       const perso = onglet === 'perso';
       const ligne = onglet === 'ligne';
-      const ecran = h('div', { class: 'screen' }, h('div', { class: 'panel wide' },
+      const ecran = h('div', { class: 'screen' }, h('div', { class: 'panel wide' + (ligne ? '' : ' liste') },
         h('h2', {}, 'Choisis un niveau'),
         h('div', { class: 'tabs' },
           h('button', { class: 'tab' + (onglet === 'off' ? ' on' : ''), onclick: () => { this.ongletNiveaux = 'off'; render(); } }, 'Officiels'),

@@ -8,6 +8,8 @@ import type { TrackData } from '../src/core/track/buildTrack';
 const IDS = [
   'premiers-virages', 'foret-des-pins', 'col-du-loup', 'lacets-du-belvedere', 'vallee-des-cretes',
   'circuit-du-lac', 'epingles-du-diable', 'cretes-nord', 'descente-du-moulin', 'grand-huit',
+  'serpentin-des-aigles', 'angles-droits', 'spirale-du-belvedere', 'trois-epingles', 'chicanes-du-port',
+  'grande-descente', 'virages-en-cascade', 'route-des-vignes', 'touge-de-minuit', 'tire-bouchon',
 ];
 
 function charge(id: string) {
@@ -35,6 +37,32 @@ function virages(t: TrackData, seuil: number): number {
 const minRayon = (t: TrackData): number => Math.min(...rayons(t));
 const denivele = (t: TrackData): number => { const y = t.samples.map((s) => s.y); return Math.max(...y) - Math.min(...y); };
 
+interface Groupe { angle: number; rmin: number; de: number; a: number }
+
+/**
+ * Virages : suites d'échantillons de même sens dont le rayon est inférieur au seuil (au moins 5 échantillons).
+ * Deux virages de même sens séparés d'au plus `ecart` mètres sont fusionnés. `angle` est en degrés (signé, + = gauche).
+ */
+function groupes(t: TrackData, seuil: number, ecart = 0): Groupe[] {
+  const S = t.samples, out: Groupe[] = [];
+  let i = 0;
+  while (i < S.length) {
+    if (!(Math.abs(S[i].k) > 1e-9 && 1 / Math.abs(S[i].k) < seuil)) { i++; continue; }
+    const sens = Math.sign(S[i].k);
+    let j = i, angle = 0, rmin = Infinity, n = 0;
+    let fin = i;
+    while (j < S.length) {
+      const r = Math.abs(S[j].k) > 1e-9 ? 1 / Math.abs(S[j].k) : Infinity;
+      if (r < seuil && Math.sign(S[j].k) === sens) { angle += S[j].k * (S[j + 1] ? S[j + 1].s - S[j].s : 1); rmin = Math.min(rmin, r); n++; fin = j; j++; }
+      else if (S[j].s - S[fin].s <= ecart && r >= seuil) j++;
+      else break;
+    }
+    if (n >= 5) out.push({ angle: (angle * 180) / Math.PI, rmin, de: i, a: fin });
+    i = Math.max(j, i + 1);
+  }
+  return out;
+}
+
 /** Point de la piste à l'abscisse normalisée u (0 à 1). */
 function pointNormalise(t: TrackData, u: number): { x: number; z: number } {
   const s = t.samples[Math.min(t.samples.length - 1, Math.round(u * (t.samples.length - 1)))];
@@ -42,12 +70,13 @@ function pointNormalise(t: TrackData, u: number): { x: number; z: number } {
 }
 
 describe('niveaux officiels', () => {
-  it('dix niveaux dans le bon ordre, identifiants uniques', () => {
+  it('vingt niveaux dans le bon ordre, identifiants uniques', () => {
     expect(NIVEAUX_OFFICIELS.map((n) => n.id)).toEqual(IDS);
-    expect(new Set(NIVEAUX_OFFICIELS.map((n) => n.id)).size).toBe(10);
+    expect(new Set(NIVEAUX_OFFICIELS.map((n) => n.id)).size).toBe(20);
     expect(cleNiveauOfficiel('col-du-loup')).toBe('off:col-du-loup');
   });
-  const AVEC_BARRIERES = ['col-du-loup', 'lacets-du-belvedere', 'vallee-des-cretes', 'epingles-du-diable', 'cretes-nord', 'descente-du-moulin'];
+  const AVEC_BARRIERES = ['col-du-loup', 'lacets-du-belvedere', 'vallee-des-cretes', 'epingles-du-diable', 'cretes-nord', 'descente-du-moulin',
+    'serpentin-des-aigles', 'spirale-du-belvedere', 'trois-epingles', 'virages-en-cascade', 'touge-de-minuit', 'tire-bouchon'];
   for (const n of NIVEAUX_OFFICIELS) {
     it(`${n.id} : valide, bonne longueur, décor généré`, () => {
       const r = loadLevel(n.data);
@@ -145,5 +174,111 @@ describe('niveaux officiels', () => {
     for (let i = 1; i < signes.length; i++) expect(signes[i]).toBe(-signes[i - 1]);
     expect(denivele(t)).toBeGreaterThan(15);
     expect(denivele(t)).toBeLessThan(35);
+  });
+
+  it('serpentin-des-aigles : montée de 100 m, quatre épingles étirées et des virages moyens', () => {
+    const { track: t, level } = charge('serpentin-des-aigles');
+    expect(level.route[0].l).toBe(9);
+    expect(t.samples[t.samples.length - 1].y - t.samples[0].y).toBeGreaterThanOrEqual(95);
+    const epingles = groupes(t, 40, 30).filter((g) => Math.abs(g.angle) > 150);
+    expect(epingles.length).toBe(4);
+    expect(groupes(t, 90).filter((g) => g.rmin >= 40).length).toBeGreaterThanOrEqual(6);
+  });
+
+  it('angles-droits : au moins huit angles droits, route plate en ville', () => {
+    const { track: t, level } = charge('angles-droits');
+    expect(level.environnement).toBe('ville');
+    expect(groupes(t, 40).filter((g) => Math.abs(g.angle) >= 70 && Math.abs(g.angle) <= 110).length).toBeGreaterThanOrEqual(8);
+    expect(denivele(t)).toBeLessThan(6);
+    expect(minRayon(t)).toBeGreaterThan(9);
+  });
+
+  it('spirale-du-belvedere : spirale de plus d\'un tour et demi dont le rayon diminue, puis sortie', () => {
+    const { track: t } = charge('spirale-du-belvedere');
+    const g = groupes(t, 130, 15).filter((x) => Math.abs(x.angle) >= 480);
+    expect(g.length).toBe(2);
+    const [entree, sortie] = g;
+    // bras d'entrée : le rayon diminue ; bras de sortie (sens inverse) : il augmente
+    const moy = (a: number[]) => a.reduce((x, y) => x + y, 0) / a.length;
+    const moyennes = (x: Groupe) => {
+      const r = rayons(t).slice(x.de, x.a + 1);
+      const tiers = Math.floor(r.length / 3);
+      return [moy(r.slice(0, tiers)), moy(r.slice(-tiers))];
+    };
+    const [e0, e1] = moyennes(entree), [s0, s1] = moyennes(sortie);
+    expect(e0).toBeGreaterThan(e1 * 1.5);
+    expect(s1).toBeGreaterThan(s0 * 1.5);
+    expect(Math.sign(entree.angle)).toBe(-Math.sign(sortie.angle));
+    // la sortie est une longue ligne droite après le dernier virage
+    expect(t.length - t.samples[sortie.a].s).toBeGreaterThan(150);
+  });
+
+  it('trois-epingles : exactement trois grandes épingles, longues lignes rapides, grosse montée', () => {
+    const { track: t } = charge('trois-epingles');
+    const ep = groupes(t, 30);
+    expect(ep.length).toBe(3);
+    for (const g of ep) { expect(Math.abs(g.angle)).toBeGreaterThan(150); expect(g.rmin).toBeGreaterThan(17); }
+    expect(t.samples[t.samples.length - 1].y - t.samples[0].y).toBeGreaterThanOrEqual(100);
+    expect(virages(t, 150)).toBe(3);
+    // au moins trois lignes droites de 150 m entre les épingles
+    for (let i = 1; i < ep.length; i++) expect(t.samples[ep[i].de].s - t.samples[ep[i - 1].a].s).toBeGreaterThan(150);
+  });
+
+  it('chicanes-du-port : beaucoup de chicanes serrées, route plate en ville', () => {
+    const { track: t, level } = charge('chicanes-du-port');
+    expect(level.environnement).toBe('ville');
+    expect(virages(t, 30)).toBeGreaterThanOrEqual(20);
+    expect(denivele(t)).toBeLessThan(4);
+    expect(minRayon(t)).toBeGreaterThan(9);
+  });
+
+  it('grande-descente : environ 2 km, au moins 120 m de descente, virages fluides', () => {
+    const { track: t } = charge('grande-descente');
+    expect(t.length).toBeGreaterThan(1800);
+    expect(t.samples[0].y - t.samples[t.samples.length - 1].y).toBeGreaterThanOrEqual(120);
+    expect(minRayon(t)).toBeGreaterThan(35);
+  });
+
+  it('virages-en-cascade : deux séries de virages qui se resserrent, côtés alternés', () => {
+    const { track: t } = charge('virages-en-cascade');
+    const g = groupes(t, 140).filter((x) => Math.abs(x.angle) >= 45);
+    expect(g.length).toBeGreaterThanOrEqual(12);
+    let resserres = 0;
+    for (let i = 1; i < g.length; i++) {
+      expect(Math.sign(g[i].angle)).toBe(-Math.sign(g[i - 1].angle));
+      if (g[i].rmin < g[i - 1].rmin) resserres++;
+    }
+    expect(resserres).toBeGreaterThanOrEqual(10);
+    expect(minRayon(t)).toBeLessThan(15);
+  });
+
+  it('route-des-vignes : large, débutants, aucun virage sous 40 m de rayon', () => {
+    const { track: t, level } = charge('route-des-vignes');
+    expect(level.route[0].l).toBeGreaterThanOrEqual(14);
+    expect(minRayon(t)).toBeGreaterThanOrEqual(40);
+    expect(denivele(t)).toBeLessThan(25);
+  });
+
+  it('touge-de-minuit : coucher de soleil, longs virages rapides et une seule épingle, à la fin', () => {
+    const { track: t, level } = charge('touge-de-minuit');
+    expect(level.ambiance).toBe('coucher');
+    const serres = groupes(t, 25);
+    expect(serres.length).toBe(1);
+    expect(t.samples[serres[0].de].s).toBeGreaterThan(t.length * 0.9);
+    expect(Math.abs(serres[0].angle)).toBeGreaterThan(150);
+    const avant = t.samples.filter((s) => s.s < t.samples[serres[0].de].s - 20);
+    expect(Math.min(...avant.map((s) => (Math.abs(s.k) > 1e-9 ? 1 / Math.abs(s.k) : Infinity)))).toBeGreaterThan(50);
+  });
+
+  it('tire-bouchon : environ 270° de virages de même sens en descendant, puis sens inverse', () => {
+    const { track: t } = charge('tire-bouchon');
+    const g = groupes(t, 130, 20);
+    const vis = g.sort((a, b) => Math.abs(b.angle) - Math.abs(a.angle))[0];
+    expect(Math.abs(vis.angle)).toBeGreaterThanOrEqual(250);
+    expect(Math.abs(vis.angle)).toBeLessThanOrEqual(300);
+    expect(t.samples[0].y - t.samples[t.samples.length - 1].y).toBeGreaterThanOrEqual(70);
+    // ensuite, le premier virage suivant tourne dans l'autre sens
+    const suivant = groupes(t, 130, 20).filter((x) => x.de > vis.a)[0];
+    expect(Math.sign(suivant.angle)).toBe(-Math.sign(vis.angle));
   });
 });
