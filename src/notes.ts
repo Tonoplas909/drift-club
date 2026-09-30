@@ -13,6 +13,16 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.3.4',
+    date: '30/09/2026',
+    titre: 'Décor Ville',
+    notes: [
+      'Nouveau décor Ville : rues bordées d\'immeubles colorés, tours vitrées au loin, lampadaires, abribus, voitures garées et arbres en bacs. Au coucher du soleil, fenêtres et lampadaires s\'allument.',
+      'Les décors sont redistribués, deux niveaux par thème : Ville (Circuit du Lac, Grand Huit), Montagne (Col du Loup, Épingles du Diable), Montagne enneigée (Lacets du Belvédère, Route des Crêtes Nord), Canyon (Vallée des Crêtes, Descente du Moulin), Forêt d\'automne (Forêt des Pins, Premiers virages).',
+      'Dans l\'éditeur, « Ville » est disponible dans l\'outil Décor.',
+    ],
+  },
+  {
     version: '0.3.3',
     date: '30/09/2026',
     titre: 'Des décors variés sur les niveaux officiels',
