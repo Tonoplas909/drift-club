@@ -35,7 +35,9 @@ function ruban(pts: Pt[], dHaut: number, dBas: number): Pt[] {
     const n0 = normale(pts[Math.max(0, i - 1)], pts[i]), n1 = normale(pts[i], pts[Math.min(pts.length - 1, i + 1)]);
     const mz = n0[0] + n1[0], my = n0[1] + n1[1], ml = Math.hypot(mz, my) || 1;
     const m: Pt = [mz / ml, my / ml];
-    const k = d / Math.max(0.5, m[0] * n1[0] + m[1] * n1[1]);
+    // aux extrémités, une des deux normales est nulle : on mesure l'angle avec la normale du seul segment voisin (sinon le décalage doublait au bout)
+    const nv = i === pts.length - 1 ? n0 : n1;
+    const k = d / Math.max(0.5, m[0] * nv[0] + m[1] * nv[1]);
     return [p[0] + m[0] * k, p[1] + m[1] * k];
   });
   return [...decale(dHaut), ...decale(dBas).reverse()];

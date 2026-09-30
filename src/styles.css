@@ -387,7 +387,8 @@ input[type=text], input[type=email], input[type=password] { user-select: text; -
 .cs-obj { font-size: 19px; }
 .cs-total { display: flex; align-items: center; gap: 6px; font-weight: 800; }
 .cs-fiche .row { margin-top: 4px; }
-.cs-fiche .btn { font-size: 16px; padding: 6px 14px; }
+.cs-fiche .btn { font-size: 15px; padding: 6px 12px; }
+.cs-fiche .row { gap: 8px; flex-wrap: nowrap; }
 @keyframes cs-gagne { from { transform: scale(1); } to { transform: scale(1.05); } }
 @keyframes cs-secoue { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg) translateY(-2px); } }
 @keyframes cs-entre { from { transform: translateX(-30px) scale(.86); opacity: 0; } to { transform: none; opacity: 1; } }
