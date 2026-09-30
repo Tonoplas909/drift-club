@@ -51,6 +51,12 @@ describe('messageErreur', () => {
     expect(messageErreur({ code: '42P01', message: 'relation does not exist' })).toMatch(/pas encore disponible/);
     expect(messageErreur({ code: 'P0001', message: 'Temps invalide.' })).toBe('Temps invalide.');
   });
+  it('niveaux en ligne', () => {
+    expect(messageErreur({ code: 'PGRST202', message: 'Could not find the function public.niveaux_en_ligne(p_decalage) in the schema cache' })).toBe('Les niveaux en ligne ne sont pas encore disponibles.');
+    expect(messageErreur({ code: '42P01', message: 'relation "public.niveaux_publics" does not exist' })).toMatch(/niveaux en ligne/);
+    expect(messageErreur({ code: '42501', message: 'permission denied for function publier_niveau' })).toMatch(/Connecte-toi/);
+    expect(messageErreur({ code: 'P0001', message: 'Limite atteinte : 50 niveaux publiés au maximum.' })).toMatch(/^Limite atteinte/);
+  });
   it('inconnu : message générique, jamais de crash', () => {
     for (const e of [null, undefined, 'boom', 42, {}, { message: 12 }]) expect(messageErreur(e)).toMatch(/erreur/i);
   });
