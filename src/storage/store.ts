@@ -3,6 +3,7 @@ import { CAR_IDS } from '../core/physics/cars';
 import { MODE_IDS } from '../core/physics/assists';
 import type { Level } from '../core/level/types';
 import { validateLevel } from '../core/level/validate';
+import { validerSkins, type SkinsChoisies } from '../core/skins';
 
 export interface KV {
   getItem(key: string): string | null;
@@ -15,6 +16,8 @@ export interface Reglages {
   mode: ModeId;
   voiture: CarId;
   couleur: string;
+  /** livrée mémorisée par voiture (absente = « unie ») */
+  skins: SkinsChoisies;
   volume: number;
   muet: boolean;
   qualite: Qualite;
@@ -64,6 +67,7 @@ export function defaultReglages(touch: boolean): Reglages {
     mode: touch ? 'arcade' : 'semi',
     voiture: 'equilibree',
     couleur: '#e63b2e',
+    skins: {},
     volume: 0.8,
     muet: false,
     qualite: 'auto',
@@ -103,6 +107,7 @@ export class Store {
       mode: MODE_IDS.includes(o.mode as ModeId) ? (o.mode as ModeId) : d.mode,
       voiture: CAR_IDS.includes(o.voiture as CarId) ? (o.voiture as CarId) : d.voiture,
       couleur: typeof o.couleur === 'string' && /^#[0-9a-f]{6}$/i.test(o.couleur) ? o.couleur : d.couleur,
+      skins: validerSkins(o.skins),
       volume: typeof o.volume === 'number' && o.volume >= 0 && o.volume <= 1 ? o.volume : d.volume,
       muet: typeof o.muet === 'boolean' ? o.muet : d.muet,
       qualite: QUALITES.includes(o.qualite as Qualite) ? (o.qualite as Qualite) : d.qualite,

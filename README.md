@@ -21,6 +21,8 @@ Jeu de drift en 3D dans le navigateur : enchaîne les drifts sur des routes de m
 
 Trois voitures : **L'Équilibrée** (pour débuter), **La Légère** (agile) et **La Turbo** (puissante). Les records sont enregistrés par niveau et par mode.
 
+Au **Garage**, on choisit la voiture, sa **couleur** (8 teintes) et sa **livrée** (4 à 6 par voiture : Unie, double bande, bicolore, numéro de course, touge, carbone…). La livrée se pose par-dessus la couleur choisie et est mémorisée pour chaque voiture. Elles sont décrites par des données dans `src/core/skins.ts` : ajouter une livrée = ajouter une entrée dans `SKINS`.
+
 Cinq niveaux : **Premiers virages**, **Forêt des Pins**, **Col du Loup**, **Lacets du Belvédère** (montée en épingles) et **Vallée des Crêtes** (descente rapide au coucher du soleil).
 
 ## Commandes
