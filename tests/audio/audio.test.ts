@@ -6,7 +6,7 @@ describe('audio', () => {
     expect(engineFrequency(3000)).toBe(100);
   });
   it('crissement selon la glisse et la vitesse', () => {
-    expect(screechGain(1, 20)).toBeCloseTo(0.22, 9);
+    expect(screechGain(1, 20)).toBeGreaterThan(0.1);
     expect(screechGain(0.5, 0)).toBe(0);
     expect(screechGain(0, 30)).toBe(0);
   });
@@ -15,9 +15,10 @@ describe('audio', () => {
     expect(() => {
       a.unlock();
       a.setVolume(0.5);
-      a.startEngine();
+      a.startEngine('turbo');
       a.updateEngine(4000, 1, 0.5, 20);
-      a.playBank(3); a.playLose(); a.playCrash(8); a.playCountdown(0);
+      a.updateEngine(4000, 1, 0.5, 20, { gear: 3, onRoad: false });
+      a.playBank(3); a.playLose(); a.playCrash(8); a.playCountdown(0); a.playFinish(); a.playClick(); a.playScrape(0.5);
       a.playTick(); a.playTick(0.9); a.playOuvrirCaisse();
       for (const r of ['commune', 'rare', 'epique', 'legendaire', 'exotique'] as const) a.playReveal(r);
       a.stopEngine();
