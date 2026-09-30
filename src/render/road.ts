@@ -3,7 +3,7 @@ import type { TrackData, TrackSample } from '../core/track/buildTrack';
 import { mulberry32 } from '../core/math/rng';
 import { toonMaterial } from './materials';
 import { coloredBox } from './procedural';
-import type { Palette } from './palettes';
+import { epauleDe, type Palette } from './palettes';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 export interface RoadTextures { road: THREE.Texture; curb: THREE.Texture; checker: THREE.Texture }
@@ -103,7 +103,7 @@ export function buildRoad(track: TrackData, p: Palette, tex: RoadTextures): THRE
   group.add(surface);
 
   // Accotements sombres qui descendent sous le terrain
-  const dark = new THREE.Color(p.asphalt).multiplyScalar(0.7);
+  const dark = epauleDe(p);
   const shoulders = mergeGeometries([
     strip(S.map((s) => off(s, s.w + 0.7, -0.25)), S.map((s) => off(s, s.w, 0.02)), undefined, undefined, dark),
     strip(S.map((s) => off(s, -s.w, 0.02)), S.map((s) => off(s, -s.w - 0.7, -0.25)), undefined, undefined, dark),

@@ -10,6 +10,7 @@ import { Store, safeStorage, cleNiveauPerso, type Reglages, type MonNiveau } fro
 import { Hud } from './game/hud';
 import { GameSession, type DebugHook } from './game/session';
 import { prepareLevel, type PreparedLevel } from './game/prepare';
+import { forcerDecor } from './game/decorUrl';
 import { NIVEAUX_OFFICIELS, cleNiveauOfficiel } from './levels';
 import { Screens, levelSummary, type NiveauCarte } from './ui/screens';
 import { formatDistance } from './ui/format';
@@ -334,7 +335,7 @@ export class App {
     this.showroom?.stop();
     this.screens.loading('Préparation du niveau…');
     await new Promise((r) => setTimeout(r, 30));
-    const res = prepareLevel(key, raw);
+    const res = prepareLevel(key, forcerDecor(raw, location.search));
     if (!res.ok) {
       this.screens.error('Niveau invalide', res.erreurs.join('\n'), [{ label: 'Retour', onClick: contexte.retour }]);
       return;

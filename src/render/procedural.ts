@@ -18,7 +18,7 @@ export function coloredBox(w: number, h: number, d: number, x: number, y: number
   return colorize(new THREE.BoxGeometry(w, h, d).translate(x, y, z), color);
 }
 
-const merge = (parts: THREE.BufferGeometry[]): THREE.BufferGeometry => {
+export const merge = (parts: THREE.BufferGeometry[]): THREE.BufferGeometry => {
   const g = mergeGeometries(parts);
   if (!g) throw new Error('fusion de géométries impossible');
   return g;
