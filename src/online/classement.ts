@@ -6,6 +6,8 @@ export type Resultat<T> = { ok: true; valeur: T } | { ok: false; message: string
 export interface LigneClassement {
   rang: number;
   pseudo: string;
+  /** mode de conduite du score */
+  mode: string;
   score: number;
   temps: number;
   voiture: string;
@@ -40,7 +42,7 @@ const premiere = (data: unknown): Record<string, unknown> | null => {
   return l && typeof l === 'object' ? (l as Record<string, unknown>) : null;
 };
 
-/** Envoi des scores et lecture du classement (fonctions SQL `soumettre_score` et `classement`). */
+/** Envoi des scores et lecture du classement (fonctions SQL `soumettre_score` et `classement_niveau`). */
 export class ClassementService {
   constructor(private readonly fournisseur: Fournisseur) {}
 
@@ -63,15 +65,16 @@ export class ClassementService {
     }
   }
 
-  async chargerClassement(niveau: string, mode: string, limite = 20): Promise<Resultat<LigneClassement[]>> {
+  /** Classement d'un niveau, tous modes confondus. */
+  async chargerClassement(niveau: string, limite = 20): Promise<Resultat<LigneClassement[]>> {
     if (!cleEnLigne(niveau)) return { ok: false, message: "Ce niveau n'a pas de classement en ligne." };
     try {
       const client = await this.fournisseur();
       if (!client) return { ok: false, message: MSG_INDISPONIBLE };
-      const { data, error } = await client.rpc('classement', { p_niveau: niveau, p_mode: mode, p_limite: limite });
+      const { data, error } = await client.rpc('classement_niveau', { p_niveau: niveau, p_limite: limite });
       if (error) return { ok: false, message: messageErreur(error) };
       const lignes = (Array.isArray(data) ? data : []).map((r: Record<string, unknown>): LigneClassement => ({
-        rang: nombre(r.rang), pseudo: String(r.pseudo ?? '?'), score: nombre(r.score), temps: nombre(r.temps),
+        rang: nombre(r.rang), pseudo: String(r.pseudo ?? '?'), mode: String(r.mode ?? ''), score: nombre(r.score), temps: nombre(r.temps),
         voiture: String(r.voiture ?? ''), maj: String(r.maj ?? ''), joueur: String(r.joueur ?? ''),
       }));
       return { ok: true, valeur: lignes };

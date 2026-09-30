@@ -11,18 +11,18 @@ export function rangFr(n: number): string {
 }
 
 const nomVoiture = (id: string): string => CARS[id as CarId]?.nom ?? id;
+const nomMode = (id: string): string => MODE_NOMS[id as ModeId] ?? id;
 
 export interface OptionsClassement {
   /** nom du niveau */
   titre: string;
-  mode: ModeId;
   /** id du joueur connecté, pour surligner sa ligne */
   moi: string | null;
   charger(): Promise<Resultat<LigneClassement[]>>;
   onRetour(): void;
 }
 
-/** Écran du classement d'un niveau (mode courant) : chargement, liste, vide ou erreur. Ne lève jamais. */
+/** Écran du classement d'un niveau (tous modes) : chargement, liste, vide ou erreur. Ne lève jamais. */
 export function ecranClassement(o: OptionsClassement): HTMLElement {
   const corps = h('div', { class: 'cls-corps' });
   let essai = 0;
@@ -48,7 +48,7 @@ export function ecranClassement(o: OptionsClassement): HTMLElement {
   charger();
   return h('div', { class: 'screen' }, h('div', { class: 'panel wide' },
     h('h2', {}, 'Classement'),
-    h('p', { class: 'sub' }, h('b', {}, o.titre), ' · Mode ', h('b', {}, MODE_NOMS[o.mode])),
+    h('p', { class: 'sub' }, h('b', {}, o.titre), ' · Tous modes'),
     corps,
     h('div', { class: 'row' }, h('button', { class: 'btn sec', onclick: o.onRetour }, 'Retour')),
   ));
@@ -56,11 +56,12 @@ export function ecranClassement(o: OptionsClassement): HTMLElement {
 
 function tableau(lignes: LigneClassement[], moi: string | null): HTMLElement {
   return h('div', { class: 'cls-liste' }, h('table', { class: 'cls' },
-    h('thead', {}, h('tr', {}, h('th', {}, '#'), h('th', {}, 'Pseudo'), h('th', {}, 'Score'), h('th', {}, 'Temps'), h('th', { class: 'voi' }, 'Voiture'))),
+    h('thead', {}, h('tr', {}, h('th', {}, '#'), h('th', {}, 'Pseudo'), h('th', {}, 'Mode'), h('th', {}, 'Score'), h('th', {}, 'Temps'), h('th', { class: 'voi' }, 'Voiture'))),
     h('tbody', {}, ...lignes.map((l) =>
       h('tr', { class: moi !== null && l.joueur === moi ? 'moi' : '' },
         h('td', {}, String(l.rang)),
         h('td', { class: 'pseudo' }, l.pseudo),
+        h('td', {}, nomMode(l.mode)),
         h('td', {}, formatScore(l.score)),
         h('td', {}, formatTime(l.temps)),
         h('td', { class: 'voi' }, nomVoiture(l.voiture)),
