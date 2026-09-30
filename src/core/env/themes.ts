@@ -1,5 +1,6 @@
 import type { Environnement, TypeObjet } from '../level/types';
 import type { DecorKind } from './types';
+import type { OptionsTerrain } from './terrainRegles';
 
 /**
  * Règles de placement d'un thème de décor (données pures, §5.5). `generateEnvironment` les lit sans rien
@@ -23,10 +24,45 @@ export interface ObjetBord {
   decalage: number;
   /** chance de poser l'objet à chaque candidat (0..1) */
   probabilite: number;
-  /** cap : `libre` (défaut, aléatoire) ; `route` (axe z local le long de la route, +x vers l'extérieur) ; `routeSym` (idem, sens aléatoire) */
-  orientation?: 'libre' | 'route' | 'routeSym';
+  /** cap : `libre` (défaut, aléatoire) ; `route` (axe z local le long de la route, +x vers l'extérieur) ; `routeSym` (idem, sens aléatoire) ; `travers` (axe z local perpendiculaire à la route, vers l'extérieur : torii qui s'ouvre sur un chemin) */
+  orientation?: 'libre' | 'route' | 'routeSym' | 'travers';
   /** [taille min, amplitude] (défaut [0,8 ; 0,5]) */
   echelle?: [number, number];
+}
+
+/** Objet flottant au-dessus de la route et de ses abords (dalles lumineuses des backrooms) : visuel, sans collision, posé à l'altitude de la chaussée. */
+export interface ObjetSuspendu {
+  kind: DecorKind;
+  /** un candidat tous les `tousLes` m de route */
+  tousLes: number;
+  probabilite: number;
+  /** décalage latéral maximal (m) depuis l'axe, de chaque côté (la route comprise) */
+  lateral: number;
+  echelle?: [number, number];
+}
+
+/**
+ * Objet semé sur le terrain loin de la route, par cases de `cellule` m (générateur aléatoire à part : n'influence pas le reste du décor).
+ * Pour les rivages (pirate) : `rive` fait descendre le point tiré le long de la pente jusqu'à la laisse de mer.
+ */
+export interface RegleFond {
+  kind: DecorKind;
+  cellule: number;
+  probabilite: number;
+  /** distance à l'axe de la route (m) : entre `dMin` et `dMax` */
+  dMin: number;
+  dMax: number;
+  /** pente maximale du terrain (dénivelé / m) et altitude minimale au-dessus du point le plus bas de la route (collines) */
+  penteMax?: number;
+  altitudeMin?: number;
+  /** `libre` (défaut) ; `quart` (multiples de 90°, pièces alignées) ; `aval` (z local vers la mer, ponton) ; `rive` (parallèle au rivage, épave) */
+  orientation?: 'libre' | 'quart' | 'aval' | 'rive';
+  echelle?: [number, number];
+  /** rivage : hauteur (m) au-dessus de la mer où se pose l'objet (min, max) et avance (m) vers la mer une fois trouvé */
+  rive?: { min: number; max: number; avance?: number };
+  /** altitude fixe au-dessus du niveau de la mer (ponton) ; sinon le terrain, moins `enfoncement` (défaut 0,3 m) */
+  yMer?: number;
+  enfoncement?: number;
 }
 
 /** Bâtiments alignés le long de la route (thème ville) : `generateEnvironment` les pose puis les rend solides. */
@@ -51,6 +87,8 @@ export interface ThemeRegles {
   fondEditeur: string;
   /** multiplicateur du relief du terrain (défaut 1 ; < 1 : plaine, pour un décor urbain) */
   relief?: number;
+  /** mer et cratères (voir `terrainRegles.ts`) ; à passer à `Terrain` (`creerTerrain`) */
+  terrain?: OptionsTerrain;
   arbres: {
     essences: Essence[];
     /** probabilité de base par case en forêt / hors forêt (avant densité) */
@@ -77,7 +115,11 @@ export interface ThemeRegles {
     extras: ObjetBord[];
     /** les extras ne se posent pas sur un objet déjà placé (défaut : non, pour ne pas changer les décors existants) */
     sansChevauchement?: boolean;
+    /** objets flottants au-dessus de la route (backrooms) */
+    suspendus?: ObjetSuspendu[];
   };
+  /** objets semés loin de la route (pagodes, pontons, murs des backrooms…) */
+  fond?: RegleFond[];
   /** bâtiments (ville) ; absent : aucun */
   batiments?: RegleBatiments;
   /** décor correspondant aux objets posés à la main dans l'éditeur (« barriere » est toujours la glissière) */
@@ -178,6 +220,119 @@ export const THEMES: Record<Environnement, ThemeRegles> = {
     objets: { arbre: 'arbreVille', sapin: 'lampadaire', rocher: 'blocBeton', pneus: 'pneus', panneau: 'panneau' },
     nomsObjets: { arbre: 'Arbre en bac', sapin: 'Lampadaire', rocher: 'Bloc béton' },
   },
+  pirate: {
+    nom: 'Côte des Pirates',
+    description: 'Plages, dunes et mer turquoise, palmiers, pontons, tonneaux, canons, épaves et drapeaux à tête de mort.',
+    fondEditeur: '#e8d29a',
+    relief: 0.35,
+    terrain: { mer: { decalage: -2.5, profondeur: 7, depart: 26, rampe: 70, seuil: [0.44, 0.56], echelle: 240, lointain: [200, 330] } },
+    arbres: {
+      essences: [
+        { kind: 'palmier', bas: 0.75, haut: 0.35, echelle: [0.8, 0.5] },
+        { kind: 'buisson', bas: 0.25, haut: 0.65, echelle: [0.8, 0.7] },
+      ],
+      pForet: 0.5, pHors: 0.07,
+    },
+    rochers: { base: 0.03, pente: 0.3, normal: 'rocher', haut: 'rocherHaut', partHauts: 0.2, echelle: [0.8, 0.6] },
+    bord: {
+      chevron: 'chevron', borne: 'borne', sansChevauchement: true,
+      extras: [
+        { kind: 'tonneau', tousLes: 30, decalage: 3.6, probabilite: 0.4 },
+        { kind: 'caisse', tousLes: 40, decalage: 3.8, probabilite: 0.35 },
+        { kind: 'drapeauPirate', tousLes: 70, decalage: 3.6, probabilite: 0.55, orientation: 'route', echelle: [0.95, 0.2] },
+        { kind: 'canon', tousLes: 90, decalage: 4.2, probabilite: 0.4 },
+        { kind: 'ancre', tousLes: 110, decalage: 4, probabilite: 0.4 },
+        { kind: 'coffre', tousLes: 160, decalage: 4.4, probabilite: 0.45, orientation: 'route', echelle: [1, 0] },
+        { kind: 'buisson', tousLes: 18, decalage: 3.6, probabilite: 0.35 },
+      ],
+    },
+    fond: [
+      { kind: 'epave', cellule: 150, probabilite: 0.85, dMin: 40, dMax: 300, orientation: 'rive', rive: { min: 0.3, max: 1.2 }, enfoncement: 0.5, echelle: [0.9, 0.3] },
+      { kind: 'ponton', cellule: 120, probabilite: 0.75, dMin: 34, dMax: 260, orientation: 'aval', rive: { min: 0.3, max: 1, avance: 3.5 }, yMer: 0.6, echelle: [1, 0] },
+    ],
+    objets: { arbre: 'palmier', sapin: 'drapeauPirate', rocher: 'rocher', pneus: 'tonneau', panneau: 'caisse' },
+    nomsObjets: { arbre: 'Palmier', sapin: 'Drapeau pirate', pneus: 'Tonneau', panneau: 'Caisse' },
+  },
+  backrooms: {
+    nom: 'Backrooms',
+    description: 'Moquette humide, papier peint jaune, cloisons et piliers sans fin, néons suspendus dans la brume.',
+    fondEditeur: '#c9b84e',
+    relief: 0.08,
+    // quelques piliers égarés ; les pièces (murs, piliers) sont semées loin de la route
+    arbres: { essences: [{ kind: 'pilier', bas: 1, haut: 1, echelle: [1, 0] }], pForet: 0.05, pHors: 0.01 },
+    rochers: { base: 0.012, pente: 0, normal: 'carton', haut: 'porteBureau', partHauts: 0.15, echelle: [0.9, 0.3] },
+    bord: {
+      chevron: 'chevron', borne: null, sansChevauchement: true,
+      extras: [
+        { kind: 'mur', tousLes: 8.5, decalage: 6, probabilite: 0.5, orientation: 'route', echelle: [1, 0] },
+        { kind: 'lampeBureau', tousLes: 22, decalage: 4.2, probabilite: 0.7, orientation: 'route', echelle: [1, 0] },
+        { kind: 'carton', tousLes: 40, decalage: 3.6, probabilite: 0.3 },
+        { kind: 'porteBureau', tousLes: 70, decalage: 5, probabilite: 0.3, orientation: 'travers', echelle: [1, 0] },
+      ],
+      suspendus: [{ kind: 'dalleLumiere', tousLes: 13, probabilite: 0.85, lateral: 14 }],
+    },
+    fond: [
+      { kind: 'mur', cellule: 22, probabilite: 0.45, dMin: 14, dMax: 130, orientation: 'quart', echelle: [1, 0] },
+      { kind: 'pilier', cellule: 12, probabilite: 0.5, dMin: 12, dMax: 110, orientation: 'quart', echelle: [1, 0] },
+    ],
+    objets: { arbre: 'pilier', sapin: 'lampeBureau', rocher: 'mur', pneus: 'carton', panneau: 'porteBureau' },
+    nomsObjets: { arbre: 'Pilier', sapin: 'Lampadaire néon', rocher: 'Cloison', pneus: 'Cartons', panneau: 'Porte' },
+  },
+  espace: {
+    nom: 'Espace',
+    description: 'Sol lunaire à cratères, ciel noir étoilé, cristaux lumineux, antennes, atterrisseurs et paraboles.',
+    fondEditeur: '#7d7889',
+    relief: 0.5,
+    terrain: { cratere: { cellule: 120, probabilite: 0.7, rayon: [14, 26], creux: 0.2, eloignement: [32, 60] } },
+    // pas de végétation : les « arbres » sont des amas de cristaux
+    arbres: { essences: [{ kind: 'cristal', bas: 1, haut: 1, echelle: [0.8, 0.9] }], pForet: 0.1, pHors: 0.012 },
+    rochers: { base: 0.07, pente: 0.3, normal: 'rocher', haut: 'rocherHaut', partHauts: 0.35, echelle: [0.9, 1.2] },
+    bord: {
+      chevron: 'chevron', borne: 'balise', sansChevauchement: true,
+      extras: [
+        { kind: 'bidon', tousLes: 60, decalage: 3.6, probabilite: 0.4 },
+        { kind: 'parabole', tousLes: 90, decalage: 6, probabilite: 0.5 },
+        { kind: 'antenne', tousLes: 140, decalage: 7, probabilite: 0.5 },
+        { kind: 'rocher', tousLes: 30, decalage: 3.5, probabilite: 0.35, echelle: [0.4, 0.4] },
+      ],
+    },
+    fond: [
+      { kind: 'cristal', cellule: 34, probabilite: 0.35, dMin: 10, dMax: 160, echelle: [1, 1.8] },
+      { kind: 'antenne', cellule: 110, probabilite: 0.45, dMin: 20, dMax: 300, penteMax: 0.35 },
+      { kind: 'atterrisseur', cellule: 200, probabilite: 0.5, dMin: 35, dMax: 320, penteMax: 0.3, echelle: [1, 0.3] },
+      { kind: 'parabole', cellule: 90, probabilite: 0.4, dMin: 20, dMax: 250, penteMax: 0.4 },
+    ],
+    objets: { arbre: 'cristal', sapin: 'antenne', rocher: 'rocher', pneus: 'bidon', panneau: 'balise' },
+    nomsObjets: { arbre: 'Cristal', sapin: 'Antenne relais', pneus: 'Bidons', panneau: 'Balise' },
+  },
+  japon: {
+    nom: 'Japon',
+    description: 'Cerisiers en fleurs et pétales, torii, lanternes de pierre, bambous, sanctuaires, rizières en terrasses et pagodes.',
+    fondEditeur: '#f0c6d3',
+    relief: 0.7,
+    arbres: {
+      essences: [
+        { kind: 'cerisier', bas: 0.7, haut: 0.5, echelle: [0.8, 0.5] },
+        { kind: 'bambou', bas: 0.15, haut: 0.3, echelle: [0.8, 0.5] },
+        { kind: 'buisson', bas: 0.15, haut: 0.2, echelle: [0.8, 0.6] },
+      ],
+      pForet: 0.75, pHors: 0.1,
+    },
+    rochers: { base: 0.02, pente: 0.22, normal: 'rocher', haut: 'rocherHaut', partHauts: 0.15, echelle: [0.8, 0.5] },
+    bord: {
+      chevron: 'chevron', borne: 'borne', sansChevauchement: true,
+      extras: [
+        { kind: 'toro', tousLes: 20, decalage: 3.6, probabilite: 0.55, orientation: 'travers', echelle: [1, 0.2] },
+        { kind: 'torii', tousLes: 130, decalage: 5.5, probabilite: 0.6, orientation: 'travers', echelle: [0.95, 0.3] },
+        { kind: 'bambou', tousLes: 30, decalage: 3.8, probabilite: 0.35 },
+        { kind: 'cerisier', tousLes: 24, decalage: 4.5, probabilite: 0.55, echelle: [0.9, 0.4] },
+        { kind: 'sanctuaire', tousLes: 220, decalage: 7, probabilite: 0.5, orientation: 'travers', echelle: [1, 0] },
+      ],
+    },
+    fond: [{ kind: 'pagode', cellule: 190, probabilite: 0.7, dMin: 70, dMax: 320, penteMax: 0.5, altitudeMin: 4, echelle: [1, 0.3] }],
+    objets: { arbre: 'cerisier', sapin: 'bambou', rocher: 'rocher', pneus: 'toro', panneau: 'torii' },
+    nomsObjets: { arbre: 'Cerisier', sapin: 'Bambou', pneus: 'Lanterne de pierre', panneau: 'Torii' },
+  },
 };
 
 /** Tous les types de décor qu'un thème peut produire (sert aux tests d'intégrité et au rendu). */
@@ -188,6 +343,8 @@ export function typesDuTheme(t: ThemeRegles): DecorKind[] {
   if (t.bord.chevron) s.add(t.bord.chevron);
   if (t.bord.borne) s.add(t.bord.borne);
   for (const x of t.bord.extras) s.add(x.kind);
+  for (const x of t.bord.suspendus ?? []) s.add(x.kind);
+  for (const x of t.fond ?? []) s.add(x.kind);
   for (const k of Object.values(t.objets)) s.add(k);
   if (t.batiments) { s.add('immeuble'); s.add('tour'); }
   return [...s];

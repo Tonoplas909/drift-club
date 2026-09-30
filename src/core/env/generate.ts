@@ -5,7 +5,7 @@ import { nearestSampleWithin } from '../track/projection';
 import { mulberry32 } from '../math/rng';
 import { fbm } from '../math/noise';
 import { smoothstep, DEG } from '../math/vec';
-import { COLLIDER_RADIUS, SOLID_DISTANCE, VARIANTS, type DecorKind, type EnvItem, type Environment } from './types';
+import { CERCLES_MULTIPLES, COLLIDER_RADIUS, SANS_COLLISION, SOLID_DISTANCE, VARIANTS, type DecorKind, type EnvItem, type Environment } from './types';
 import { THEMES, type Essence } from './themes';
 import { jusquAuBout } from '../track/terrain';
 import { batimentDe, boiteDe } from './ville';
@@ -138,7 +138,10 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
     return false;
   };
   /** Trop près d'un lac (m de rive) : rien n'y est posé. */
-  const surEau = (x: number, z: number, marge: number): boolean => terrain.distanceEau(x, z) > -marge;
+  const surLac = (x: number, z: number, marge: number): boolean => terrain.distanceEau(x, z) > -marge;
+  /** Dans la mer du thème (ou à moins de `marge` m au-dessus de l'eau) : rien n'y est posé. */
+  const surMer = (x: number, z: number, marge: number): boolean => terrain.mer !== null && terrain.heightAt(x, z) < terrain.mer.niveau + marge;
+  const surEau = (x: number, z: number, marge: number): boolean => surLac(x, z, marge) || surMer(x, z, 1.2);
   /** Pente du terrain en (x, z) (dénivelé / mètre). */
   const pente = (x: number, z: number): number => {
     const g = terrain.gradientAt(x, z);
@@ -152,8 +155,14 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
     if (theme.bord.sansChevauchement) {
       posés.push({ x: item.x, z: item.z, r: box ? (Math.hypot(box[0], box[1]) / 2) * item.scale : COLLIDER_RADIUS[item.kind] * item.scale });
     }
-    if (!item.solid) return;
-    if (box) {
+    if (!item.solid || SANS_COLLISION.has(item.kind)) return;
+    const multi = CERCLES_MULTIPLES[item.kind];
+    if (multi) {
+      // plusieurs piliers (torii) : un cercle par pilier, décalé selon l'axe x local
+      for (const c of multi) {
+        env.circles.push({ x: item.x + Math.cos(item.rot) * c.dx * item.scale, z: item.z - Math.sin(item.rot) * c.dx * item.scale, r: c.r * item.scale });
+      }
+    } else if (box) {
       // emprise rectangulaire : 4 segments (bâtiments, voitures garées, abribus…)
       const v = sommets(empriseDe(item.x, item.z, item.rot, box[0] * item.scale, box[1] * item.scale));
       for (let k = 0; k < 4; k++) env.segments.push({ ax: v[k][0], az: v[k][1], bx: v[(k + 1) % 4][0], bz: v[(k + 1) % 4][1] });
@@ -265,7 +274,10 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
         // cap : aléatoire, ou le long de la route (+x local vers l'extérieur, sens aléatoire pour `routeSym`)
         const ori = ex.orientation ?? 'libre';
         const alongRoad = Math.atan2(sp.tx, sp.tz) + (side > 0 ? 0 : Math.PI);
-        const rot = ori === 'libre' ? rotR * Math.PI * 2 : ori === 'route' ? alongRoad : alongRoad + (rotR < 0.5 ? 0 : Math.PI);
+        const rot = ori === 'libre' ? rotR * Math.PI * 2
+          : ori === 'route' ? alongRoad
+          : ori === 'travers' ? Math.atan2(side * sp.nx, side * sp.nz)
+          : alongRoad + (rotR < 0.5 ? 0 : Math.PI);
         add({ kind: ex.kind, variant, x, y: terrain.heightAt(x, z), z, rot, scale, solid: true, manual: false });
       }
     }
@@ -407,6 +419,84 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
         x, y: terrain.heightAt(x, z) - 0.3 - 0.4 * Math.min(slope, 1.5), z, rot: rotR * Math.PI * 2, scale: roc.echelle[0] + roc.echelle[1] * scaleR,
         solid: d < SOLID_DISTANCE, manual: false,
       });
+    }
+  }
+
+  // 7. Objets suspendus au-dessus de la route (dalles des backrooms) : générateur à part, visuels, sans collision
+  const rs = mulberry32(graine + 5011);
+  for (const su of theme.bord.suspendus ?? []) {
+    for (let s = 5; s < track.length - 5; s += su.tousLes) {
+      const pick = rs(), jit = rs(), lat = rs(), rotR = rs(), scaleR = rs(), variantR = rs();
+      if (pick >= su.probabilite) continue;
+      const sp = S[Math.min(S.length - 1, Math.max(0, Math.round(s + (jit - 0.5) * su.tousLes * 0.8)))];
+      const off = (lat * 2 - 1) * su.lateral;
+      const x = sp.x + sp.nx * off, z = sp.z + sp.nz * off;
+      const nv = VARIANTS[su.kind];
+      const [eMin, eAmp] = su.echelle ?? [1, 0];
+      add({ kind: su.kind, variant: Math.min(nv - 1, Math.floor(variantR * nv)), x, y: Math.max(sp.y, terrain.heightAt(x, z)), z, rot: rotR * Math.PI * 2, scale: eMin + eAmp * scaleR, solid: true, manual: false });
+    }
+  }
+
+  // 8. Objets semés loin de la route (pagodes, pontons, épaves, murs…) : générateur à part
+  const rf = mulberry32(graine + 7331);
+  const fond: { x: number; z: number; r: number }[] = [];
+  for (const rule of theme.fond ?? []) {
+    const C = rule.cellule, rive = rule.rive;
+    for (let gz = b.minZ - rule.dMax; gz < b.maxZ + rule.dMax; gz += C) {
+      for (let gx = b.minX - rule.dMax; gx < b.maxX + rule.dMax; gx += C) {
+        let x = gx + rf() * C, z = gz + rf() * C;
+        const pick = rf(), variantR = rf(), rotR = rf(), scaleR = rf();
+        if (pick >= rule.probabilite) continue;
+        let dirx = 0, dirz = 0;
+        if (rive) {
+          // on descend le long de la pente jusqu'à la laisse de mer
+          const mer = terrain.mer;
+          if (!mer || terrain.heightAt(x, z) < mer.niveau + rive.max) continue;
+          const cible = mer.niveau + (rive.min + rive.max) / 2;
+          let trouve = false;
+          for (let k = 0; k < 90 && !trouve; k++) {
+            const g = terrain.gradientAt(x, z), gl = Math.hypot(g.gx, g.gz);
+            if (gl < 1e-3) break;
+            dirx = -g.gx / gl; dirz = -g.gz / gl;
+            x += dirx * 1.5; z += dirz * 1.5;
+            trouve = terrain.heightAt(x, z) <= cible;
+          }
+          if (!trouve) continue;
+          x += dirx * (rive.avance ?? 0); z += dirz * (rive.avance ?? 0);
+        }
+        const d = terrain.distanceToRoad(x, z);
+        if (d < rule.dMin || d >= rule.dMax) continue;
+        const nv = VARIANTS[rule.kind];
+        const variant = Math.min(nv - 1, Math.floor(variantR * nv));
+        const [eMin, eAmp] = rule.echelle ?? [0.8, 0.5];
+        const scale = eMin + eAmp * scaleR;
+        const ori = rive ? rule.orientation ?? 'libre' : rule.orientation === 'quart' ? 'quart' : 'libre';
+        const rot = ori === 'quart' ? Math.round(rotR * 4) * (Math.PI / 2)
+          : ori === 'aval' ? Math.atan2(dirx, dirz)
+          : ori === 'rive' ? Math.atan2(-dirz, dirx) + (rotR - 0.5) * 0.6
+          : rotR * Math.PI * 2;
+        const box = boiteDe(rule.kind, variant);
+        const r = (box ? Math.hypot(box[0], box[1]) / 2 : COLLIDER_RADIUS[rule.kind]) * scale;
+        if (nearManual(x, z, r + 2) || (rive ? surLac(x, z, 6) : surEau(x, z, 6))) continue;
+        const pt = pente(x, z);
+        if (rule.penteMax !== undefined && pt > rule.penteMax) continue;
+        let yBas = terrain.heightAt(x, z);
+        if (rule.altitudeMin !== undefined && yBas - lowest < rule.altitudeMin) continue;
+        // couloir libre autour de la route, sur tout le pourtour pour les objets à emprise
+        if (box) {
+          const e = empriseDe(x, z, rot, box[0] * scale, box[1] * scale);
+          let libre = true;
+          for (const [px, pz] of [...pourtour(e, 3), [x, z] as [number, number]]) {
+            if (inCorridor(px, pz, 4, terrain.distanceToRoad(px, pz))) { libre = false; break; }
+            if (!rive) yBas = Math.min(yBas, terrain.heightAt(px, pz));
+          }
+          if (!libre) continue;
+        } else if (inCorridor(x, z, 3 + r, d)) continue;
+        if (fond.some((o) => (o.x - x) * (o.x - x) + (o.z - z) * (o.z - z) < (o.r + r + 0.5) * (o.r + r + 0.5))) continue;
+        fond.push({ x, z, r });
+        const y = rule.yMer !== undefined && terrain.mer ? terrain.mer.niveau + rule.yMer : yBas - (rule.enfoncement ?? 0.3);
+        add({ kind: rule.kind, variant, x, y, z, rot, scale, solid: d - r < SOLID_DISTANCE, manual: false });
+      }
     }
   }
 

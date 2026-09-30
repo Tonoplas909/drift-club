@@ -2,6 +2,7 @@ import type { TrackData, TrackSample } from './buildTrack';
 import { Lac, type PlanEau } from '../env/eau';
 import { nearestSampleWithin } from './projection';
 import { fbm } from '../math/noise';
+import { creuxCratere, masqueMer, type OptionsTerrain as ReglesTerrain } from '../env/terrainRegles';
 import { clamp, lerp, smoothstep } from '../math/vec';
 
 export interface Ground {
@@ -213,7 +214,7 @@ interface Grilles { fine: Grid; coarse: Grid }
  * Construction d'un terrain en étapes : le générateur rend la main régulièrement (quelques ms de calcul au plus
  * entre deux étapes) ; le mode Zen étale ainsi le travail sur plusieurs images. Même résultat que `new Terrain`.
  */
-export function* terrainEnEtapes(track: TrackData, seed: number, relief: Relief = 1, eau: readonly PlanEau[] = [], opts: OptionsTerrain = {}): Generator<void, Terrain> {
+export function* terrainEnEtapes(track: TrackData, seed: number, relief: Relief = 1, eau: readonly PlanEau[] = [], opts: OptionsTerrain = {}, regles: ReglesTerrain = {}): Generator<void, Terrain> {
   const b = track.bounds;
   const COARSE_R = opts.rayonGrossier ?? COARSE_R_DEFAUT, MARGIN = COARSE_R + 20;
   const fine = makeGrid(b.minX - FINE_R, b.minZ - FINE_R, FINE_CELL, b.maxX - b.minX + 2 * FINE_R, b.maxZ - b.minZ + 2 * FINE_R, seed, relief);
@@ -221,7 +222,7 @@ export function* terrainEnEtapes(track: TrackData, seed: number, relief: Relief 
   yield;
   yield* remplir(fine, track, opts.pasFin ?? 2, FINE_R);
   yield* remplir(coarse, track, opts.pasGrossier ?? 4, COARSE_R);
-  return new Terrain(track, seed, relief, eau, opts, { fine, coarse });
+  return new Terrain(track, seed, relief, eau, regles, opts, { fine, coarse });
 }
 
 export class Terrain implements Ground {
@@ -232,10 +233,16 @@ export class Terrain implements Ground {
   private readonly fine: Grid;
   private readonly coarse: Grid;
   private readonly lacs: Lac[];
+  /** mer du thème (pirate) : plan d'eau infini ; null sans mer */
+  readonly mer: { niveau: number } | null;
 
-  /** `relief` : multiplicateur des reliefs autour de la route (1 = montagne ; < 1 = plaine, thème ville) ; `eau` : lacs (polygones). */
-  constructor(private readonly track: TrackData, seed: number, relief: Relief = 1, eau: readonly PlanEau[] = [], opts: OptionsTerrain = {}, grilles?: Grilles) {
+  /**
+   * `relief` : multiplicateur des reliefs autour de la route (1 = montagne ; < 1 = plaine, thème ville) ; `eau` : lacs (polygones) ;
+   * `regles` : mer et cratères du thème (`THEMES[...].terrain`), sans effet près de la route ; `opts` : taille des grilles (mode Zen).
+   */
+  constructor(private readonly track: TrackData, private readonly seed: number, relief: Relief = 1, eau: readonly PlanEau[] = [], private readonly regles: ReglesTerrain = {}, opts: OptionsTerrain = {}, grilles?: Grilles) {
     this.lacs = eau.map((p) => new Lac(p));
+    this.mer = regles.mer ? { niveau: track.samples.reduce((m, sp) => Math.min(m, sp.y), Infinity) + regles.mer.decalage } : null;
     if (grilles) {
       this.fine = grilles.fine;
       this.coarse = grilles.coarse;
@@ -285,10 +292,23 @@ export class Terrain implements Ground {
     return appliquerTalus(this.hauteurGrille(x, z), x, z, candTalus, sCandTalus, n);
   }
 
-  /** Hauteur « naturelle » du versant (grilles + lacs), avant les talus de la route. */
+  /** Hauteur « naturelle » du versant (grilles, mer et cratères du thème, lacs), avant les talus de la route. */
   hauteurGrille(x: number, z: number): number {
     let g = this.gridHeight(x, z);
+    if (this.regles.mer || this.regles.cratere) g = this.modeler(x, z, g);
     for (const lac of this.lacs) g = lac.hauteur(x, z, g);
+    return g;
+  }
+
+  /** Mer et cratères du thème, appliqués au versant loin de la route (les talus des tronçons voisins bornent ensuite la hauteur). */
+  private modeler(x: number, z: number, g: number): number {
+    const d = this.distanceToRoad(x, z);
+    const { mer, cratere } = this.regles;
+    if (mer && this.mer) {
+      const w = masqueMer(mer, fbm(x / mer.echelle, z / mer.echelle, this.seed + 901), d);
+      if (w > 0) g += (this.mer.niveau - mer.profondeur - g) * w;
+    }
+    if (cratere) g += creuxCratere(cratere, x, z, d, this.seed);
     return g;
   }
 
