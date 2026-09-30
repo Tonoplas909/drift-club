@@ -23,6 +23,8 @@ Trois voitures : **L'Équilibrée** (pour débuter), **La Légère** (agile) et 
 
 Au **Garage**, on choisit la voiture, sa **couleur** (8 teintes) et sa **livrée** (16 par voiture : Unie, double bande, damier, pois, camouflage, éclairs, flammes, taxi, noir et or…). La livrée se pose par-dessus la couleur choisie et est mémorisée pour chaque voiture ; quelques livrées (Or massif, Chrome, Noir mat, Taxi…) **imposent** leur couleur de carrosserie, et le Garage l'indique. Elles sont décrites par des données dans `src/core/skins.ts` : ajouter une livrée = ajouter une entrée dans `SKINS` (id, nom, rareté, éléments) ; elle entre alors toute seule dans les caisses. Les éléments de décor (bandes, damier, flammes, éclairs, camouflage, pois, diagonales, dents de scie…) sont générés en procédural dans `src/render/skins.ts`.
 
+Chaque niveau a un **décor** (son champ `environnement`) : **Montagne**, **Neige** (sapins givrés, congères, flocons), **Canyon** (sable, cactus, mesas rouges) ou **Forêt d'automne** (feuillages roux et dorés). Il règle le sol, les arbres, les rochers, les objets de bord de route, le ciel et la brume, en Jour comme en Coucher. Dans l'éditeur, l'outil **Décor** propose ce choix ; il est conservé dans les liens de partage, les fichiers `.json` et les niveaux publiés en ligne.
+
 ### Raretés, clés et caisses
 
 Chaque livrée a une **rareté** : Commune (bleu, 79,9 %), Rare (violet, 16 %), Épique (rose, 3,2 %), Légendaire (rouge, 0,64 %) et Exotique (or, 0,26 %). « Unie » est toujours débloquée ; les autres se gagnent dans des **caisses**, toutes voitures confondues (on peut tomber sur une livrée d'une autre voiture).
@@ -59,8 +61,8 @@ Dans l'éditeur, la route est vue de dessus (grille en mètres, largeur réelle 
 |---|---|
 | **Route** | Clic dans le vide : ajoute un point à la fin. Glisser un point : le déplacer. Clic sur la route : insère un point. Point sélectionné : largeur, hauteur, Supprimer. |
 | **Barrières** | Choisis Gauche, Droite ou Extérieur (extérieur du virage), puis clique sur un tronçon (entre deux points, repérés par des tirets) pour poser ou retirer sa barrière. |
-| **Objets** | Palette (arbre, sapin, rocher, pneus, barrière, panneau) : clic pour poser, glisser pour déplacer, boutons ±15° pour tourner, Supprimer. |
-| **Décor** | Ambiance (Jour / Coucher), densité, « Autre décor » (nouvelle graine). |
+| **Objets** | Palette (arbre, sapin, rocher, pneus, barrière, panneau ; dans le Canyon, l'arbre devient un arbre sec et le sapin un cactus) : clic pour poser, glisser pour déplacer, boutons ±15° pour tourner, Supprimer. |
+| **Décor** | Ambiance (Jour / Coucher), densité, « Autre décor » (nouvelle graine), environnement (Montagne, Neige, Canyon, Forêt d'automne ; le fond de la carte prend la couleur du sol). |
 | **Infos** | Nom (1 à 40 caractères) et auteur (0 à 30). |
 
 Le **profil en long** (bandeau du bas, repliable) montre la hauteur en fonction de la distance : glisse un point verticalement pour modifier son altitude. La **barre de validation** est toujours visible : « ✔ Niveau valide · … » ou la liste des erreurs, avec les compteurs (points/150, objets/300, longueur/3 km). Les croisements et virages trop serrés sont entourés en rouge sur la carte. Un niveau invalide ne peut pas être testé.
@@ -112,6 +114,10 @@ npm run build    # version publiée (dist/)
 ```
 
 Ajoute `?debug` à l'adresse pour afficher le panneau de réglage de la conduite.
+
+**Essayer les décors** sur les niveaux existants : `?theme=neige`, `?theme=desert` ou `?theme=automne` (et `?theme=montagne`) remplacent l'environnement de n'importe quel niveau au chargement ; `?ambiance=jour` ou `?ambiance=coucher` remplace l'ambiance. Le niveau lui-même n'est pas modifié (les records restent comptés sur le niveau d'origine). Exemple : `http://localhost:5173/drift-club/?theme=desert&ambiance=coucher`.
+
+**Ajouter un décor** : ajouter son identifiant à la fin de `ENVIRONNEMENTS` (`src/core/level/types.ts` : l'ordre est figé, les liens de partage stockent l'indice), ses règles de placement dans `THEMES` (`src/core/env/themes.ts`), ses palettes Jour/Coucher dans `PALETTES_THEMES` (`src/render/palettes.ts`) et ses modèles dans `THEMES_VISUELS` (`src/render/themes.ts`). Les tests vérifient que chaque type de décor utilisé a un modèle, des variantes et un rayon de collision.
 
 Chaque push sur `main` lance les tests puis publie le jeu sur GitHub Pages (Settings → Pages → Source : GitHub Actions).
 

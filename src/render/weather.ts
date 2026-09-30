@@ -57,7 +57,7 @@ export class Snowfall {
     this.tex = new THREE.CanvasTexture(canvas);
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(this.pos, 3));
-    const mat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.11, map: this.tex, alphaTest: 0.5, sizeAttenuation: true, depthWrite: false });
+    const mat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.09, map: this.tex, alphaTest: 0.5, sizeAttenuation: true, depthWrite: false });
     this.points = new THREE.Points(geo, mat);
     this.points.frustumCulled = false;
     this.points.name = 'neige';

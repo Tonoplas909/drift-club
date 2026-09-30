@@ -60,10 +60,10 @@ const NEIGE_ROCHE = { couleur: 0xf3f7fc, seuil: 0.3, surBrun: true };
 export const THEMES_VISUELS: Record<Environnement, ThemeVisuel> = {
   montagne: { decor: () => ({}) },
   neige: {
-    meteo: { type: 'neige', nombre: 700 },
+    meteo: { type: 'neige', nombre: 900 },
     decor: (b) => ({
-      ...par3('sapin', (i) => retoucher(b[decorKey('sapin', i)], { vert: 0x2f6a5e, neige: NEIGE_ARBRE })),
-      ...par3('feuillu', (i) => retoucher(b[decorKey('feuillu', i)], { vert: 0xc9dbe8, neige: { couleur: 0xf6f9ff, seuil: 0 } })),
+      ...par3('sapin', (i) => retoucher(b[decorKey('sapin', i)], { vert: 0x2f6a5e, brun: 0x6f5b52, neige: NEIGE_ARBRE })),
+      ...par3('feuillu', (i) => retoucher(b[decorKey('feuillu', i)], { vert: 0xc9dbe8, brun: 0x6f5b52, neige: { couleur: 0xf6f9ff, seuil: 0 } })),
       ...par3('rocher', (i) => retoucher(b[decorKey('rocher', i)], { vert: 0xf3f7fc, brun: 0x858e9e, neige: NEIGE_ROCHE }), 2),
       rocherHaut0: retoucher(b.rocherHaut0, { vert: 0xf3f7fc, brun: 0x858e9e, neige: NEIGE_ROCHE }),
       piquet0: piquetGeometry(),
