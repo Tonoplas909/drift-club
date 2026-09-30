@@ -152,3 +152,17 @@ describe('Store', () => {
     expect(st.listNiveaux()).toEqual([]);
   });
 });
+
+describe('accélération automatique (tactile)', () => {
+  it('désactivée par défaut, y compris pour les anciens réglages enregistrés avec true', () => {
+    expect(defaultReglages(true).accelAuto).toBe(false);
+    const kv = memoryKV();
+    kv.setItem('driftclub.v1.reglages', JSON.stringify({ mode: 'arcade', accelAuto: true }));
+    expect(new Store(kv).loadReglages(true).accelAuto).toBe(false);
+  });
+  it('un choix explicite du joueur est conservé', () => {
+    const st = new Store(memoryKV());
+    st.saveReglages({ ...defaultReglages(true), accelAuto: true });
+    expect(st.loadReglages(true).accelAuto).toBe(true);
+  });
+});

@@ -62,6 +62,9 @@ export function safeStorage(candidate?: KV | null): { kv: KV; persistent: boolea
   }
 }
 
+/** Version du format des réglages enregistrés (2 : accélération automatique désactivée par défaut). */
+const VERSION_REGLAGES = 2;
+
 export function defaultReglages(touch: boolean): Reglages {
   return {
     mode: touch ? 'arcade' : 'semi',
@@ -71,7 +74,8 @@ export function defaultReglages(touch: boolean): Reglages {
     volume: 0.8,
     muet: false,
     qualite: 'auto',
-    accelAuto: true,
+    // désactivée par défaut : sur téléphone la voiture avançait seule dès le premier toucher
+    accelAuto: false,
     cameraLoin: false,
   };
 }
@@ -111,13 +115,14 @@ export class Store {
       volume: typeof o.volume === 'number' && o.volume >= 0 && o.volume <= 1 ? o.volume : d.volume,
       muet: typeof o.muet === 'boolean' ? o.muet : d.muet,
       qualite: QUALITES.includes(o.qualite as Qualite) ? (o.qualite as Qualite) : d.qualite,
-      accelAuto: typeof o.accelAuto === 'boolean' ? o.accelAuto : d.accelAuto,
+      // avant la v2 des réglages, accelAuto valait true par défaut sans choix du joueur : on l'ignore
+      accelAuto: o.v === VERSION_REGLAGES && typeof o.accelAuto === 'boolean' ? o.accelAuto : d.accelAuto,
       cameraLoin: typeof o.cameraLoin === 'boolean' ? o.cameraLoin : d.cameraLoin,
     };
   }
 
   saveReglages(r: Reglages): void {
-    this.write(K_REGLAGES, r);
+    this.write(K_REGLAGES, { ...r, v: VERSION_REGLAGES });
   }
 
   private records(): RecordsMap {
