@@ -104,7 +104,7 @@ describe('encoderNiveau / decoderNiveau', () => {
     expect((await decoderNiveau(`  ${code}\n`)).ok).toBe(true);
   });
 
-  it('les 5 niveaux officiels font l\'aller-retour et donnent des liens courts', async () => {
+  it('les niveaux officiels font l\'aller-retour et donnent des liens courts', async () => {
     const lignes: string[] = [];
     for (let i = 0; i < NIVEAUX_OFFICIELS.length; i++) {
       const l = officiel(i);
