@@ -15,10 +15,18 @@ export interface AudioCaisses {
   reveal(r: Rarete): void;
 }
 
+/** Résultat d'une ouverture : le tirage (local, ou fait par le serveur) ou la raison de l'échec. */
+export type ResultatOuverture = { ok: true; ouverture: Ouverture } | { ok: false; message: string };
+
 export interface OptionsCaisses {
   progression(): Progression;
-  /** paie et tire une caisse avec `rng` (applique et enregistre la progression) ; null si pas assez de clés */
-  ouvrir(rng: Rng): Ouverture | null;
+  /**
+   * Paie et tire une caisse (applique et enregistre la progression). `rng` sert à la roulette ; avec un compte en ligne le
+   * tirage vient du serveur, donc la réponse est asynchrone et la roulette s'arrête sur SON résultat.
+   */
+  ouvrir(rng: Rng): ResultatOuverture | Promise<ResultatOuverture>;
+  /** raison qui empêche d'ouvrir maintenant (ex. compte injoignable), ou null */
+  blocage?(): string | null;
   audio: AudioCaisses;
   /** couleur principale du joueur (pour les pastilles des cartes) */
   couleur(): string;
@@ -49,7 +57,9 @@ function carte(o: Objet, couleur: string): HTMLElement {
 export function ecranCaisses(o: OptionsCaisses): HTMLElement {
   const nouveauRng = o.rng ?? nouvelRng;
   const reduit = (): boolean => o.mouvementReduit?.() ?? (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches);
-  let etat: 'attente' | 'roulette' | 'revele' = 'attente';
+  let etat: 'attente' | 'ouverture' | 'roulette' | 'revele' = 'attente';
+  /** dernier échec d'ouverture, affiché sous le bouton */
+  let erreur: string | null = null;
   let raf = 0;
   let fin: (() => void) | null = null;
 
@@ -81,12 +91,15 @@ export function ecranCaisses(o: OptionsCaisses): HTMLElement {
       actions.replaceChildren(iconeCaisse('ico-caisse secoue'), h('button', { class: 'btn sec', onclick: () => fin?.() }, 'Passer'));
       return;
     }
-    const ok = peutOuvrir(p), manque = ECONOMIE.coutCaisse - p.cles;
+    const bloque = o.blocage?.() ?? null;
+    const ok = peutOuvrir(p) && bloque === null && etat === 'attente', manque = ECONOMIE.coutCaisse - p.cles;
     actions.replaceChildren(
-      iconeCaisse(),
+      iconeCaisse(etat === 'ouverture' ? 'ico-caisse secoue' : undefined),
       h('div', { class: 'cs-ouvrir' },
-        h('button', { class: 'btn big', disabled: !ok, onclick: () => demarrer() }, `Ouvrir (${cle(ECONOMIE.coutCaisse)})`),
-        !ok && h('p', { class: 'cs-raison' }, `Il te manque ${cle(manque)} : +${ECONOMIE.clesParArrivee} par arrivée, +${ECONOMIE.clesRecord} sur un record.`),
+        h('button', { class: 'btn big', disabled: !ok, onclick: () => void demarrer() }, etat === 'ouverture' ? 'Ouverture…' : `Ouvrir (${cle(ECONOMIE.coutCaisse)})`),
+        bloque !== null ? h('p', { class: 'cs-raison' }, bloque)
+          : erreur !== null ? h('p', { class: 'cs-raison' }, erreur)
+          : !peutOuvrir(p) && h('p', { class: 'cs-raison' }, `Il te manque ${cle(manque)} : +${ECONOMIE.clesParArrivee} par arrivée, +${ECONOMIE.clesRecord} sur un record.`),
       ),
     );
   };
@@ -125,18 +138,25 @@ export function ecranCaisses(o: OptionsCaisses): HTMLElement {
         h('p', { class: 'cs-total' }, iconeCle(), `Tu as ${cle(p.cles)}`),
         h('div', { class: 'row' },
           h('button', { class: 'btn', onclick: () => o.onEquiper(x) }, 'Équiper'),
-          h('button', { class: 'btn sec', disabled: !peutOuvrir(p), title: peutOuvrir(p) ? '' : `Il te manque ${cle(ECONOMIE.coutCaisse - p.cles)}`, onclick: () => { fermerRevele(); demarrer(); } }, `Rouvrir (${cle(ECONOMIE.coutCaisse)})`),
+          h('button', { class: 'btn sec', disabled: !peutOuvrir(p) || (o.blocage?.() ?? null) !== null, title: peutOuvrir(p) ? '' : `Il te manque ${cle(ECONOMIE.coutCaisse - p.cles)}`, onclick: () => { fermerRevele(); void demarrer(); } }, `Rouvrir (${cle(ECONOMIE.coutCaisse)})`),
           h('button', { class: 'btn sec', onclick: retour }, 'Retour'),
         ),
       ),
     ));
   };
 
-  const demarrer = (): void => {
+  const demarrer = async (): Promise<void> => {
     if (etat !== 'attente') return;
     const rng = nouveauRng();
-    const ou = o.ouvrir(rng);
-    if (!ou) { rendreActions(); return; }
+    erreur = null;
+    etat = 'ouverture';
+    rendreActions();
+    let res: ResultatOuverture;
+    try { res = await o.ouvrir(rng); } catch { res = { ok: false, message: "Ouverture impossible pour le moment. Réessaie." }; }
+    if (!ecran.isConnected) return; // écran quitté pendant l'attente
+    etat = 'attente';
+    if (!res.ok) { erreur = res.message; rendreActions(); return; }
+    const ou = res.ouverture;
     etat = 'roulette';
     o.audio.ouvrir();
     const cartes = monter(construireBande(rng, ou.tirage.objet));
