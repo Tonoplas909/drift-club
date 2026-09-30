@@ -275,3 +275,13 @@ input[type=text], input[type=email], input[type=password] { user-select: text; -
   .ed-bar .cnt { gap: 8px; font-size: 11.5px; }
   .ed-pcanvas { height: 90px; }
 }
+
+/* accueil compact en paysage sur téléphone : le logo et tous les boutons tiennent sans défiler */
+@media (max-height: 480px) {
+  .accueil { gap: 8px; padding-block: 8px; }
+  .accueil .logo.big { font-size: 44px; }
+  .accueil .menu { gap: 6px; }
+  .accueil .btn { font-size: 17px; padding: 5px 20px; }
+  .accueil .btn.big { font-size: 22px; padding: 7px; }
+  .accueil .hint { display: none; }
+}
