@@ -81,7 +81,7 @@ export class GameSession {
     this.deps.hud.show(true);
     this.world.resetCamera(this.race.car);
     this.deps.input.reset();
-    this.deps.audio.startEngine();
+    this.deps.audio.startEngine(this.deps.reglages.voiture);
     this.last = performance.now();
     this.raf = requestAnimationFrame(this.frame);
   }
@@ -110,7 +110,7 @@ export class GameSession {
     this.world.update(pose, car, dt, this.camCfg);
     this.world.render();
     this.deps.hud.update(this.race.hud());
-    this.deps.audio.updateEngine(car.rpm, car.throttle, car.rearSlip, car.speed);
+    this.deps.audio.updateEngine(car.rpm, car.throttle, car.rearSlip, car.speed, { gear: car.gear, onRoad: this.race.onRoad });
     this.deps.debug?.frame(car, dt);
     if (this.race.phase === 'course' && this.deps.quality.sample(dt)) this.world.setQuality(this.deps.quality.level);
 
@@ -149,6 +149,7 @@ export class GameSession {
         this.world.resetCamera(this.race.car);
         break;
       case 'arrivee':
+        this.deps.audio.playFinish();
         this.finishDelay = 1.5;
         break;
     }
@@ -168,7 +169,7 @@ export class GameSession {
     this.paused = false;
     this.loop.reset();
     this.deps.input.reset();
-    this.deps.audio.startEngine();
+    this.deps.audio.startEngine(this.deps.reglages.voiture);
     this.last = performance.now();
   }
 
