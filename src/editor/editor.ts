@@ -27,6 +27,8 @@ export interface OptionsEditeur {
   touch: boolean;
   /** appelé après démontage de l'éditeur, avec le niveau à tester */
   onTester(level: Level): void;
+  /** fenêtre « Partager » par-dessus l'éditeur (le niveau est valide) */
+  onPartager(level: Level): void;
   onQuitter(): void;
 }
 
@@ -86,6 +88,7 @@ export class Editeur {
   private btnAnnuler!: HTMLButtonElement;
   private btnRetablir!: HTMLButtonElement;
   private btnTester!: HTMLButtonElement;
+  private btnPartager!: HTMLButtonElement;
   private etatSauvegarde!: HTMLElement;
   private outilsBtn = new Map<Outil, HTMLElement>();
   private majPanneau: (() => void)[] = [];
@@ -182,6 +185,7 @@ export class Editeur {
     this.btnAnnuler = h('button', { class: 'ed-btn', title: 'Annuler (Ctrl+Z)', onclick: () => this.annuler() }, icone('annuler'), h('span', {}, 'Annuler'));
     this.btnRetablir = h('button', { class: 'ed-btn', title: 'Rétablir (Ctrl+Y)', onclick: () => this.retablir() }, icone('retablir'), h('span', {}, 'Rétablir'));
     this.btnTester = h('button', { class: 'ed-btn go', onclick: () => this.tester() }, icone('jouer'), h('span', {}, 'Tester'));
+    this.btnPartager = h('button', { class: 'ed-btn', onclick: () => this.partager() }, icone('partager'), h('span', {}, 'Partager'));
     this.etatSauvegarde = h('span', { class: 'ed-save' });
     const top = h('div', { class: 'ed-top' },
       h('button', { class: 'ed-btn', title: 'Retour à Mes niveaux', onclick: () => this.quitter() }, icone('retour'), h('span', {}, 'Menu')),
@@ -190,6 +194,7 @@ export class Editeur {
       this.btnAnnuler, this.btnRetablir,
       h('button', { class: 'ed-btn', title: 'Recentrer la vue', onclick: () => this.recentrer() }, icone('recentrer'), h('span', {}, 'Recentrer')),
       this.etatSauvegarde,
+      this.btnPartager,
       this.btnTester,
     );
 
@@ -308,6 +313,9 @@ export class Editeur {
     this.btnTester.classList.toggle('off', !this.analyse.ok);
     this.btnTester.title = this.analyse.ok ? 'Tester le niveau (voiture et mode courants)' : `Impossible de tester : ${this.resume.messages[0] ?? 'niveau invalide'}`;
 
+    this.btnPartager.classList.toggle('off', !this.analyse.ok);
+    this.btnPartager.title = this.analyse.ok ? 'Partager : lien, code, fichier .json ou publication en ligne' : `Impossible de partager : ${this.resume.messages[0] ?? 'niveau invalide'}`;
+
     const r = this.resume;
     this.barre.classList.toggle('ko', !r.ok);
     this.barre.replaceChildren(
@@ -370,6 +378,12 @@ export class Editeur {
     if (!this.analyse.ok) { this.toast(`Impossible de tester : ${this.resume.messages[0] ?? 'niveau invalide'}`); return; }
     this.demonter();
     this.o.onTester(structuredClone(this.doc.level));
+  }
+
+  private partager(): void {
+    if (!this.analyse.ok) { this.toast(`Impossible de partager : ${this.resume.messages[0] ?? 'niveau invalide'}`); return; }
+    this.flush();
+    this.o.onPartager(structuredClone(this.doc.level));
   }
 
   private choisirOutil(o: Outil): void {

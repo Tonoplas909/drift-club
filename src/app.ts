@@ -23,6 +23,10 @@ import { dateCourte, longueurRoute } from './editor/format';
 import { clientParDefaut } from './online/client';
 import { CompteService, type EtatCompte } from './online/compte';
 import { ClassementService, cleEnLigne } from './online/classement';
+import { NiveauxEnLigneService } from './online/niveaux';
+import { decoderNiveau } from './core/level/encode';
+import { lireFragment } from './share/lien';
+import { ouvrirPartage, ouvrirImport, carteNiveauPartage } from './ui/partage';
 import { ecranCompte } from './ui/compte';
 import { ecranClassement, zoneEnLigne } from './ui/classement';
 
@@ -51,6 +55,7 @@ export class App {
   private onEscape: (() => void) | null = null;
   private readonly compte = new CompteService(clientParDefaut);
   private readonly classement = new ClassementService(clientParDefaut);
+  private readonly niveauxEnLigne = new NiveauxEnLigneService(clientParDefaut);
 
   constructor(private readonly debug: DebugHook | null = null) {}
 
@@ -90,6 +95,9 @@ export class App {
       this.assets = await loadAssets(import.meta.env.BASE_URL + 'models/', (p) => this.screens.setProgress(p));
       this.showroom = new Showroom(this.renderer, this.assets);
       this.accueil();
+      // lien de partage : à l'ouverture de la page, puis si le joueur colle un autre lien dans la barre d'adresse
+      void this.ouvrirLien();
+      window.addEventListener('hashchange', () => { if (!this.session) void this.ouvrirLien(); });
     } catch {
       this.screens.error('Chargement impossible', "Les modèles 3D n'ont pas pu être chargés. Vérifie ta connexion.", [
         { label: 'Réessayer', onClick: () => void this.chargerModeles() },
@@ -181,6 +189,7 @@ export class App {
           .then((e) => this.ecranClassement(cleNiveauPerso(e), n.level.nom, () => this.niveaux()))
           .catch(() => this.screens.toast('Classement indisponible pour ce niveau.'));
       },
+      onImporter: () => void this.importer(() => this.niveaux()),
       onEditeur: () => this.hubEditeur(),
       onGarage: () => this.garage(() => this.niveaux()),
       onReglages: () => this.reglagesEcran(() => this.niveaux()),
@@ -264,14 +273,81 @@ export class App {
       store: this.store, persistent: this.persistent, root: $('ui'),
       onModifier: (n) => this.ouvrirEditeur(n),
       onJouer: (n) => void this.lancerPerso(n.level, { index: -1, retour: () => this.hubEditeur(), menuLabel: 'Mes niveaux' }),
+      onPartager: (level) => this.partager(level, () => undefined, () => this.hubEditeur()),
+      onImporter: () => void this.importer(() => this.hubEditeur()),
       onRetour: () => this.accueil(),
     });
+  }
+
+  /** Ajoute un niveau à Mes niveaux (import, lien partagé, niveau en ligne). */
+  private ajouterNiveau(level: Level): MonNiveau {
+    const n: MonNiveau = { id: this.store.nouvelId(), level, maj: new Date().toISOString() };
+    this.store.saveNiveau(n);
+    return n;
+  }
+
+  // Partage
+
+  /** Fenêtre « Partager » ; `quitter` détache l'écran courant et `revenir` le remonte si le joueur passe par Compte. */
+  private partager(level: Level, quitter: () => void, revenir: () => void): void {
+    ouvrirPartage({
+      root: $('ui'), level, compte: () => this.compte.etat, service: this.niveauxEnLigne,
+      onCompte: () => { quitter(); this.ecranCompte(revenir); },
+    });
+  }
+
+  /** Fenêtre « Importer » ; `rafraichir` réaffiche l'écran d'où l'on vient. */
+  private async importer(rafraichir: () => void): Promise<void> {
+    const r = await ouvrirImport({ root: $('ui'), enregistrer: (l) => this.ajouterNiveau(l), chargerEnLigne: (id) => this.niveauxEnLigne.charger(id) });
+    if (r.action === 'modifier') this.ouvrirEditeur(r.niveau);
+    else if (r.action === 'jouer') void this.lancerPerso(r.niveau.level, { index: -1, retour: rafraichir, menuLabel: 'Menu' });
+    else rafraichir();
+  }
+
+  /** Traite `#n=<code>` (niveau dans le lien) ou `#en-ligne=<id>` puis efface le fragment pour qu'un rechargement ne recommence pas. */
+  private async ouvrirLien(): Promise<void> {
+    const brut = location.hash;
+    if (!/^#(n|en-ligne)=/.test(brut)) return;
+    history.replaceState(null, '', location.pathname + location.search);
+    if (this.editeur) { this.editeur.demonter(); this.editeur = null; }
+    const retour = (): void => this.accueil();
+    const echec = (titre: string, erreurs: string[]): void => this.screens.error(titre, erreurs.join('\n'), [{ label: 'Retour', onClick: retour }]);
+    const p = lireFragment(brut);
+    if (!p) { echec('Lien invalide', ['Ce lien de niveau est incomplet ou abîmé : il a peut-être été coupé en route.']); return; }
+    this.showroom?.stop();
+    this.screens.loading('Ouverture du niveau partagé…');
+    if (p.type === 'code') {
+      const r = await decoderNiveau(p.code);
+      if (r.ok) this.carteNiveau(r.level, r.level.auteur);
+      else echec('Niveau partagé refusé', r.erreurs);
+    } else if (p.type === 'en-ligne') {
+      const r = await this.niveauxEnLigne.charger(p.id);
+      if (r.ok) this.carteNiveau(r.valeur.level, r.valeur.meta.auteurPseudo, () => void this.niveauxEnLigne.compterPartie(p.id));
+      else echec('Niveau en ligne indisponible', [r.message]);
+    }
+  }
+
+  /** Carte « Niveau partagé » : jouer, enregistrer ou modifier une copie ; au retour de course on retrouve la carte. */
+  private carteNiveau(level: Level, par: string, apresJouer?: () => void): void {
+    let sauve: MonNiveau | null = null;
+    const enregistrer = (): MonNiveau => (sauve ??= this.ajouterNiveau(level));
+    const montrer = (): void => {
+      this.screens.monter(carteNiveauPartage({
+        level, par, persistent: this.persistent, enregistre: sauve !== null,
+        onJouer: () => { apresJouer?.(); void this.lancerPerso(level, { index: -1, retour: montrer, menuLabel: 'Niveau partagé' }); },
+        onEnregistrer: () => { enregistrer(); },
+        onModifier: () => this.ouvrirEditeur(enregistrer()),
+        onRetour: () => this.accueil(),
+      }));
+    };
+    montrer();
   }
 
   private ouvrirEditeur(n: MonNiveau): void {
     const ed = new Editeur({
       store: this.store, persistent: this.persistent, id: n.id, level: n.level, touch: this.touch,
       onTester: (level) => void this.tester(ed, level),
+      onPartager: (level) => this.partager(level, () => ed.demonter(), () => ed.monter($('ui'))),
       onQuitter: () => this.hubEditeur(),
     });
     this.editeur = ed;

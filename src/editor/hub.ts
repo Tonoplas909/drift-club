@@ -4,13 +4,13 @@ import { dialogue } from '../ui/dialog';
 import { formatDistance } from '../ui/format';
 import type { Level } from '../core/level/types';
 import { LIMITES } from '../core/level/types';
-import { loadLevel } from '../core/loadLevel';
 import { validateLevel } from '../core/level/validate';
 import { analyseLevel } from '../core/editor/analyse';
 import { newLevel, copyLevel } from '../core/editor/ops';
 import type { Store, MonNiveau } from '../storage/store';
 import { NIVEAUX_OFFICIELS } from '../levels';
-import { dateCourte, jsonLisible, nomFichier, longueurRoute } from './format';
+import { telechargerJson } from '../share/fichier';
+import { dateCourte, longueurRoute } from './format';
 import { icone } from './icones';
 
 export interface OptionsHub {
@@ -19,6 +19,10 @@ export interface OptionsHub {
   root: HTMLElement;
   onModifier(n: MonNiveau): void;
   onJouer(n: MonNiveau): void;
+  /** fenêtre « Partager » (le niveau est valide) */
+  onPartager(level: Level): void;
+  /** fenêtre « Importer » (code, lien ou .json) ; l'écran se rafraîchit à sa fermeture */
+  onImporter(): void;
   onRetour(): void;
 }
 
@@ -28,16 +32,6 @@ export function nomCopie(nom: string): string {
   return nom.slice(0, LIMITES.nomMax - suffixe.length).trimEnd() + suffixe;
 }
 
-/** Télécharge un niveau au format lisible (§5.1). */
-export function telecharger(level: Level): void {
-  const url = URL.createObjectURL(new Blob([jsonLisible(level)], { type: 'application/json' }));
-  const a = h('a', { href: url, download: nomFichier(level.nom) });
-  document.body.append(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
 /** Écran « Mes niveaux » : liste, création, copie d'un officiel, import et export. */
 export function afficherHub(screens: Screens, o: OptionsHub): void {
   const { store } = o;
@@ -45,16 +39,6 @@ export function afficherHub(screens: Screens, o: OptionsHub): void {
     const n: MonNiveau = { id: store.nouvelId(), level, maj: new Date().toISOString() };
     store.saveNiveau(n);
     return n;
-  };
-
-  const importer = async (fichier: File): Promise<void> => {
-    let raw: unknown;
-    try { raw = JSON.parse(await fichier.text()); }
-    catch { await dialogue(o.root, { titre: 'Import impossible', lignes: ["Ce fichier n'est pas un JSON valide."], annuler: null }); return; }
-    const r = loadLevel(raw);
-    if (!r.ok) { await dialogue(o.root, { titre: 'Niveau refusé', lignes: r.erreurs, annuler: null }); return; }
-    ajouter(r.level);
-    render();
   };
 
   const copierOfficiel = async (): Promise<void> => {
@@ -70,9 +54,6 @@ export function afficherHub(screens: Screens, o: OptionsHub): void {
     o.onModifier(ajouter(copyLevel(v.level, nomCopie(v.level.nom))));
   };
 
-  const fichier = h('input', { type: 'file', accept: '.json,application/json', class: 'cache' });
-  fichier.addEventListener('change', () => { const f = fichier.files?.[0]; fichier.value = ''; if (f) void importer(f); });
-
   const ligne = (n: MonNiveau): HTMLElement => {
     const a = analyseLevel(n.level);
     const raison = a.ok ? '' : (a.erreurs[0] ?? a.problemes[0]?.message ?? 'Niveau invalide.');
@@ -87,7 +68,8 @@ export function afficherHub(screens: Screens, o: OptionsHub): void {
         btn('jouer', 'Jouer', () => o.onJouer(n), a.ok ? '' : `Niveau à corriger : ${raison}`),
         btn('infos', 'Renommer', () => void renommer(n)),
         btn('objets', 'Dupliquer', () => { ajouter(copyLevel(n.level, nomCopie(n.level.nom))); render(); }),
-        btn('profil', 'Exporter', () => telecharger(n.level), a.ok ? '' : `Niveau à corriger : ${raison}`),
+        btn('profil', 'Exporter', () => telechargerJson(n.level), a.ok ? '' : `Niveau à corriger : ${raison}`),
+        btn('partager', 'Partager', () => o.onPartager(n.level), a.ok ? '' : `Niveau à corriger : ${raison}`),
         btn('corbeille', 'Supprimer', () => void supprimer(n)),
       ));
   };
@@ -115,14 +97,13 @@ export function afficherHub(screens: Screens, o: OptionsHub): void {
       h('div', { class: 'row' },
         h('button', { class: 'btn', onclick: () => o.onModifier(ajouter(newLevel())) }, 'Nouveau niveau'),
         h('button', { class: 'btn sec', onclick: () => void copierOfficiel() }, 'Copier un niveau officiel'),
-        h('button', { class: 'btn sec', onclick: () => fichier.click() }, 'Importer un .json'),
+        h('button', { class: 'btn sec', onclick: o.onImporter }, 'Importer'),
       ),
       !o.persistent && h('p', { class: 'warn' }, 'Stockage indisponible : tes niveaux ne seront pas conservés après fermeture.'),
       niveaux.length === 0
-        ? h('p', { class: 'sub' }, "Aucun niveau pour l'instant : crée-en un, copie un niveau officiel ou importe un fichier.")
+        ? h('p', { class: 'sub' }, "Aucun niveau pour l'instant : crée-en un, copie un niveau officiel ou importe un niveau.")
         : h('div', { class: 'niv-liste' }, ...niveaux.map(ligne)),
       h('div', { class: 'row' }, h('button', { class: 'btn sec', onclick: o.onRetour }, 'Retour')),
-      fichier,
     )));
   };
   render();
