@@ -29,6 +29,30 @@ describe('géométrie des livrées', () => {
       });
     }
   }
+  it('tous les types d\'éléments sont utilisés par au moins une livrée', () => {
+    const types = new Set(CAR_IDS.flatMap((c) => SKINS[c]).flatMap((s) => s.elements.map((e) => e.type)));
+    for (const t of ['damier', 'flammes', 'eclairs', 'camouflage', 'pois', 'diagonales', 'dents', 'portieres', 'degrade']) expect(types.has(t as never)).toBe(true);
+  });
+  it('couleur forcée : la carrosserie de CarView prend la couleur imposée, quelle que soit la couleur choisie', () => {
+    const or = SKINS.turbo.find((s) => s.id === 'or')!;
+    const v = new CarView(buildJdmCar(CAR_SHAPES.turbo), '#3a6ff0', false, or);
+    const carrosserie = (): THREE.Mesh => v.root.children[0].children[0].children[0] as THREE.Mesh;
+    /** nombre de sommets de la carrosserie de cette couleur */
+    const nb = (hex: string): number => {
+      const c = new THREE.Color(hex), col = carrosserie().geometry.getAttribute('color');
+      let n = 0;
+      for (let i = 0; i < col.count; i++) if (Math.abs(col.getX(i) - c.r) + Math.abs(col.getY(i) - c.g) + Math.abs(col.getZ(i) - c.b) < 0.01) n++;
+      return n;
+    };
+    expect(nb(or.couleurForcee!)).toBeGreaterThan(0);
+    expect(nb('#3a6ff0')).toBe(0);
+    v.setColor('#f2f2ee');
+    expect(nb(or.couleurForcee!)).toBeGreaterThan(0);
+    v.setSkin(SKINS.turbo[0]);
+    expect(nb(or.couleurForcee!)).toBe(0);
+    expect(nb('#f2f2ee')).toBeGreaterThan(0);
+    v.dispose();
+  });
   it('les couleurs dérivées suivent la couleur principale', () => {
     const skin = SKINS.equilibree.find((s) => s.id === 'rayures')!;
     const a = buildSkinGeometry(CAR_SHAPES.equilibree, skin, '#3a6ff0')!.getAttribute('color');
