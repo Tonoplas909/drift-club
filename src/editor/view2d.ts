@@ -17,6 +17,8 @@ export interface EtatDessin {
   outil: Outil;
   /** rayon des poignées, en pixels */
   rayon: number;
+  /** contour de lac en cours de tracé (outil « Lac ») */
+  brouillonLac?: { x: number; z: number }[];
 }
 
 const INK = '#15131c', CREAM = '#fff7e8', ORANGE = '#ff8a1f', YELLOW = '#ffd23f', RED = '#e63b2e', GREEN = '#3fbf5f';
@@ -42,6 +44,7 @@ export function dessiner(ctx: CanvasRenderingContext2D, e: EtatDessin): void {
   ctx.fillStyle = THEMES[e.level.environnement].fondEditeur; // sol du décor choisi
   ctx.fillRect(0, 0, w, h);
   grille(ctx, e);
+  lacs(ctx, e);
 
   const track = e.analyse.track;
   if (track) {
@@ -67,6 +70,34 @@ export function dessiner(ctx: CanvasRenderingContext2D, e: EtatDessin): void {
   problemes(ctx, e);
   poignees(ctx, e);
   echelle(ctx, e);
+}
+
+/** Lacs du niveau (aplat bleu) et contour en cours de tracé avec l'outil « Lac ». */
+function lacs(ctx: CanvasRenderingContext2D, e: EtatDessin): void {
+  const P = (p: { x: number; z: number }) => mondeVersEcran(e.vue, e.w, e.h, p.x, p.z);
+  for (const lac of e.level.eau ?? []) {
+    ctx.beginPath();
+    lac.points.forEach((q, i) => { const s = P(q); if (i === 0) ctx.moveTo(s.sx, s.sy); else ctx.lineTo(s.sx, s.sy); });
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(79,169,224,.6)';
+    ctx.fill();
+    ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.strokeStyle = '#2d6a8f';
+    ctx.stroke();
+  }
+  const b = e.brouillonLac;
+  if (b && b.length > 0) {
+    ctx.beginPath();
+    b.forEach((q, i) => { const s = P(q); if (i === 0) ctx.moveTo(s.sx, s.sy); else ctx.lineTo(s.sx, s.sy); });
+    ctx.setLineDash([8, 6]); ctx.lineWidth = 3; ctx.strokeStyle = '#2d6a8f';
+    ctx.stroke();
+    ctx.setLineDash([]);
+    for (const q of b) {
+      const s = P(q);
+      ctx.beginPath(); ctx.arc(s.sx, s.sy, 6, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff'; ctx.fill();
+      ctx.lineWidth = 3; ctx.strokeStyle = '#2d6a8f'; ctx.stroke();
+    }
+  }
 }
 
 function grille(ctx: CanvasRenderingContext2D, e: EtatDessin): void {

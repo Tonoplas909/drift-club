@@ -2,6 +2,7 @@ const PATHS: Record<string, string> = {
   route: '<path d="M4 20c7 0 2-8 8-8s2-8 8-8"/><circle cx="4" cy="20" r="2" fill="currentColor"/><circle cx="20" cy="4" r="2" fill="currentColor"/>',
   barrieres: '<path d="M3 9h18M3 15h18M6 5v14M18 5v14"/>',
   objets: '<circle cx="12" cy="9" r="5.5"/><path d="M12 14.5V21M9 21h6"/>',
+  lac: '<path d="M4 8c3-2 5 2 8 0s5-2 8 0M4 13c3-2 5 2 8 0s5-2 8 0M4 18c3-2 5 2 8 0s5-2 8 0"/>',
   decor: '<path d="M2.5 20 9 9l4 6 3-4 5.5 9z"/><circle cx="17" cy="5.5" r="2.5"/>',
   infos: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><circle cx="12" cy="7.6" r=".8" fill="currentColor"/>',
   annuler: '<path d="M9 6 4 11l5 5M4 11h9a6 6 0 0 1 0 9h-3"/>',
