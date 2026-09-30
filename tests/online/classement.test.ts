@@ -45,29 +45,29 @@ describe('ClassementService.soumettreScore', () => {
 
 describe('ClassementService.chargerClassement', () => {
   it('renvoie les lignes typées', async () => {
-    const m = faussClient({ 'rpc.classement': { data: [
-      { rang: 1, pseudo: 'Max', score: 5000, temps: 60.5, voiture: 'turbo', maj: '2026-09-30T10:00:00Z', joueur: 'u1' },
-      { rang: 2, pseudo: 'Zoe', score: '4000', temps: 70, voiture: 'legere', maj: '2026-09-30T11:00:00Z', joueur: 'u2' },
+    const m = faussClient({ 'rpc.classement_niveau': { data: [
+      { rang: 1, pseudo: 'Max', mode: 'exigeant', score: 5000, temps: 60.5, voiture: 'turbo', maj: '2026-09-30T10:00:00Z', joueur: 'u1' },
+      { rang: 2, pseudo: 'Zoe', mode: 'arcade', score: '4000', temps: 70, voiture: 'legere', maj: '2026-09-30T11:00:00Z', joueur: 'u2' },
     ], error: null } });
-    const r = await new ClassementService(m.fournisseur).chargerClassement('off:a', 'semi', 10);
-    expect(m.appels[0].args).toEqual(['classement', { p_niveau: 'off:a', p_mode: 'semi', p_limite: 10 }]);
-    expect(r.ok && r.valeur.map((l) => [l.rang, l.pseudo, l.score])).toEqual([[1, 'Max', 5000], [2, 'Zoe', 4000]]);
+    const r = await new ClassementService(m.fournisseur).chargerClassement('off:a', 10);
+    expect(m.appels[0].args).toEqual(['classement_niveau', { p_niveau: 'off:a', p_limite: 10 }]);
+    expect(r.ok && r.valeur.map((l) => [l.rang, l.pseudo, l.mode, l.score])).toEqual([[1, 'Max', 'exigeant', 5000], [2, 'Zoe', 'arcade', 4000]]);
   });
   it('limite par défaut 20 ; liste vide', async () => {
-    const m = faussClient({ 'rpc.classement': { data: [], error: null } });
-    const r = await new ClassementService(m.fournisseur).chargerClassement('perso:abc', 'arcade');
+    const m = faussClient({ 'rpc.classement_niveau': { data: [], error: null } });
+    const r = await new ClassementService(m.fournisseur).chargerClassement('perso:abc');
     expect(r).toEqual({ ok: true, valeur: [] });
     expect((m.appels[0].args[1] as { p_limite: number }).p_limite).toBe(20);
   });
   it('tables absentes : message convivial', async () => {
-    const m = faussClient({ 'rpc.classement': { data: null, error: { code: 'PGRST202', message: 'Could not find the function' } } });
-    const r = await new ClassementService(m.fournisseur).chargerClassement('off:a', 'semi');
+    const m = faussClient({ 'rpc.classement_niveau': { data: null, error: { code: 'PGRST202', message: 'Could not find the function' } } });
+    const r = await new ClassementService(m.fournisseur).chargerClassement('off:a');
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.message).toMatch(/pas encore disponible/);
   });
   it('clé invalide : pas d\'appel', async () => {
     const m = faussClient();
-    expect((await new ClassementService(m.fournisseur).chargerClassement('zzz', 'semi')).ok).toBe(false);
+    expect((await new ClassementService(m.fournisseur).chargerClassement('zzz')).ok).toBe(false);
     expect(m.appels).toHaveLength(0);
   });
 });

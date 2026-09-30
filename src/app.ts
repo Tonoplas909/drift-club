@@ -118,10 +118,9 @@ export class App {
 
   private ecranClassement(cle: string, titre: string, retour: () => void): void {
     const e = this.compte.etat;
-    const mode = this.reglages.mode;
     this.screens.monter(ecranClassement({
-      titre, mode, moi: e.statut === 'connecte' ? e.id : null,
-      charger: () => this.classement.chargerClassement(cle, mode, 20),
+      titre, moi: e.statut === 'connecte' ? e.id : null,
+      charger: () => this.classement.chargerClassement(cle, 20),
       onRetour: retour,
     }));
   }

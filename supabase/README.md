@@ -5,7 +5,7 @@ Le jeu utilise Supabase pour les comptes (email + mot de passe) et le classement
 ## 1. Créer les tables (une seule fois)
 
 1. Ouvre le projet dans le tableau de bord Supabase → **SQL Editor** → **New query**.
-2. Colle tout le contenu de [`migrations/0001_comptes_classement.sql`](migrations/0001_comptes_classement.sql).
+2. Colle tout le contenu de [`migrations/0001_comptes_classement.sql`](migrations/0001_comptes_classement.sql), puis fais de même avec [`migrations/0002_classement_tous_modes.sql`](migrations/0002_classement_tous_modes.sql).
 3. Clique sur **Run**. Le script peut être relancé sans danger (il est idempotent).
 
 Il crée :
@@ -13,7 +13,7 @@ Il crée :
 - `profils` : le pseudo public de chaque compte (3 à 20 caractères : lettres, chiffres, `_`, `-`, espace ; unique sans tenir compte de la casse) ;
 - `scores` : une ligne par joueur, niveau et mode, qui garde le meilleur score ;
 - `soumettre_score(...)` : la seule façon d'écrire un score (vérifie la connexion, le pseudo et la vraisemblance des valeurs) ;
-- `classement(niveau, mode, limite)` : les meilleurs scores, lisibles par tout le monde.
+- `classement_niveau(niveau, limite)` : les meilleurs scores d'un niveau tous modes confondus, lisibles par tout le monde (migration `0002`). L'ancienne `classement(niveau, mode, limite)` reste pour les versions déjà ouvertes du jeu.
 
 La sécurité repose sur le RLS : la clé publiable est dans le code du jeu, mais elle ne permet que de lire les profils et scores, d'écrire son propre profil et d'appeler `soumettre_score`. Aucune écriture directe dans `scores`.
 

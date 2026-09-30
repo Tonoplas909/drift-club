@@ -66,9 +66,9 @@ Le **profil en long** (bandeau du bas, repliable) montre la hauteur en fonction 
 
 ## Classement en ligne
 
-Un compte (email + mot de passe + pseudo) permet d'apparaître dans le classement de chaque niveau, par mode de conduite. Depuis l'accueil, **Compte** permet de s'inscrire, se connecter, changer de pseudo ou de mot de passe (lien « Mot de passe oublié ? »). Selon les réglages du projet, un email de confirmation peut être demandé à l'inscription.
+Un compte (email + mot de passe + pseudo) permet d'apparaître dans le classement de chaque niveau (tous modes de conduite confondus, le mode est affiché). Depuis l'accueil, **Compte** permet de s'inscrire, se connecter, changer de pseudo ou de mot de passe (lien « Mot de passe oublié ? »). Selon les réglages du projet, un email de confirmation peut être demandé à l'inscription.
 
-- **Classement** : dans **Jouer**, chaque niveau (officiel ou « Mes niveaux ») a un bouton **Classement** : les 20 meilleurs scores du mode courant (rang, pseudo, score, temps, voiture), ta ligne en surbrillance.
+- **Classement** : dans **Jouer**, chaque niveau (officiel ou « Mes niveaux ») a un bouton **Classement** : les 20 meilleurs scores, tous modes confondus (rang, pseudo, mode, score, temps, voiture), ta ligne en surbrillance.
 - **Envoi automatique** : à l'arrivée, si tu es connecté avec un pseudo, le score est envoyé et l'écran affiche ton rang (« Classement : 3e sur 12 »). Seul ton meilleur score par niveau et par mode est gardé.
 - **Ce qui est envoyé** : identifiant du niveau, mode, score, temps, voiture, meilleur drift. Rien d'autre (pas de niveau, pas de réglages). Ton email n'est jamais visible des autres joueurs ; seul le pseudo l'est.
 - **Hors ligne** : si le service est injoignable, le jeu reste entièrement jouable (records locaux) et un court message l'indique.
