@@ -2,8 +2,7 @@ import './styles.css';
 import { App } from './app';
 import { DebugPanel, isDebug } from './debug/panel';
 import { VERSION, BUILD } from './version';
+import { brancherBoutonVersion } from './ui/nouveautes';
 
-const version = document.getElementById('version')!;
-version.textContent = VERSION;
-version.title = BUILD;
+brancherBoutonVersion(document.getElementById('version')!, document.getElementById('ui')!, VERSION, BUILD);
 void new App(isDebug(location.search) ? new DebugPanel() : null).start();

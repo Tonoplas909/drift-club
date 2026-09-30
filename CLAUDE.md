@@ -2,11 +2,12 @@
 
 ## Version du jeu
 
-La version affichée en bas à gauche des menus (« v0.2.1 ») vient de `package.json` (et `package-lock.json`).
+La version affichée en bas à gauche des menus (« v0.2.2 ») vient de `package.json` (et `package-lock.json`).
 
 - **À chaque mise en ligne** (fusion dans `main`), augmenter le 3ᵉ chiffre : `0.2.0 → 0.2.1`.
 - Augmenter le 2ᵉ chiffre (`0.2.x → 0.3.0`) seulement pour une mise à jour importante, ou quand le propriétaire le demande expressément.
 - Mettre à jour `package.json` et `package-lock.json` ensemble (`npm version <x.y.z> --no-git-tag-version`).
+- **Notes de version** : ajouter en tête de `src/notes.ts` une entrée pour cette version (date, titre, ce qui change pour le joueur, en français). Un test vérifie que la première entrée correspond à `package.json`.
 
 ## Rappels
 
