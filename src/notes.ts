@@ -13,6 +13,18 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.3.1',
+    date: '30/09/2026',
+    titre: 'Cinq nouveaux niveaux',
+    notes: [
+      'Circuit du Lac : grandes courbes rapides et route large autour d\'un lac, idéal pour débuter.',
+      'Épingles du Diable : 8 épingles très serrées sur une paroi raide, plus de 120 m de montée. Le plus difficile !',
+      'Route des Crêtes Nord : près de 2 km de crête, longues courbes rapides et trois épingles.',
+      'Descente du Moulin : une descente technique enchaînant les chicanes.',
+      'Grand Huit : un long serpent de virages gauche-droite pour enchaîner les drifts.',
+    ],
+  },
+  {
     version: '0.3.0',
     date: '30/09/2026',
     titre: 'Caisses et 48 livrées',
