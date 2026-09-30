@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createScore, stepScore, finishScore, timeBonus, angleFactor, comboRestant, type ScoreFrame, type ScoreEvent, type ScoreState } from '../../../src/core/scoring/score';
+import { createScore, stepScore, finishScore, timeBonus, angleFactor, comboRestant, facteursDrift, type ScoreFrame, type ScoreEvent, type ScoreState } from '../../../src/core/scoring/score';
 import { SIM_DT } from '../../../src/core/constants';
 import { DEG } from '../../../src/core/math/vec';
 
@@ -135,5 +135,33 @@ describe('comboRestant (barre du combo)', () => {
     hold(st, STRAIGHT, 0.8);
     expect(st.multiplier).toBe(1);
     expect(comboRestant(st)).toBeNull();
+  });
+});
+
+describe('durée du drift (facteurs affichés)', () => {
+  it('compte la durée du drift en cours et repart de zéro à l\'encaissement', () => {
+    const st = createScore();
+    hold(st, DRIFT, 1.2);
+    expect(st.driftTime).toBeCloseTo(1.2, 1);
+    hold(st, STRAIGHT, 0.6);
+    expect(st.driftTime).toBe(0);
+  });
+});
+
+describe('facteurs affichés = points exacts', () => {
+  it('base × km/h moyens × secondes × angle moyen × combo = points du drift, même avec vitesse et angle variables', () => {
+    const st = createScore();
+    hold(st, DRIFT, 1); hold(st, STRAIGHT, 0.6); // un premier drift encaissé → combo x2
+    for (let i = 0; i < 300; i++) {
+      const t = i * SIM_DT;
+      stepScore(st, frame({ betaRad: (20 + 70 * Math.abs(Math.sin(t * 3))) * DEG, speed: (50 + 60 * t) / 3.6 }), SIM_DT);
+    }
+    const f = facteursDrift(st)!;
+    expect(f.combo).toBe(2);
+    expect(f.base * f.kmh * f.secondes * f.angle * f.combo).toBeCloseTo(st.drift * st.multiplier, 6);
+    expect(f.angle).toBeGreaterThan(0); expect(f.angle).toBeLessThanOrEqual(1);
+  });
+  it('null hors drift', () => {
+    expect(facteursDrift(createScore())).toBeNull();
   });
 });

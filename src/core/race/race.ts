@@ -9,10 +9,10 @@ import type { AssistParams, CarParams, CarState, StepContext } from '../physics/
 import { createCarState, copyCarState, stepCar } from '../physics/car';
 import { buildCollisionWorld, resolveCollisions, CRASH_IMPACT, type CollisionWorld } from '../physics/collision';
 import {
-  createScore, stepScore, finishScore, timeBonus, comboRestant, DEFAULT_SCORE_PARAMS,
+  createScore, stepScore, finishScore, timeBonus, comboRestant, facteursDrift, DEFAULT_SCORE_PARAMS,
   type ScoreEvent, type ScoreParams, type ScoreState,
 } from '../scoring/score';
-import { clamp } from '../math/vec';
+import { clamp, DEG } from '../math/vec';
 
 export type RacePhase = 'compte' | 'course' | 'arrivee';
 
@@ -53,6 +53,10 @@ export interface HudData {
   driftActive: boolean;
   /** fraction du temps restant avant la fin du combo (null : pas de compte à rebours) */
   combo: number | null;
+  /** décomposition exacte des points du drift en cours (null hors drift) : base × km/h moyens × secondes × facteur d'angle moyen × combo */
+  glisse: { base: number; kmh: number; secondes: number; angle: number; combo: number } | null;
+  /** angle de dérive signé (degrés), pour l'indicateur sous la voiture */
+  angle: number;
   progress: number;
   wrongWay: boolean;
   speedKmh: number;
@@ -191,6 +195,8 @@ export class RaceSim {
       multiplier: this.score.multiplier,
       driftActive: this.score.active,
       combo: comboRestant(this.score, this.sp),
+      glisse: this.score.active || this.score.pending ? facteursDrift(this.score, this.sp) : null,
+      angle: this.car.speed > 1 ? this.car.beta / DEG : 0,
       progress: clamp(this.maxProgressS / this.config.track.length, 0, 1),
       wrongWay: this.wrongWay,
       speedKmh: this.car.speed * 3.6,
