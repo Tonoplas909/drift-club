@@ -24,7 +24,7 @@ interface Grid {
 const FINE_CELL = 4, FINE_R = 64;
 const COARSE_CELL = 16, COARSE_R = 420, MARGIN = 440;
 
-function makeGrid(ox: number, oz: number, cell: number, width: number, depth: number, seed: number): Grid {
+function makeGrid(ox: number, oz: number, cell: number, width: number, depth: number, seed: number, relief: number): Grid {
   const nx = Math.ceil(width / cell) + 1;
   const nz = Math.ceil(depth / cell) + 1;
   const h = new Float32Array(nx * nz).fill(Infinity);
@@ -33,7 +33,7 @@ function makeGrid(ox: number, oz: number, cell: number, width: number, depth: nu
   for (let iz = 0; iz < nz; iz++) {
     for (let ix = 0; ix < nx; ix++) {
       const wx = ox + ix * cell, wz = oz + iz * cell;
-      noise[iz * nx + ix] = 0.35 + 0.65 * fbm(wx / 140, wz / 140, seed + 77);
+      noise[iz * nx + ix] = (0.35 + 0.65 * fbm(wx / 140, wz / 140, seed + 77)) * relief;
     }
   }
   return { ox, oz, cell, nx, nz, h, d, noise };
@@ -85,10 +85,11 @@ export class Terrain implements Ground {
   private readonly fine: Grid;
   private readonly coarse: Grid;
 
-  constructor(private readonly track: TrackData, seed: number) {
+  /** `relief` : multiplicateur des reliefs autour de la route (1 = montagne ; < 1 = plaine, thème ville). */
+  constructor(private readonly track: TrackData, seed: number, relief = 1) {
     const b = track.bounds;
-    this.fine = makeGrid(b.minX - FINE_R, b.minZ - FINE_R, FINE_CELL, b.maxX - b.minX + 2 * FINE_R, b.maxZ - b.minZ + 2 * FINE_R, seed);
-    this.coarse = makeGrid(b.minX - MARGIN, b.minZ - MARGIN, COARSE_CELL, b.maxX - b.minX + 2 * MARGIN, b.maxZ - b.minZ + 2 * MARGIN, seed);
+    this.fine = makeGrid(b.minX - FINE_R, b.minZ - FINE_R, FINE_CELL, b.maxX - b.minX + 2 * FINE_R, b.maxZ - b.minZ + 2 * FINE_R, seed, relief);
+    this.coarse = makeGrid(b.minX - MARGIN, b.minZ - MARGIN, COARSE_CELL, b.maxX - b.minX + 2 * MARGIN, b.maxZ - b.minZ + 2 * MARGIN, seed, relief);
     stamp(this.fine, track, 2, FINE_R);
     stamp(this.coarse, track, 8, COARSE_R);
     let maxH = -Infinity;

@@ -35,7 +35,8 @@ describe('validateLevel', () => {
       const r = validateLevel({ ...straightLevel(), environnement });
       expect(r.ok && r.level.environnement).toBe(environnement);
     }
-    expect(errs({ ...straightLevel(), environnement: 'Montagne' }).join()).toMatch(/montagne, neige, desert, automne/);
+    expect(errs({ ...straightLevel(), environnement: 'Montagne' }).join()).toMatch(/montagne, neige, desert, automne, ville/);
+    expect(errs({ ...straightLevel(), environnement: 'ville' })).toEqual([]);
     expect(errs({ ...straightLevel(), environnement: 3 }).join()).toMatch(/environnement/);
     const { environnement: _e, ...sans } = straightLevel();
     expect(errs(sans).join()).toMatch(/environnement/);

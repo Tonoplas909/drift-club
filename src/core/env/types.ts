@@ -1,7 +1,10 @@
-/** Types de décor. Les 8 premiers existent depuis le début ; les autres servent les thèmes (desert, neige, automne). */
+import { IMMEUBLES, TOURS } from './ville';
+
+/** Types de décor. Les 8 premiers existent depuis le début ; les autres servent les thèmes (desert, neige, automne, ville). */
 export type DecorKind =
   | 'sapin' | 'feuillu' | 'rocher' | 'rocherHaut' | 'chevron' | 'borne' | 'pneus' | 'panneau'
-  | 'cactus' | 'buisson' | 'arbreSec' | 'mesa' | 'piquet' | 'tasNeige' | 'souche';
+  | 'cactus' | 'buisson' | 'arbreSec' | 'mesa' | 'piquet' | 'tasNeige' | 'souche'
+  | 'immeuble' | 'tour' | 'lampadaire' | 'plot' | 'blocBeton' | 'poubelle' | 'arretBus' | 'voiture' | 'arbreVille' | 'grillage';
 
 export interface EnvItem {
   kind: DecorKind;
@@ -29,12 +32,19 @@ export interface Environment {
 export const VARIANTS: Record<DecorKind, number> = {
   sapin: 3, feuillu: 3, rocher: 2, rocherHaut: 1, chevron: 1, borne: 1, pneus: 1, panneau: 1,
   cactus: 3, buisson: 2, arbreSec: 2, mesa: 2, piquet: 1, tasNeige: 2, souche: 1,
+  immeuble: IMMEUBLES.length, tour: TOURS.length, lampadaire: 1, plot: 1, blocBeton: 1, poubelle: 1, arretBus: 1,
+  voiture: 4, arbreVille: 2, grillage: 1,
 };
 
-/** Rayon de collision (m) pour scale = 1. */
+/**
+ * Rayon de collision (m) pour scale = 1. Les types qui ont une emprise rectangulaire (`boiteDe`, ville.ts) sont
+ * solides par 4 segments : leur rayon ne sert alors que d'ordre de grandeur.
+ */
 export const COLLIDER_RADIUS: Record<DecorKind, number> = {
   sapin: 0.45, feuillu: 0.5, rocher: 1.4, rocherHaut: 1.1, chevron: 0.15, borne: 0.12, pneus: 0.6, panneau: 0.15,
   cactus: 0.4, buisson: 0.35, arbreSec: 0.35, mesa: 2.4, piquet: 0.1, tasNeige: 0.6, souche: 0.4,
+  immeuble: 8, tour: 12, lampadaire: 0.25, plot: 0.25, blocBeton: 1.5, poubelle: 0.35, arretBus: 1.8, voiture: 2.2,
+  arbreVille: 0.5, grillage: 2,
 };
 
 export const SOLID_DISTANCE = 40;

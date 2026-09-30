@@ -113,6 +113,17 @@ describe('encoderNiveau / decoderNiveau', () => {
       expect(r.level).toEqual(normaliserNiveau(lv));
     }
   });
+  it('« ville » est le dernier décor : indice 4, les anciens indices ne bougent pas', async () => {
+    expect(ENVIRONNEMENTS.indexOf('ville')).toBe(4);
+    expect(ENVIRONNEMENTS.slice(0, 4)).toEqual(['montagne', 'neige', 'desert', 'automne']);
+    const lv = { ...niveauTypique(), environnement: 'ville' as const };
+    const r = await decoderNiveau(await encoderNiveau(lv));
+    if (!r.ok) throw new Error(r.erreurs.join());
+    expect(r.level.environnement).toBe('ville');
+    expect(r.level).toEqual(normaliserNiveau(lv));
+    expect(await empreinteNiveau(r.level)).toBe(await empreinteNiveau(normaliserNiveau(lv)));
+    expect(await empreinteNiveau(r.level)).not.toBe(await empreinteNiveau(normaliserNiveau({ ...lv, environnement: 'montagne' })));
+  });
   it('les codes diffèrent d’un environnement à l’autre', async () => {
     const codes = await Promise.all(ENVIRONNEMENTS.map((environnement) => encoderNiveau({ ...niveauTypique(), environnement })));
     expect(new Set(codes).size).toBe(ENVIRONNEMENTS.length);
