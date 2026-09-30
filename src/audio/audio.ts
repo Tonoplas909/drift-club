@@ -1,164 +1,167 @@
-import { clamp, smoothstep } from '../core/math/vec';
+/**
+ * Moteur audio du jeu (Web Audio, tout est synthétisé, aucun fichier).
+ * Les fabriques de voix (`voices.ts`, `shots.ts`) et le bus (`bus.ts`) fonctionnent aussi sur un OfflineAudioContext :
+ * c'est ainsi que `tools/audio-preview` rend des WAV pour vérification sans écouter dans un navigateur.
+ */
+import { clamp } from '../core/math/vec';
+import type { CarId } from '../core/physics/types';
 import type { Rarete } from '../core/raretes';
+import { createBus, createEnv, peutJouer, type Bus, type Env } from './bus';
+import { volumeToGain } from './params';
+import * as sons from './shots';
+import { AmbianceVoice, EngineVoice, TyreVoice } from './voices';
 
-/** Frequence de base du moteur (4 cylindres : 2 explosions par tour). */
-export function engineFrequency(rpm: number): number {
-  return (rpm / 60) * 2;
+export { engineFrequency, screechGain } from './params';
+
+/** Informations facultatives de la voiture pour le son (rapport engagé, contact avec la piste). */
+export interface EngineExtra { gear?: number; onRoad?: boolean }
+
+export interface AudioOptions {
+  /** contexte imposé (rendu hors ligne) : sinon un AudioContext est créé au premier geste de l'utilisateur */
+  context?: BaseAudioContext;
 }
 
-export function screechGain(slip: number, speed: number): number {
-  return clamp(slip, 0, 1) * smoothstep(3, 10, speed) * 0.22;
+/** Vrai pour un AudioContext temps réel, faux pour un rendu hors ligne. */
+function estLive(ctx: BaseAudioContext): ctx is AudioContext {
+  return !('startRendering' in ctx);
 }
-
-interface EngineNodes { osc1: OscillatorNode; osc2: OscillatorNode; filter: BiquadFilterNode; gain: GainNode; noise: AudioBufferSourceNode; screech: GainNode }
 
 export class AudioEngine {
-  private ctx: AudioContext | null = null;
-  private master: GainNode | null = null;
-  private engine: EngineNodes | null = null;
+  private ctx: BaseAudioContext | null = null;
+  private bus: Bus | null = null;
+  private env: Env | null = null;
+  private moteur: EngineVoice | null = null;
+  private pneus: TyreVoice | null = null;
+  private ambiance: AmbianceVoice | null = null;
+  private voiture: CarId = 'equilibree';
+  private veutMoteur = false;
   private volume = 0.8;
   private muted = false;
-  private noiseBuffer: AudioBuffer | null = null;
+  private dernierT = -1;
+  private dernierChoc = -10;
+  private dernierTic = -10;
+  private cache = false;
 
-  /** A appeler lors d\'un geste de l\'utilisateur (exigence des navigateurs). */
+  constructor(opts: AudioOptions = {}) {
+    if (opts.context) this.creer(opts.context);
+  }
+
+  /** A appeler lors d'un geste de l'utilisateur (exigence des navigateurs). */
   unlock(): void {
-    if (typeof window === 'undefined') return;
     if (this.ctx) {
-      if (this.ctx.state === 'suspended') void this.ctx.resume();
+      if (estLive(this.ctx) && this.ctx.state === 'suspended' && !this.cache) void this.ctx.resume();
       return;
     }
+    if (typeof window === 'undefined') return;
     const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AC) return;
     try {
-      this.ctx = new AC();
-      this.master = this.ctx.createGain();
-      this.master.connect(this.ctx.destination);
-      this.applyVolume();
-      const len = this.ctx.sampleRate * 2;
-      this.noiseBuffer = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
-      const data = this.noiseBuffer.getChannelData(0);
-      let seed = 12345;
-      for (let i = 0; i < len; i++) {
-        seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-        data[i] = (seed / 0x7fffffff) * 2 - 1;
-      }
+      this.creer(new AC());
+      document.addEventListener('visibilitychange', this.onVisibilite);
     } catch {
-      this.ctx = null;
-      this.master = null;
+      this.ctx = null; this.bus = null; this.env = null;
     }
   }
 
-  private applyVolume(): void {
-    if (this.master && this.ctx) this.master.gain.setTargetAtTime(this.muted ? 0 : this.volume, this.ctx.currentTime, 0.02);
+  private creer(ctx: BaseAudioContext): void {
+    this.ctx = ctx;
+    this.bus = createBus(ctx);
+    this.env = createEnv(ctx);
+    this.bus.volume.gain.value = this.muted ? 0 : volumeToGain(this.volume);
+    if (this.veutMoteur) this.startEngine(this.voiture);
   }
 
-  setVolume(v: number): void { this.volume = clamp(v, 0, 1); this.applyVolume(); }
-  setMuted(m: boolean): void { this.muted = m; this.applyVolume(); }
+  /** Onglet caché : fondu puis suspension du contexte ; retour : reprise. */
+  private readonly onVisibilite = (): void => {
+    const ctx = this.ctx, bus = this.bus;
+    if (!ctx || !bus || !estLive(ctx)) return;
+    this.cache = document.hidden;
+    if (document.hidden) {
+      bus.pause.gain.setTargetAtTime(0, ctx.currentTime, 0.03);
+      window.setTimeout(() => { if (this.cache && ctx.state === 'running') void ctx.suspend(); }, 150);
+    } else {
+      void ctx.resume();
+      bus.pause.gain.setTargetAtTime(1, ctx.currentTime, 0.05);
+    }
+  };
+
+  private appliquerVolume(): void {
+    if (this.bus && this.ctx) this.bus.volume.gain.setTargetAtTime(this.muted ? 0 : volumeToGain(this.volume), this.ctx.currentTime, 0.02);
+  }
+
+  setVolume(v: number): void { this.volume = clamp(v, 0, 1); this.appliquerVolume(); }
+  setMuted(m: boolean): void { this.muted = m; this.appliquerVolume(); }
   toggleMute(): boolean { this.setMuted(!this.muted); return this.muted; }
 
-  startEngine(): void {
-    const ctx = this.ctx, master = this.master;
-    if (!ctx || !master || this.engine || !this.noiseBuffer) return;
-    const osc1 = ctx.createOscillator(); osc1.type = 'sawtooth';
-    const osc2 = ctx.createOscillator(); osc2.type = 'square';
-    const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 600;
-    const gain = ctx.createGain(); gain.gain.value = 0.0;
-    osc1.connect(filter); osc2.connect(filter); filter.connect(gain); gain.connect(master);
-    const noise = ctx.createBufferSource(); noise.buffer = this.noiseBuffer; noise.loop = true;
-    const band = ctx.createBiquadFilter(); band.type = 'bandpass'; band.frequency.value = 1800; band.Q.value = 3;
-    const screech = ctx.createGain(); screech.gain.value = 0;
-    noise.connect(band); band.connect(screech); screech.connect(master);
-    osc1.start(); osc2.start(); noise.start();
-    this.engine = { osc1, osc2, filter, gain, noise, screech };
+  /** Lance les voix continues (moteur de la voiture, pneus, ambiance). Sans contexte prêt, démarre au premier geste. */
+  startEngine(car: CarId = this.voiture): void {
+    this.voiture = car;
+    this.veutMoteur = true;
+    const bus = this.bus, env = this.env;
+    if (!bus || !env) return;
+    if (this.moteur) return;
+    this.moteur = new EngineVoice(env, bus.drive, car);
+    this.pneus ??= new TyreVoice(env, bus.drive);
+    this.ambiance ??= new AmbianceVoice(env, bus.drive);
+    this.dernierT = -1;
   }
 
+  /** Fondu de sortie et libération de toutes les voix continues (pause, fin de course). */
   stopEngine(): void {
-    const e = this.engine;
-    if (!e) return;
-    try { e.osc1.stop(); e.osc2.stop(); e.noise.stop(); } catch { /* deja arretes */ }
-    e.gain.disconnect(); e.screech.disconnect();
-    this.engine = null;
-  }
-
-  updateEngine(rpm: number, throttle: number, slip: number, speed: number): void {
-    const e = this.engine, ctx = this.ctx;
-    if (!e || !ctx) return;
+    this.veutMoteur = false;
+    const ctx = this.ctx;
+    if (!ctx) return;
     const t = ctx.currentTime;
-    const f = engineFrequency(rpm);
-    e.osc1.frequency.setTargetAtTime(f, t, 0.03);
-    e.osc2.frequency.setTargetAtTime(f / 2, t, 0.03);
-    e.filter.frequency.setTargetAtTime(400 + rpm * 0.25, t, 0.05);
-    e.gain.gain.setTargetAtTime(0.06 + Math.max(0, throttle) * 0.06, t, 0.05);
-    e.screech.gain.setTargetAtTime(screechGain(slip, speed), t, 0.05);
+    this.moteur?.stop(t); this.pneus?.stop(t); this.ambiance?.stop(t);
+    this.moteur = this.pneus = null; this.ambiance = null;
   }
 
-  private blip(freq: number, dur: number, type: OscillatorType, gain: number, endFreq?: number, delay = 0): void {
-    const ctx = this.ctx, master = this.master;
-    if (!ctx || !master) return;
-    const t = ctx.currentTime + delay;
-    const o = ctx.createOscillator();
-    o.type = type;
-    o.frequency.setValueAtTime(freq, t);
-    if (endFreq) o.frequency.exponentialRampToValueAtTime(endFreq, t + dur);
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(gain, t);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g); g.connect(master);
-    o.start(t); o.stop(t + dur + 0.02);
+  updateEngine(rpm: number, throttle: number, slip: number, speed: number, extra: EngineExtra = {}): void {
+    const ctx = this.ctx;
+    if (!ctx || !this.moteur || !this.pneus || !this.ambiance) return;
+    const t = ctx.currentTime;
+    const dt = this.dernierT < 0 ? 1 / 60 : clamp(t - this.dernierT, 0, 0.1);
+    this.dernierT = t;
+    this.moteur.update(t, dt, rpm, throttle, extra.gear ?? 1);
+    this.pneus.update(t, dt, slip, speed);
+    this.ambiance.update(t, dt, extra.onRoad ?? true, speed);
   }
 
-  playBank(multiplier: number): void {
-    this.blip(660, 0.08, 'sine', 0.2);
-    this.blip(990 + multiplier * 40, 0.14, 'sine', 0.2, undefined, 0.08);
+  /** Planifie un son ponctuel (plafonné : les surplus sont ignorés, sauf priorité). */
+  private jouer(fn: (env: Env, out: AudioNode, t: number) => void, bus: 'sfx' | 'ui', priorite = false): void {
+    const ctx = this.ctx, b = this.bus, env = this.env;
+    if (!ctx || !b || !env || !peutJouer(env, priorite)) return;
+    fn(env, b[bus], ctx.currentTime + 0.005);
   }
 
-  playLose(): void {
-    this.blip(300, 0.3, 'square', 0.12, 120);
-  }
+  playBank(multiplier: number): void { this.jouer((e, o, t) => sons.ding(e, o, t, multiplier), 'sfx', true); }
+  playLose(): void { this.jouer((e, o, t) => sons.perdu(e, o, t), 'sfx', true); }
 
   playCrash(impact: number): void {
-    const ctx = this.ctx, master = this.master;
-    if (!ctx || !master || !this.noiseBuffer) return;
-    const t = ctx.currentTime;
-    const src = ctx.createBufferSource(); src.buffer = this.noiseBuffer;
-    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 600;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(Math.min(0.5, impact * 0.05), t);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
-    src.connect(lp); lp.connect(g); g.connect(master);
-    src.start(t); src.stop(t + 0.3);
+    const ctx = this.ctx;
+    if (!ctx) return;
+    // un contact prolongé émet un choc à chaque pas : on espace les sons
+    if (ctx.currentTime - this.dernierChoc < 0.12) return;
+    this.dernierChoc = ctx.currentTime;
+    this.jouer((e, o, t) => sons.choc(e, o, t, impact), 'sfx', true);
   }
 
-  playCountdown(n: number): void {
-    if (n > 0) this.blip(440, 0.15, 'triangle', 0.25);
-    else this.blip(880, 0.4, 'triangle', 0.3);
-  }
+  playScrape(intensite = 0.5): void { this.jouer((e, o, t) => sons.frottement(e, o, t, clamp(intensite, 0, 1)), 'sfx'); }
+  playCountdown(n: number): void { this.jouer((e, o, t) => sons.decompte(e, o, t, n), 'sfx', true); }
+  playFinish(): void { this.jouer((e, o, t) => sons.arrivee(e, o, t), 'sfx', true); }
+  playClick(): void { this.jouer((e, o, t) => sons.clic(e, o, t), 'ui'); }
 
   /** Tic de la roulette quand une carte passe sous le repère ; `k` ∈ [0, 1] fait varier légèrement la hauteur. */
   playTick(k = 0.5): void {
-    this.blip(1250 + k * 350, 0.035, 'square', 0.07);
+    const ctx = this.ctx;
+    if (!ctx || ctx.currentTime - this.dernierTic < 0.02) return;
+    this.dernierTic = ctx.currentTime;
+    this.jouer((e, o, t) => sons.tic(e, o, t, k), 'ui');
   }
 
   /** Coup sourd de l'ouverture de la caisse. */
-  playOuvrirCaisse(): void {
-    this.blip(140, 0.22, 'sawtooth', 0.16, 60);
-    this.blip(320, 0.12, 'triangle', 0.1, 180, 0.02);
-  }
+  playOuvrirCaisse(): void { this.jouer((e, o, t) => sons.ouverture(e, o, t), 'ui', true); }
 
-  /** Révélation : plus la rareté est haute, plus la fanfare est longue et aiguë. */
-  playReveal(r: Rarete): void {
-    const notes: Record<Rarete, number[]> = {
-      commune: [523, 659],
-      rare: [523, 659, 784],
-      epique: [523, 659, 784, 1047],
-      legendaire: [392, 523, 659, 784, 1047],
-      exotique: [392, 523, 659, 784, 1047, 1319],
-    };
-    notes[r].forEach((f, i) => this.blip(f, r === 'commune' ? 0.2 : 0.28, 'triangle', 0.2, undefined, i * 0.09));
-    if (r === 'legendaire' || r === 'exotique') {
-      const fin = notes[r].length * 0.09;
-      this.blip(1568, 0.6, 'sine', 0.14, 2093, fin);
-      this.blip(784, 0.6, 'sawtooth', 0.05, undefined, fin);
-    }
-  }
+  /** Révélation : plus la rareté est haute, plus la fanfare est longue et scintillante. */
+  playReveal(r: Rarete): void { this.jouer((e, o, t) => sons.revelation(e, o, t, r), 'ui', true); }
 }
