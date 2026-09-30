@@ -42,8 +42,8 @@ export function createRoadTextures(p: Palette, anisotropy: number): RoadTextures
   road.anisotropy = anisotropy;
 
   const curb = canvasTexture(4, 2, (ctx) => {
-    ctx.fillStyle = '#e63b2e'; ctx.fillRect(0, 0, 4, 1);
-    ctx.fillStyle = '#f4f1e8'; ctx.fillRect(0, 1, 4, 1);
+    ctx.fillStyle = p.vibreurs ? hex(p.vibreurs[0]) : '#e63b2e'; ctx.fillRect(0, 0, 4, 1);
+    ctx.fillStyle = p.vibreurs ? hex(p.vibreurs[1]) : '#f4f1e8'; ctx.fillRect(0, 1, 4, 1);
   });
   curb.magFilter = THREE.NearestFilter;
   curb.wrapT = THREE.RepeatWrapping;

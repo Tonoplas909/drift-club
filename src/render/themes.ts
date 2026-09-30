@@ -6,6 +6,10 @@ import {
   arbreSecGeometry, buissonGeometry, cactusGeometry, mesaGeometry, piquetGeometry, soucheGeometry, tasNeigeGeometry,
 } from './proceduralDecor';
 import { decorVille } from './villeModeles';
+import { decorPirate } from './modelesPirate';
+import { decorBackrooms } from './modelesBackrooms';
+import { decorEspace } from './modelesEspace';
+import { decorJapon } from './modelesJapon';
 
 type Decor = Record<string, THREE.BufferGeometry>;
 
@@ -43,12 +47,14 @@ export function retoucher(src: THREE.BufferGeometry, r: Retouche): THREE.BufferG
 }
 
 /** Particules de météo (léger, une seule draw call, désactivées en qualité Basse). */
-export interface Meteo { type: 'neige'; nombre: number }
+export interface Meteo { type: 'neige' | 'petales'; nombre: number }
 
 export interface ThemeVisuel {
   /** modèles propres au thème, par clé `kind + variante` ; le reste vient des modèles de base */
   decor: (base: Decor, ambiance: Ambiance) => Decor;
   meteo?: Meteo;
+  /** quelques instances de ce modèle clignotent (néons des backrooms) */
+  scintillement?: { prefixe: string; nombre: number };
 }
 
 const par3 = (kind: string, f: (i: number) => THREE.BufferGeometry, n = 3): Decor =>
@@ -99,7 +105,39 @@ export const THEMES_VISUELS: Record<Environnement, ThemeVisuel> = {
       ...decorVille(ambiance),
     }),
   },
+  pirate: {
+    decor: (b) => ({
+      // rochers de plage : sable et calcaire
+      ...par3('rocher', (i) => retoucher(b[decorKey('rocher', i)], { vert: 0xd6c08c, brun: 0xa8957a }), 2),
+      rocherHaut0: retoucher(b.rocherHaut0, { vert: 0xd6c08c, brun: 0xa8957a }),
+      ...decorPirate(),
+    }),
+  },
+  backrooms: {
+    scintillement: { prefixe: 'dalleLumiere', nombre: 10 },
+    decor: (_b, ambiance) => decorBackrooms(ambiance),
+  },
+  espace: {
+    decor: (b) => ({
+      // régolithe : roche grise, sombre en dessous
+      ...par3('rocher', (i) => retoucher(b[decorKey('rocher', i)], { vert: 0x8c8898, brun: 0x6d6878 }), 2),
+      rocherHaut0: retoucher(b.rocherHaut0, { vert: 0x8c8898, brun: 0x6d6878 }),
+      ...decorEspace(),
+    }),
+  },
+  japon: {
+    meteo: { type: 'petales', nombre: 420 },
+    decor: (b, ambiance) => ({
+      // rochers moussus
+      ...par3('rocher', (i) => retoucher(b[decorKey('rocher', i)], { vert: 0x6f8f56, brun: 0x85837e }), 2),
+      rocherHaut0: retoucher(b.rocherHaut0, { vert: 0x6f8f56, brun: 0x85837e }),
+      ...decorJapon(ambiance),
+    }),
+  },
 };
+
+/** Thèmes dont les modèles changent avec l'ambiance (fenêtres et lampadaires allumés, néons, lanternes). */
+const DEPEND_AMBIANCE: ReadonlySet<Environnement> = new Set<Environnement>(['ville', 'backrooms', 'japon']);
 
 const cache = new WeakMap<Decor, Map<string, Decor>>();
 
@@ -112,7 +150,7 @@ export function decorDuTheme(assets: Assets, env: Environnement, ambiance: Ambia
   let m = cache.get(assets.decor);
   if (!m) { m = new Map(); cache.set(assets.decor, m); }
   // l'ambiance compte pour les fenêtres et lampadaires allumés (ville) ; les autres thèmes s'en moquent
-  const cle = env === 'ville' ? `${env}:${ambiance}` : env;
+  const cle = DEPEND_AMBIANCE.has(env) ? `${env}:${ambiance}` : env;
   let d = m.get(cle);
   if (!d) {
     d = { ...assets.decor, ...THEMES_VISUELS[env].decor(assets.decor, ambiance) };

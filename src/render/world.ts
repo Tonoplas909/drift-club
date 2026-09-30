@@ -8,6 +8,7 @@ import type { Assets } from './assets';
 import { paletteDe, type Palette } from './palettes';
 import { decorDuTheme, THEMES_VISUELS } from './themes';
 import { Snowfall } from './weather';
+import { Scintillement } from './scintillement';
 import { QUALITY, type QualityLevel } from './quality';
 import { createSky } from './sky';
 import { Eau } from './eau';
@@ -46,6 +47,7 @@ export class World {
   private readonly sky: THREE.Mesh;
   private readonly decor: Record<string, THREE.BufferGeometry>;
   private readonly snow: Snowfall | null = null;
+  private readonly scintille: Scintillement | null = null;
   private readonly terrainGroup: THREE.Group;
   private readonly carView: CarView;
   private readonly gauge = new SpeedGauge();
@@ -84,7 +86,7 @@ export class World {
     this.sun.shadow.normalBias = 0.02;
     this.scene.add(this.sun, this.sun.target);
 
-    this.sky = createSky(p);
+    this.sky = createSky(p, quality);
     this.scene.add(this.sky);
 
     const tex = createRoadTextures(p, renderer.capabilities.getMaxAnisotropy());
@@ -92,16 +94,27 @@ export class World {
     this.scene.add(buildRoad(track, p, tex));
     this.terrainGroup = buildTerrain(level, track, terrain, p, quality);
     this.scene.add(this.terrainGroup);
-    this.scene.add(buildMountains(track, p, level.decor.graine));
-    if (terrain.plans.length > 0) {
-      this.eau = new Eau(terrain.plans, p, quality);
+    this.scene.add(buildMountains(track, p, level.decor.graine, terrain.mer?.niveau));
+    const plans = [...terrain.plans];
+    if (terrain.mer) {
+      // mer : un plan immense au niveau de la mer, caché par le terrain là où il émerge
+      const cx = (terrain.minX + terrain.maxX) / 2, cz = (terrain.minZ + terrain.maxZ) / 2, h = 3200;
+      plans.push({ niveau: terrain.mer.niveau, points: [{ x: cx - h, z: cz - h }, { x: cx + h, z: cz - h }, { x: cx + h, z: cz + h }, { x: cx - h, z: cz + h }] });
+    }
+    if (plans.length > 0) {
+      this.eau = new Eau(plans, p, quality);
       this.scene.add(this.eau.group);
     }
     this.decor = decorDuTheme(assets, level.environnement, level.ambiance);
-    this.scene.add(buildDecor(env, assets, quality, q.shadows, this.decor));
+    const decorGroupe = buildDecor(env, assets, quality, q.shadows, this.decor);
+    this.scene.add(decorGroupe);
     const meteo = THEMES_VISUELS[level.environnement].meteo;
+    const theme = THEMES_VISUELS[level.environnement];
+    if (theme.scintillement) this.scintille = new Scintillement(decorGroupe, theme.scintillement);
     if (meteo) {
-      this.snow = new Snowfall(meteo.nombre);
+      this.snow = new Snowfall(meteo.nombre, 5, meteo.type === 'petales'
+        ? { couleur: 0xffb3cc, taille: 0.17, vitesse: [0.6, 1.2], derive: 1.8, petale: true, nom: 'petales' }
+        : {});
       this.snow.points.visible = quality === 'haute';
       this.scene.add(this.snow.points);
     }
@@ -169,6 +182,7 @@ export class World {
     this.sky.position.copy(this.camera.position);
     this.eau?.update(dt);
     if (this.snow?.points.visible) this.snow.update(dt, this.camera.position);
+    this.scintille?.update(dt);
     const params = CARS[this.init.carId];
     this.gauge.update(pose.x, pose.y, pose.z, params.width, gaugeRatio(car.speed, car.reverse, this.gaugeMax), this.camera, dt);
 
@@ -200,6 +214,7 @@ export class World {
     this.smoke.dispose();
     this.skids.dispose();
     this.snow?.dispose();
+    this.sky.traverse((o) => { if ((o as THREE.Points).isPoints) (o as THREE.Points).geometry.dispose(); });
     this.eau?.dispose();
     this.scene.traverse((o) => {
       const mesh = o as THREE.Mesh;

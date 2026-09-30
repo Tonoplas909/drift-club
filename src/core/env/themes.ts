@@ -264,7 +264,7 @@ export const THEMES: Record<Environnement, ThemeRegles> = {
     bord: {
       chevron: 'chevron', borne: null, sansChevauchement: true,
       extras: [
-        { kind: 'mur', tousLes: 8.5, decalage: 6, probabilite: 0.5, orientation: 'route', echelle: [1, 0] },
+        { kind: 'mur', tousLes: 8.5, decalage: 6, probabilite: 0.7, orientation: 'route', echelle: [1, 0] },
         { kind: 'lampeBureau', tousLes: 22, decalage: 4.2, probabilite: 0.7, orientation: 'route', echelle: [1, 0] },
         { kind: 'carton', tousLes: 40, decalage: 3.6, probabilite: 0.3 },
         { kind: 'porteBureau', tousLes: 70, decalage: 5, probabilite: 0.3, orientation: 'travers', echelle: [1, 0] },
@@ -272,7 +272,7 @@ export const THEMES: Record<Environnement, ThemeRegles> = {
       suspendus: [{ kind: 'dalleLumiere', tousLes: 13, probabilite: 0.85, lateral: 14 }],
     },
     fond: [
-      { kind: 'mur', cellule: 22, probabilite: 0.45, dMin: 14, dMax: 130, orientation: 'quart', echelle: [1, 0] },
+      { kind: 'mur', cellule: 18, probabilite: 0.55, dMin: 14, dMax: 130, orientation: 'quart', echelle: [1, 0] },
       { kind: 'pilier', cellule: 12, probabilite: 0.5, dMin: 12, dMax: 110, orientation: 'quart', echelle: [1, 0] },
     ],
     objets: { arbre: 'pilier', sapin: 'lampeBureau', rocher: 'mur', pneus: 'carton', panneau: 'porteBureau' },
@@ -283,7 +283,7 @@ export const THEMES: Record<Environnement, ThemeRegles> = {
     description: 'Sol lunaire à cratères, ciel noir étoilé, cristaux lumineux, antennes, atterrisseurs et paraboles.',
     fondEditeur: '#7d7889',
     relief: 0.5,
-    terrain: { cratere: { cellule: 120, probabilite: 0.7, rayon: [14, 26], creux: 0.2, eloignement: [32, 60] } },
+    terrain: { cratere: { cellule: 120, probabilite: 0.7, rayon: [14, 26], creux: 0.24, eloignement: [32, 60] } },
     // pas de végétation : les « arbres » sont des amas de cristaux
     arbres: { essences: [{ kind: 'cristal', bas: 1, haut: 1, echelle: [0.8, 0.9] }], pForet: 0.1, pHors: 0.012 },
     rochers: { base: 0.07, pente: 0.3, normal: 'rocher', haut: 'rocherHaut', partHauts: 0.35, echelle: [0.9, 1.2] },

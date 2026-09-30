@@ -13,6 +13,7 @@ import { epauleDe, type Palette } from './palettes';
 import { THEMES } from '../core/env/themes';
 import { RIVE } from '../core/env/eau';
 import type { QualityLevel } from './quality';
+import { buildFuji, buildIles, buildLune, buildMurs } from './fonds';
 
 const CHUNK = 128;
 const SKIRT = 4;
@@ -110,7 +111,10 @@ export function buildTerrain(level: Level, track: TrackData, terrain: Terrain, p
   const cR = new THREE.Color(p.rock), cS = epauleDe(p);
   const cT = p.trottoir !== undefined ? new THREE.Color(p.trottoir) : null;
   const lacs = terrain.plans.length > 0;
-  const cSable = new THREE.Color(0xd9c894), cFond = new THREE.Color(0x2d6a8f);
+  const cSable = new THREE.Color(p.plage ?? 0xd9c894), cFond = new THREE.Color(p.fondEau ?? 0x2d6a8f);
+  const mer = terrain.mer;
+  const craters = terrain.avecCratere;
+  const terr = p.terrasses ? { a: new THREE.Color(p.terrasses.a), b: new THREE.Color(p.terrasses.b), pas: p.terrasses.pas } : null;
   const hauteur = (x: number, z: number): number => terrain.hauteurRendue(x, z);
   const couleur = (x: number, z: number, slope: number, c: THREE.Color): void => {
     const near = nearestSampleWithin(track, x, z, 14);
@@ -121,7 +125,22 @@ export function buildTerrain(level: Level, track: TrackData, terrain: Terrain, p
     c.lerp(cR, smoothstep(0.7, 1.15, slope));
     // trottoir (ville) : bande claire le long de la route, là où se posent lampadaires et mobilier
     if (cT && roadDist < 1e8) c.lerp(cT, 1 - smoothstep(roadW + 3.6, roadW + 4.8, roadDist));
+    const h = terr || mer ? terrain.hauteurRendue(x, z) : 0;
+    // rizières en terrasses (japon) : bandes colorées par altitude là où le terrain penche
+    if (terr) {
+      const f = h / terr.pas;
+      const band = f - Math.floor(f) < 0.5 ? terr.a : terr.b;
+      c.lerp(band, smoothstep(0.05, 0.2, slope) * (1 - smoothstep(thr, thr + 0.08, forestMask(x, z, seed))) * 0.85 * (1 - smoothstep(0.5, 0.9, slope)));
+    }
     if (roadDist < 1e8) c.lerp(cS, 1 - smoothstep(roadW + 0.5, roadW + 1.5, roadDist));
+    // cratères (espace) : fond plus sombre, lèvre plus claire
+    if (craters) c.multiplyScalar(1 + Math.max(-0.4, Math.min(0.3, terrain.creux(x, z) * 0.06)));
+    // mer (pirate) : sable mouillé clair sur la laisse, fond de plus en plus sombre sous la surface
+    if (mer) {
+      const hm = h - mer.niveau;
+      if (hm < 1.4) c.lerp(cSable, 1 - smoothstep(0.1, 1.4, hm));
+      if (hm < 0) c.lerp(cFond, smoothstep(0.4, 5, -hm));
+    }
     // lac : plage claire sur la rive, fond de plus en plus sombre sous l'eau (vu à travers la surface translucide)
     if (lacs) {
       const sd = terrain.distanceEau(x, z);
@@ -149,7 +168,13 @@ export function buildTerrain(level: Level, track: TrackData, terrain: Terrain, p
 }
 
 /** Anneau de reliefs lointains (sans brouillard, couleurs déjà « noyées » dans la brume) : montagnes ou mesas selon la palette. */
-export function buildMountains(track: TrackData, p: Palette, seed: number): THREE.Mesh {
+export function buildMountains(track: TrackData, p: Palette, seed: number, niveauMer?: number): THREE.Mesh {
+  switch (p.reliefs.forme) {
+    case 'iles': return buildIles(track, p, seed, niveauMer);
+    case 'murs': return buildMurs(track, p, seed);
+    case 'lune': return buildLune(track, p, seed);
+    case 'fuji': return buildFuji(track, p, seed);
+  }
   const b = track.bounds;
   const cx = (b.minX + b.maxX) / 2, cz = (b.minZ + b.maxZ) / 2;
   const lowest = track.samples.reduce((m, s) => Math.min(m, s.y), Infinity);
