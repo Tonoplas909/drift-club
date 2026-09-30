@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
-import { buildSkinGeometry } from '../../src/render/skins';
+import { buildSkinGeometry, rectsChiffre } from '../../src/render/skins';
 import { buildJdmCar, CAR_SHAPES } from '../../src/render/jdmCars';
 import { SKINS } from '../../src/core/skins';
 import { COULEURS } from '../../src/ui/couleurs';
@@ -31,7 +31,24 @@ describe('géométrie des livrées', () => {
   }
   it('tous les types d\'éléments sont utilisés par au moins une livrée', () => {
     const types = new Set(CAR_IDS.flatMap((c) => SKINS[c]).flatMap((s) => s.elements.map((e) => e.type)));
-    for (const t of ['damier', 'flammes', 'eclairs', 'camouflage', 'pois', 'diagonales', 'dents', 'portieres', 'degrade']) expect(types.has(t as never)).toBe(true);
+    for (const t of ['damier', 'flammes', 'eclairs', 'camouflage', 'pois', 'diagonales', 'dents', 'portieres', 'degrade',
+      'barres', 'bandesMulti', 'bloc', 'grosNumero', 'pixels', 'formes', 'taches', 'zebrures', 'tigre', 'gouttes', 'hachures', 'circuit', 'grille', 'scanner', 'tribal']) expect(types.has(t as never)).toBe(true);
+  });
+  it('chiffres : tous distincts, et le 1, le 4 et le 7 ne se confondent pas', () => {
+    const sig = '0123456789'.split('').map((c) => JSON.stringify(rectsChiffre(c)));
+    expect(new Set(sig).size).toBe(10);
+    for (const c of '0123456789') expect(rectsChiffre(c).length).toBeGreaterThan(0);
+    // le 1 a un pied (rangée du bas pleine), le 7 n\'en a pas ; le 4 a une barre transversale et pas de barre en haut
+    const pleine = (c: string, v: number) => rectsChiffre(c).some(([u0, u1, v0]) => v0 === v && u1 - u0 === 3);
+    expect(pleine('1', 0)).toBe(true);
+    expect(pleine('7', 0)).toBe(false);
+    expect(pleine('7', 4)).toBe(true);
+    expect(pleine('4', 4)).toBe(false);
+    expect(pleine('4', 2)).toBe(true);
+  });
+  it('les numéros de portière donnent des géométries différentes pour 1 et 7', () => {
+    const g = (ch: string) => buildSkinGeometry(CAR_SHAPES.turbo, { id: 'x', nom: 'x', description: 'x', rarete: 'commune', elements: [{ type: 'numero', chiffres: ch, fond: '#ffffff', encre: '#000000' }] }, '#e63b2e')!.getAttribute('position').array.join(',');
+    expect(g('1')).not.toBe(g('7'));
   });
   it('couleur forcée : la carrosserie de CarView prend la couleur imposée, quelle que soit la couleur choisie', () => {
     const or = SKINS.turbo.find((s) => s.id === 'or')!;
