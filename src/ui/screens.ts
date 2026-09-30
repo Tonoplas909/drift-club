@@ -38,7 +38,7 @@ const DESCRIPTIONS_VOITURES: Record<CarId, string> = {
 };
 
 const DESCRIPTIONS_MODES: Record<ModeId, string> = {
-  arcade: 'Bouton Drift : glissade guidée, pas de tête-à-queue.',
+  arcade: 'Bouton Drift : glissade guidée, la plus facile à tenir.',
   semi: 'On lance le drift soi-même, contre-braquage aidé.',
   exigeant: 'Aucune aide. Tout se dose à la main.',
 };

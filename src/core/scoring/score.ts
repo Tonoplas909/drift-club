@@ -7,8 +7,6 @@ export interface ScoreParams {
   bankDelay: number;
   comboTimeout: number;
   comboMax: number;
-  spinDeg: number;
-  spinSpeedKmh: number;
   progressMin: number;
   timeBonusPerSec: number;
 }
@@ -21,8 +19,6 @@ export const DEFAULT_SCORE_PARAMS: ScoreParams = {
   bankDelay: 0.5,
   comboTimeout: 2,
   comboMax: 5,
-  spinDeg: 90,
-  spinSpeedKmh: 15,
   progressMin: 2,
   timeBonusPerSec: 2000,
 };
@@ -58,14 +54,14 @@ export function createScore(): ScoreState {
   return { total: 0, drift: 0, multiplier: 1, active: false, pending: false, inactiveTime: 0, sinceBank: 0, bestDrift: 0, driftCount: 0 };
 }
 
-/** Facteur d'angle : 0,5 à 15°, 1 de 25° à 60°, 0,5 à 90°, 0 au-delà. */
+/** Facteur d'angle : 0,5 à 15°, 1 de 25° à 60°, puis baisse progressive (0,7 à 90°, 0,4 à 120°, 0,1 à 150°), 0 à 180°. */
 export function angleFactor(betaDeg: number): number {
   const b = Math.abs(betaDeg);
   if (b < 15) return 0;
   if (b <= 25) return 0.5 + (0.5 * (b - 15)) / 10;
   if (b <= 60) return 1;
-  if (b <= 90) return 1 - (0.5 * (b - 60)) / 30;
-  return 0;
+  if (b <= 150) return 1 - (0.9 * (b - 60)) / 90;
+  return Math.max(0, 0.1 * (180 - b) / 30);
 }
 
 function bank(st: ScoreState, p: ScoreParams): ScoreEvent | null {
@@ -99,7 +95,8 @@ function lose(st: ScoreState): ScoreEvent | null {
 export function stepScore(st: ScoreState, f: ScoreFrame, dt: number, p: ScoreParams = DEFAULT_SCORE_PARAMS): ScoreEvent | null {
   const betaDeg = Math.abs(f.betaRad) / DEG;
   const kmh = f.speed * 3.6;
-  if (f.crash || f.reset || (betaDeg > p.spinDeg && kmh > p.spinSpeedKmh)) return lose(st);
+  // seuls un choc ou un replacement font perdre (un tête-à-queue n'est plus sanctionné)
+  if (f.crash || f.reset) return lose(st);
 
   const active = betaDeg > p.betaMinDeg && kmh > p.speedMinKmh;
   st.active = active;
