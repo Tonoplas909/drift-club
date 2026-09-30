@@ -51,7 +51,8 @@ html, body {
 .hud-drift span { font-size: 24px; font-weight: 800; color: #fff; -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; }
 .hud-drift.active b { transform: scale(1.06); }
 /* facteurs du drift en cours, au-dessus des points : base × vitesse × durée × angle */
-.hud-facteurs { visibility: hidden; display: flex; justify-content: center; align-items: flex-start; gap: 6px; margin-bottom: 6px; font-size: 20px; font-weight: 800; color: #fff; -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; font-variant-numeric: tabular-nums; }
+/* en haut au centre de l'écran, entre le score et le temps */
+.hud-facteurs { position: absolute; top: max(14px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); visibility: hidden; display: flex; justify-content: center; align-items: flex-start; gap: 6px; white-space: nowrap; font-size: 20px; font-weight: 800; color: #fff; -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; font-variant-numeric: tabular-nums; }
 .hud-facteurs.on { visibility: visible; }
 .hud-facteurs .f { display: flex; flex-direction: column; align-items: center; line-height: 1.05; }
 .hud-facteurs .f[hidden], .hud-facteurs .x[hidden] { display: none; }

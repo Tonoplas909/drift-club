@@ -14,7 +14,8 @@ export class Hud {
         <div class="hud-box"><small>Score</small><b data-k="score">0</b></div>
         <div class="hud-box"><small>Temps</small><b data-k="time">0:00.00</b></div>
       </div>
-      <div class="hud-drift" data-k="driftBox"><div class="hud-facteurs" data-k="facteurs"><span class="f f-base"><i data-k="fBase"></i><small>base</small></span><span class="x">×</span><span class="f f-kmh"><i data-k="fKmh"></i><small>vitesse moy.</small></span><span class="x">×</span><span class="f f-ms"><i data-k="fMs"></i><small>durée</small></span><span class="x">×</span><span class="f f-angle"><i data-k="fAngle"></i><small>angle moy.</small></span><span class="x f-combo-x" data-k="fComboX">×</span><span class="f f-combo" data-k="fComboBox"><i data-k="fCombo"></i><small>combo</small></span></div><b data-k="drift"></b><span data-k="mult"></span><div class="hud-combo" data-k="combo"><i data-k="comboBar"></i></div></div>
+      <div class="hud-facteurs" data-k="facteurs"><span class="f f-base"><i data-k="fBase"></i><small>base</small></span><span class="x">×</span><span class="f f-kmh"><i data-k="fKmh"></i><small>vitesse moy.</small></span><span class="x">×</span><span class="f f-ms"><i data-k="fMs"></i><small>durée</small></span><span class="x">×</span><span class="f f-angle"><i data-k="fAngle"></i><small>angle moy.</small></span><span class="x f-combo-x" data-k="fComboX">×</span><span class="f f-combo" data-k="fComboBox"><i data-k="fCombo"></i><small>combo</small></span></div>
+      <div class="hud-drift" data-k="driftBox"><b data-k="drift"></b><span data-k="mult"></span><div class="hud-combo" data-k="combo"><i data-k="comboBar"></i></div></div>
       <div class="hud-count" data-k="count"></div>
       <div class="hud-wrong" data-k="wrong">Mauvais sens !</div>
       <div class="hud-progress"><div class="hud-bar"><i data-k="bar"></i></div></div>
