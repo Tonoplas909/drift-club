@@ -50,6 +50,19 @@ const DESCRIPTIONS_MODES: Record<ModeId, string> = {
 
 export interface NiveauCarte { nom: string; detail: string; /** place du joueur dans le classement en ligne (texte prêt à afficher) */ place: string; /** raison pour laquelle le niveau ne se lance pas */ desactive?: string }
 
+/** Bloc « clés gagnées » de l'écran des résultats (aussi réutilisé par la version mise à jour après la réponse du serveur). */
+export function blocGains(c: GainCourse, onCaisses?: () => void): HTMLElement {
+  const s = (n: number): string => `${n} clé${n > 1 ? 's' : ''}`;
+  return h('div', { class: 'gains' }, iconeCle(),
+    h('div', {},
+      c.arrivee > 0 && h('b', {}, `+${s(c.arrivee)}`),
+      c.record > 0 && h('b', { class: 'record' }, `+${c.record} clé record`),
+      h('small', {}, `Total : ${s(c.total)}`, c.total >= ECONOMIE.coutCaisse ? ' · une caisse est prête !' : ''),
+    ),
+    onCaisses && h('button', { class: 'btn sm' + (c.total >= ECONOMIE.coutCaisse ? '' : ' sec'), onclick: onCaisses }, 'Caisses'),
+  );
+}
+
 export class Screens {
   private progressEl: HTMLElement | null = null;
   private toastTimer = 0;
@@ -258,7 +271,7 @@ export class Screens {
     )));
   }
 
-  resultats(o: { result: RaceResult; record: boolean; persistent: boolean; /** clés gagnées à l'arrivée et total */ cles?: GainCourse; onCaisses?: () => void; onRecommencer(): void; onSuivant: (() => void) | null; onMenu(): void; menuLabel?: string; /** bloc classement en ligne, rempli après l'envoi du score */ enLigne?: HTMLElement | null }): void {
+  resultats(o: { result: RaceResult; record: boolean; persistent: boolean; /** clés gagnées à l'arrivée et total */ cles?: GainCourse; /** bloc de clés du compte, mis à jour après la réponse du serveur (prioritaire sur `cles`) */ gainsEnLigne?: HTMLElement | null; onCaisses?: () => void; onRecommencer(): void; onSuivant: (() => void) | null; onMenu(): void; menuLabel?: string; /** bloc classement en ligne, rempli après l'envoi du score */ enLigne?: HTMLElement | null }): void {
     const r = o.result;
     const ecart = r.time - r.targetTime;
     // deux colonnes (score | clés et boutons) sur téléphone en paysage, sinon une seule pile (voir styles.css)
@@ -275,14 +288,7 @@ export class Screens {
       ),
       ),
       h('div', { class: 'res-d' },
-      o.cles && h('div', { class: 'gains' }, iconeCle(),
-        h('div', {},
-          h('b', {}, `+${o.cles.arrivee} clé${o.cles.arrivee > 1 ? 's' : ''}`),
-          o.cles.record > 0 && h('b', { class: 'record' }, `+${o.cles.record} clé record`),
-          h('small', {}, `Total : ${o.cles.total} clé${o.cles.total > 1 ? 's' : ''}`, o.cles.total >= ECONOMIE.coutCaisse ? ' · une caisse est prête !' : ''),
-        ),
-        o.onCaisses && h('button', { class: 'btn sm' + (o.cles.total >= ECONOMIE.coutCaisse ? '' : ' sec'), onclick: o.onCaisses }, 'Caisses'),
-      ),
+      o.gainsEnLigne ?? (o.cles && blocGains(o.cles, o.onCaisses)),
       o.enLigne,
       h('div', { class: 'row' },
         h('button', { class: 'btn', onclick: o.onRecommencer }, 'Recommencer'),

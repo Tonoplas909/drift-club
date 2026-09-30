@@ -333,6 +333,7 @@ input[type=text], input[type=email], input[type=password] { user-select: text; -
 
 /* Résultats : clés gagnées */
 .gains { display: flex; align-items: center; gap: 10px; background: #fff; border: 3px solid var(--ink); border-radius: 14px; padding: 6px 12px; }
+.gains-zone { display: contents; }
 .gains .ico-cle { font-size: 30px; }
 .gains > div { display: flex; flex-direction: column; flex: 1; line-height: 1.15; }
 .gains b { font-size: 20px; font-weight: 800; }

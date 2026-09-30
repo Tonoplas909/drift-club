@@ -15,8 +15,10 @@ import { NIVEAUX_OFFICIELS, cleNiveauOfficiel } from './levels';
 import { Screens, levelSummary, type NiveauCarte } from './ui/screens';
 import { formatDistance } from './ui/format';
 import { skinChoisie, choisirSkin } from './core/skins';
-import { gagnerCourse, ouvrirCaisse, skinsAutorises, type Progression } from './core/economie';
+import { ECONOMIE, gagnerCourse, ouvrirCaisse, skinsAutorises, type GainCourse, type Progression } from './core/economie';
+import { appliquerOuvertureServeur, choisirProgression, doitImporter, gainServeur, type EtatProgressionCompte, type ProgressionActive } from './core/progressionCompte';
 import type { Objet } from './core/caisses';
+import type { Rng } from './core/math/rng';
 import type { RaceResult } from './core/race/race';
 import type { Level } from './core/level/types';
 import { empreinteNiveau } from './core/level/fingerprint';
@@ -26,7 +28,9 @@ import { afficherHub } from './editor/hub';
 import { dateCourte, longueurRoute } from './editor/format';
 import { clientParDefaut } from './online/client';
 import { CompteService, type EtatCompte } from './online/compte';
-import { ClassementService, cleEnLigne } from './online/classement';
+import { ClassementService, cleEnLigne, type RangEnLigne, type Resultat } from './online/classement';
+import { ProgressionEnLigne, type EchecProgression } from './online/progression';
+import { MSG_INDISPONIBLE } from './online/erreurs';
 import { NiveauxEnLigneService } from './online/niveaux';
 import { decoderNiveau } from './core/level/encode';
 import { lireFragment } from './share/lien';
@@ -34,10 +38,14 @@ import { ouvrirPartage, ouvrirImport, carteNiveauPartage } from './ui/partage';
 import { panneauEnLigne } from './ui/enligne';
 import { ecranCompte } from './ui/compte';
 import { ecranClassement, zoneEnLigne, textePlace } from './ui/classement';
-import { ecranCaisses } from './ui/caisses';
+import { ecranCaisses, type ResultatOuverture } from './ui/caisses';
+import { zoneGains, type ZoneGains } from './ui/gains';
 
 /** D'où vient la course : `index` ≥ 0 pour un niveau officiel, `retour` ramène à l'écran d'origine. */
 interface Contexte { index: number; retour: () => void; menuLabel: string }
+
+/** Message quand le compte est connecté mais injoignable : la progression du compte reste en lecture seule. */
+export const MSG_CONNEXION_CAISSE = 'Connexion requise pour ouvrir une caisse avec ton compte';
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
 
@@ -46,7 +54,13 @@ export class App {
   private store!: Store;
   private persistent = true;
   private reglages!: Reglages;
+  /** progression LOCALE (joueur non connecté) ; celle du compte est dans `compteProg` */
   private progression!: Progression;
+  /** dernière progression du compte connectée connue (serveur, ou copie gardée hors ligne) */
+  private compteProg: EtatProgressionCompte | null = null;
+  /** vrai si les fonctions SQL de progression ne sont pas installées : on reste sur la progression locale */
+  private serviceProgAbsent = false;
+  private jetonSynchro = 0;
   private assets: Assets | null = null;
   private readonly screens = new Screens($('ui'));
   private readonly hud = new Hud($('hud'));
@@ -63,6 +77,7 @@ export class App {
   private readonly compte = new CompteService(clientParDefaut);
   private readonly classement = new ClassementService(clientParDefaut);
   private readonly niveauxEnLigne = new NiveauxEnLigneService(clientParDefaut);
+  private readonly progressionEnLigne = new ProgressionEnLigne(clientParDefaut);
 
   constructor(private readonly debug: DebugHook | null = null) {}
 
@@ -80,8 +95,8 @@ export class App {
     this.reglages = this.store.loadReglages(this.touch);
     // clés et livrées gagnées ; une livrée choisie mais verrouillée (données modifiées à la main) retombe sur « unie »
     this.progression = this.store.loadProgression(this.reglages.skins);
-    const autorisees = skinsAutorises(this.reglages.skins, this.progression);
-    if (JSON.stringify(autorisees) !== JSON.stringify(this.reglages.skins)) { this.reglages.skins = autorisees; this.save(); }
+    // si une progression de compte est gardée sur l'appareil, le joueur est peut-être reconnecté dans un instant : on attend de savoir laquelle fait foi
+    if (this.store.idProgressionCompte() === null) this.appliquerSkinsAutorises();
     this.audio.setVolume(this.reglages.volume);
     this.audio.setMuted(this.reglages.muet);
     this.keyboard.attach(window);
@@ -124,8 +139,73 @@ export class App {
     return e.statut === 'connecte' && e.pseudo ? `Compte · ${e.pseudo}` : 'Compte';
   }
 
+  /** Progression qui fait foi : celle du compte si le joueur est connecté (avec pseudo), sinon la locale. */
+  private prog(): ProgressionActive {
+    const e = this.compte.etat;
+    return choisirProgression({
+      idCompte: e.statut === 'connecte' && e.pseudo ? e.id : null, local: this.progression, compte: this.compteProg, serviceAbsent: this.serviceProgAbsent,
+    });
+  }
+
+  /** Les livrées choisies doivent être débloquées dans la progression qui fait foi (sinon « unie ») ; rien n'est touché tant que le compte est inconnu. */
+  private appliquerSkinsAutorises(): void {
+    const e = this.compte.etat;
+    if (e.statut === 'connecte' && e.pseudo && !this.serviceProgAbsent && this.compteProg?.id !== e.id) return;
+    const autorisees = skinsAutorises(this.reglages.skins, this.prog().progression);
+    if (JSON.stringify(autorisees) !== JSON.stringify(this.reglages.skins)) { this.reglages.skins = autorisees; this.save(); }
+  }
+
+  private memoriserCompteProg(e: EtatProgressionCompte): void {
+    this.compteProg = e;
+    this.store.saveProgressionCompte(e);
+  }
+
+  /**
+   * Lit la progression du compte (créée avec les 3 clés offertes la première fois) et, si l'appareil n'a jamais été repris,
+   * y verse UNE fois la progression locale. Ne lève jamais ; hors ligne on garde la dernière valeur connue, en lecture seule.
+   */
+  private async synchroProgression(): Promise<void> {
+    const e = this.compte.etat;
+    if (e.statut !== 'connecte' || !e.pseudo) return;
+    const id = e.id, jeton = ++this.jetonSynchro;
+    const actuel = (): boolean => jeton === this.jetonSynchro;
+    let r = await this.progressionEnLigne.charger();
+    if (!actuel()) return;
+    if (r.ok && doitImporter(r.valeur)) {
+      const i = await this.progressionEnLigne.importerLocale(this.progression);
+      if (!actuel()) return;
+      if (i.ok) r = i;
+    }
+    if (!r.ok) { this.echecSynchro(id, r); return; }
+    this.serviceProgAbsent = false;
+    this.memoriserCompteProg({ id, progression: r.valeur.progression, importee: r.valeur.importee, synchro: 'ok' });
+    this.appliquerSkinsAutorises();
+  }
+
+  private echecSynchro(id: string, r: EchecProgression): void {
+    if (r.raison === 'absent') { this.serviceProgAbsent = true; this.appliquerSkinsAutorises(); return; } // SQL pas encore installé : progression locale
+    // injoignable : dernière valeur connue de ce compte, en lecture seule
+    const gardee = this.compteProg?.id === id ? this.compteProg.progression : this.store.loadProgressionCompte(id);
+    if (gardee) this.compteProg = { id, progression: gardee, importee: this.compteProg?.importee ?? true, synchro: 'hors-ligne' };
+    else if (this.compteProg?.id === id) this.compteProg = { ...this.compteProg, synchro: 'hors-ligne' };
+    this.appliquerSkinsAutorises();
+  }
+
   private compteChange(e: EtatCompte): void {
     this.screens.majCompte(this.libelleCompte(e));
+    if (e.statut === 'connecte' && e.pseudo) {
+      if (this.compteProg?.id !== e.id) {
+        const gardee = this.store.loadProgressionCompte(e.id);
+        this.compteProg = gardee ? { id: e.id, progression: gardee, importee: true, synchro: 'hors-ligne' } : null;
+      }
+      if (this.compteProg?.synchro !== 'ok') void this.synchroProgression();
+    } else if (this.compteProg || this.serviceProgAbsent) {
+      // déconnexion : retour à la progression locale
+      this.jetonSynchro++;
+      this.compteProg = null;
+      this.serviceProgAbsent = false;
+      this.appliquerSkinsAutorises();
+    }
     // connexion ou déconnexion pendant le choix du niveau : les places affichées changent
     if (this.screens.niveauxVisible() && (e.statut === 'connecte') !== this.placesConnecte) this.niveaux();
     this.placesConnecte = e.statut === 'connecte';
@@ -260,11 +340,11 @@ export class App {
       voiture: this.reglages.voiture,
       couleur: this.reglages.couleur,
       skins: this.reglages.skins,
-      progression: this.progression,
+      progression: this.prog().progression,
       onChange: (voiture, couleur, skins) => {
         this.reglages.voiture = voiture;
         this.reglages.couleur = couleur;
-        this.reglages.skins = skinsAutorises(skins, this.progression);
+        this.reglages.skins = skinsAutorises(skins, this.prog().progression);
         this.save();
         this.showroom?.setCar(voiture, couleur, skinChoisie(this.reglages.skins, voiture));
       },
@@ -275,16 +355,41 @@ export class App {
     });
   }
 
+  /**
+   * Ouvre une caisse selon la progression qui fait foi. Locale : tirage ici, enregistré aussitôt. Compte : le SERVEUR paie,
+   * tire et débloque ; l'écran reçoit son résultat (la roulette s'arrête dessus) et rien n'est jamais mélangé avec la progression locale.
+   */
+  private async ouvrirCaisseActive(rng: Rng): Promise<ResultatOuverture> {
+    const a = this.prog();
+    if (a.source === 'local') {
+      const r = ouvrirCaisse(this.progression, rng);
+      if (!r) return { ok: false, message: 'Pas assez de clés.' };
+      this.progression = r.progression;
+      this.store.saveProgression(this.progression);
+      return { ok: true, ouverture: r };
+    }
+    const compte = this.compteProg;
+    if (a.lectureSeule || !compte) return { ok: false, message: MSG_CONNEXION_CAISSE };
+    const r = await this.progressionEnLigne.ouvrirCaisse();
+    if (!r.ok) {
+      if (r.raison === 'reseau') { this.compteProg = { ...compte, synchro: 'hors-ligne' }; return { ok: false, message: MSG_CONNEXION_CAISSE }; }
+      void this.synchroProgression(); // clés ou livrées différentes de ce qu'on croyait : on relit le compte
+      return { ok: false, message: r.message };
+    }
+    const { objet, doublon, cles } = r.valeur;
+    const base = this.compteProg?.id === compte.id ? this.compteProg.progression : compte.progression;
+    const progression = appliquerOuvertureServeur(base, objet, doublon, cles);
+    this.memoriserCompteProg({ ...compte, progression, synchro: 'ok' });
+    return { ok: true, ouverture: { progression, tirage: { objet, doublon }, remboursement: doublon ? ECONOMIE.remboursementDoublon : 0 } };
+  }
+
   /** Écran des caisses : la progression est modifiée et enregistrée à l'ouverture (fermer l'onglet en pleine roulette ne perd rien). */
   private caisses(retour: () => void): void {
     this.showroom?.stop();
-    this.screens.monter(ecranCaisses({
-      progression: () => this.progression,
-      ouvrir: (rng) => {
-        const r = ouvrirCaisse(this.progression, rng);
-        if (r) { this.progression = r.progression; this.store.saveProgression(this.progression); }
-        return r;
-      },
+    const ecran = ecranCaisses({
+      progression: () => this.prog().progression,
+      ouvrir: (rng) => this.ouvrirCaisseActive(rng),
+      blocage: () => (this.prog().lectureSeule ? MSG_CONNEXION_CAISSE : null),
       audio: { tick: (k) => this.audio.playTick(k), ouvrir: () => this.audio.playOuvrirCaisse(), reveal: (r) => this.audio.playReveal(r) },
       couleur: () => this.reglages.couleur,
       onApercu: (x) => this.apercuCaisse(x),
@@ -295,7 +400,14 @@ export class App {
         this.garage(retour);
       },
       onRetour: retour,
-    }));
+    });
+    this.screens.monter(ecran);
+    // compte connecté mais pas à jour (hors ligne au lancement) : on retente, et l'écran se rafraîchit s'il est encore là
+    if (this.prog().lectureSeule) {
+      void this.synchroProgression().then(() => {
+        if (ecran.isConnected && !ecran.querySelector('.cs-revele') && !ecran.classList.contains('revele') && !this.prog().lectureSeule) this.caisses(retour);
+      });
+    }
   }
 
   /** Montre la livrée gagnée dans le showroom, derrière la fiche de révélation ; `null` l'arrête. */
@@ -480,27 +592,39 @@ export class App {
       score: r.score, temps: r.time, voiture: this.reglages.voiture, meilleurDrift: r.bestDrift, date: new Date().toISOString().slice(0, 10),
     });
     const next = cur.index >= 0 && cur.index + 1 < NIVEAUX_OFFICIELS.length ? cur.index + 1 : -1;
-    // clés : 1 par arrivée, +1 si nouveau record local (une seule fois par arrivée, pas à chaque retour d'écran)
-    const g = gagnerCourse(this.progression, record);
-    this.progression = g.progression;
-    this.store.saveProgression(this.progression);
-    const enLigne = this.envoyerScore(cur.prepared.key, r);
-    const montrer = (): void => this.screens.resultats({
-      result: r, record, persistent: this.persistent,
-      cles: { ...g.gain, total: this.progression.cles },
-      onCaisses: () => this.caisses(montrer),
-      onRecommencer: () => { this.screens.clear(); this.touchControls.show(this.touch || this.input.touchActive); this.session?.restart(); },
-      onSuivant: next >= 0 ? () => void this.lancer(next) : null,
-      onMenu: () => this.quitterCourse(),
-      menuLabel: cur.contexte.menuLabel,
-      enLigne,
-    });
+    // Non connecté : clés locales, 1 par arrivée, +1 si nouveau record local (une seule fois par arrivée, pas à chaque retour d'écran).
+    // Connecté : les clés du compte sont créditées par le serveur en réponse à l'envoi du score (voir envoyerScore).
+    let gainLocal: GainCourse | null = null;
+    let gains: ZoneGains | null = null;
+    if (this.prog().source === 'local') {
+      const g = gagnerCourse(this.progression, record);
+      this.progression = g.progression;
+      this.store.saveProgression(this.progression);
+      gainLocal = g.gain;
+    } else {
+      gains = zoneGains();
+    }
+    const enLigne = this.envoyerScore(cur.prepared.key, r, gains, () => this.caisses(montrer));
+    const montrer = (): void => {
+      gains?.majTotal(this.prog().progression.cles);
+      this.screens.resultats({
+        result: r, record, persistent: this.persistent,
+        cles: gainLocal ? { ...gainLocal, total: this.progression.cles } : undefined,
+        gainsEnLigne: gains?.el,
+        onCaisses: () => this.caisses(montrer),
+        onRecommencer: () => { this.screens.clear(); this.touchControls.show(this.touch || this.input.touchActive); this.session?.restart(); },
+        onSuivant: next >= 0 ? () => void this.lancer(next) : null,
+        onMenu: () => this.quitterCourse(),
+        menuLabel: cur.contexte.menuLabel,
+        enLigne,
+      });
+    };
     montrer();
   }
 
   /** Bloc « classement en ligne » des résultats : envoi en tâche de fond, l'écran n'attend jamais le réseau. */
-  private envoyerScore(cle: string, r: RaceResult): HTMLElement | null {
-    if (!cleEnLigne(cle)) return null;
+  private envoyerScore(cle: string, r: RaceResult, gains: ZoneGains | null, onCaisses: () => void): HTMLElement | null {
+    if (!cleEnLigne(cle)) { gains?.note('Pas de clé pour ce niveau : il n\'a pas de classement en ligne.'); return null; }
     const zone = zoneEnLigne();
     const e = this.compte.etat;
     if (e.statut !== 'connecte') {
@@ -509,11 +633,29 @@ export class App {
       zone.invite('Choisis un pseudo pour apparaître au classement.', () => this.ecranCompte(this.terminerCourse()));
     } else {
       zone.envoi();
+      gains?.envoi();
       void this.classement.soumettreScore({
         niveau: cle, mode: this.reglages.mode, score: r.score, temps: r.time, voiture: this.reglages.voiture, meilleurDrift: r.bestDrift,
-      }).then((res) => zone.resultat(res));
+      }).then((res) => {
+        zone.resultat(res);
+        if (gains) this.clesApresEnvoi(res, e.id, gains, onCaisses);
+      });
     }
     return zone.el;
+  }
+
+  /** Clés du compte après l'envoi d'un score : le serveur les a créditées (ou non : hors ligne, limite de débit) ; on affiche et on met à jour l'état. */
+  private clesApresEnvoi(res: Resultat<RangEnLigne>, id: string, gains: ZoneGains, onCaisses: () => void): void {
+    if (!res.ok) { gains.note(res.message === MSG_INDISPONIBLE ? 'Hors ligne : les clés de cette arrivée ne sont pas créditées.' : `Clés non créditées : ${res.message}`); return; }
+    const { clesGagnees, clesRecord, cles } = res.valeur;
+    if (clesGagnees === undefined || cles === undefined) { gains.note('Clés du compte indisponibles pour le moment.'); return; }
+    if (this.compteProg?.id === id) {
+      this.compteProg = { ...this.compteProg, progression: { ...this.compteProg.progression, cles } };
+      this.store.saveProgressionCompte(this.compteProg);
+    }
+    gains.gain(gainServeur(clesGagnees, clesRecord ?? 0, cles), onCaisses);
+    // état du compte pas encore lu (ou copie hors ligne) : on le relit pour connaître aussi les livrées
+    if (this.compteProg?.id !== id || this.compteProg.synchro !== 'ok') void this.synchroProgression();
   }
 
   /** Ferme la course et renvoie l'écran où retourner. */
