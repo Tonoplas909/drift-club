@@ -13,6 +13,17 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.3.5',
+    date: '30/09/2026',
+    titre: 'Plus de 100 livrées',
+    notes: [
+      'Plus de 50 nouvelles livrées, pleines de références : Livreur de tofu, Déjà vu, Eurobeat, 24 Heures, K-2000, 88 miles/h, Nyan, Stonks, Doge, Kachow, Rickroll, Tout va bien, Pas peur des fantômes, Grille néon…',
+      'Quatre livrées exotiques pour les fans de courses de rue au cinéma : Dix secondes et Famille (La Turbo), Bleu nitro et Maître du drift (L\'Équilibrée).',
+      'Chaque livrée a désormais une petite description, affichée dans le Garage et à l\'ouverture d\'une caisse.',
+      'Les numéros de course sont redessinés : le 7 ne ressemble plus à un 1.',
+    ],
+  },
+  {
     version: '0.3.4',
     date: '30/09/2026',
     titre: 'Décor Ville',
