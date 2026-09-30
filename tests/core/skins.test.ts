@@ -1,12 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { SKINS, SKIN_DEFAUT, skinChoisie, skinDef, choisirSkin, validerSkins, resoudreTeinte, accentSkin } from '../../src/core/skins';
+import { SKINS, SKIN_DEFAUT, skinChoisie, skinDef, choisirSkin, validerSkins, resoudreTeinte, accentSkin, couleurEffective } from '../../src/core/skins';
+import { RARETES, RARETE_IDS } from '../../src/core/raretes';
 import { CAR_IDS } from '../../src/core/physics/cars';
 
 describe('données des livrées', () => {
-  it('au moins 4 livrées par voiture, « unie » en premier, ids uniques, noms français non vides', () => {
+  it('au moins 12 livrées par voiture, « unie » en premier, ids uniques, noms français non vides', () => {
     for (const car of CAR_IDS) {
       const l = SKINS[car];
-      expect(l.length).toBeGreaterThanOrEqual(4);
+      expect(l.length).toBeGreaterThanOrEqual(12);
       expect(l[0].id).toBe('unie');
       expect(l[0].elements).toEqual([]);
       expect(new Set(l.map((s) => s.id)).size).toBe(l.length);
@@ -15,6 +16,40 @@ describe('données des livrées', () => {
   });
   it('chaque livrée non unie a au moins un élément', () => {
     for (const car of CAR_IDS) for (const s of SKINS[car].slice(1)) expect(s.elements.length).toBeGreaterThan(0);
+  });
+});
+
+describe('raretés des livrées', () => {
+  it('chaque livrée a une rareté connue ; « unie » est commune', () => {
+    for (const car of CAR_IDS) {
+      for (const s of SKINS[car]) expect(RARETE_IDS).toContain(s.rarete);
+      expect(SKINS[car][0].rarete).toBe('commune');
+    }
+  });
+  it('chaque rareté a au moins une livrée (hors « unie ») et les livrées sont rangées par rareté croissante', () => {
+    for (const r of RARETE_IDS) expect(CAR_IDS.flatMap((c) => SKINS[c]).filter((s) => s.id !== SKIN_DEFAUT && s.rarete === r).length).toBeGreaterThan(0);
+    for (const car of CAR_IDS) {
+      const rangs = SKINS[car].map((s) => RARETE_IDS.indexOf(s.rarete));
+      expect(rangs).toEqual([...rangs].sort((a, b) => a - b));
+    }
+  });
+  it('couleur forcée : #rrggbb valide, jamais sur « unie » ; la couleur effective l\'emporte sur la couleur choisie', () => {
+    for (const car of CAR_IDS) for (const s of SKINS[car]) if (s.couleurForcee) {
+      expect(s.couleurForcee).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(s.id).not.toBe(SKIN_DEFAUT);
+      expect(couleurEffective(s, '#3a6ff0')).toBe(s.couleurForcee);
+    }
+    expect(couleurEffective(SKINS.turbo[0], '#3a6ff0')).toBe('#3a6ff0');
+    expect(SKINS.equilibree.find((s) => s.id === 'or')!.couleurForcee).toBeDefined();
+  });
+  it('les teintes dérivées et la pastille d\'une livrée forcée partent de la couleur imposée', () => {
+    const noiror = SKINS.equilibree.find((s) => s.id === 'noiror')!;
+    expect(accentSkin(noiror, '#ffffff')).toBe('#d9a21b');
+    const or = SKINS.equilibree.find((s) => s.id === 'or')!;
+    expect(accentSkin(or, '#000000')).toBe(resoudreTeinte('clair', or.couleurForcee!));
+  });
+  it('palette de raretés : couleurs distinctes', () => {
+    expect(new Set(RARETE_IDS.map((r) => RARETES[r].couleur)).size).toBe(RARETE_IDS.length);
   });
 });
 

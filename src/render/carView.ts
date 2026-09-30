@@ -3,7 +3,7 @@ import type { CarModel } from './assets';
 import { paintGeometry } from './assets';
 import { toonMaterial, outlineMaterial, outlineGeometry } from './materials';
 import { buildSkinGeometry } from './skins';
-import type { SkinDef } from '../core/skins';
+import { couleurEffective, type SkinDef } from '../core/skins';
 
 export interface CarPose {
   x: number; y: number; z: number;
@@ -44,7 +44,7 @@ export class CarView {
     this.decalMat.polygonOffsetUnits = -2;
     this.root.add(this.ground);
     this.ground.add(this.lean);
-    this.body = new THREE.Mesh(paintGeometry(model.body, model.paint, new THREE.Color(color)), this.mat);
+    this.body = new THREE.Mesh(paintGeometry(model.body, model.paint, new THREE.Color(couleurEffective(skin, color))), this.mat);
     this.body.castShadow = shadows;
     const bodyOutline = outlineGeometry(model.body);
     this.owned.push(bodyOutline);
@@ -78,17 +78,22 @@ export class CarView {
     this.lean.add(this.decals);
   }
 
-  setColor(color: string): void {
-    this.color = color;
+  /** Repeint la carrosserie : couleur choisie, ou couleur imposée par la livrée (or, chrome…). */
+  private repaint(): void {
     const old = this.body.geometry;
-    this.body.geometry = paintGeometry(this.model.body, this.model.paint, new THREE.Color(color));
+    this.body.geometry = paintGeometry(this.model.body, this.model.paint, new THREE.Color(couleurEffective(this.skin, this.color)));
     old.dispose();
     this.refreshDecals();
   }
 
+  setColor(color: string): void {
+    this.color = color;
+    this.repaint();
+  }
+
   setSkin(skin: SkinDef | null): void {
     this.skin = skin;
-    this.refreshDecals();
+    this.repaint();
   }
 
   update(p: CarPose): void {
