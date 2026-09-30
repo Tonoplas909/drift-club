@@ -40,6 +40,9 @@ const DESCRIPTIONS_VOITURES: Record<CarId, string> = {
   equilibree: 'Coupé fastback prévisible, pour débuter.',
   legere: 'Petit coupé des années 80, agile : on la fait glisser par le poids.',
   turbo: 'Grosse GT turbo, puissante : décroche au moindre coup de gaz.',
+  kei: 'Toute petite et très légère : pétillante, elle vire sur un mouchoir, mais manque de pointe.',
+  muscle: 'Gros coupé à moteur avant, un couple monstre : grosses glissades, direction paresseuse.',
+  rotative: 'Coupé rotatif, phares escamotables : équilibrée et vive, le rêve du puriste du drift.',
 };
 
 const DESCRIPTIONS_MODES: Record<ModeId, string> = {
@@ -193,9 +196,10 @@ export class Screens {
       const forcee = def.couleurForcee !== undefined;
       const defilement = this.root.querySelector('.garage-corps')?.scrollTop ?? 0; // la liste garde sa place au re-rendu
       const corps = h('div', { class: 'garage-corps' },
-        h('div', { class: 'choices' }, ...CAR_IDS.map((id) =>
-          h('button', { class: 'choice' + (id === voiture ? ' on' : ''), onclick: () => { voiture = id; change(); } },
-            h('b', {}, CARS[id].nom), h('small', {}, DESCRIPTIONS_VOITURES[id])))),
+        h('div', { class: 'choices voitures' }, ...CAR_IDS.map((id) =>
+          h('button', { class: 'choice' + (id === voiture ? ' on' : ''), title: DESCRIPTIONS_VOITURES[id], onclick: () => { voiture = id; change(); } },
+            h('b', {}, CARS[id].nom)))),
+        h('p', { class: 'petit voiture-desc' }, DESCRIPTIONS_VOITURES[voiture]),
         h('div', { class: 'swatches' + (forcee ? ' figees' : '') }, ...COULEURS.map((c) =>
           h('button', { class: 'swatch' + (c.hex === couleur ? ' on' : ''), style: `background:${c.hex}`, title: forcee ? 'Couleur imposée par la livrée' : c.nom, 'aria-label': c.nom, disabled: forcee, onclick: () => { couleur = c.hex; change(); } }))),
         h('h3', {}, 'Livrée'),

@@ -187,6 +187,11 @@ html, body {
 .choice.on { background: var(--yellow); box-shadow: 0 4px 0 var(--ink); }
 .choice b { font-size: 18px; }
 .choice small { opacity: .75; }
+/* Garage : les voitures en grille (6 et plus), la description de la voiture choisie en une ligne dessous */
+.choices.voitures { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 6px; }
+.choices.voitures .choice { align-items: center; text-align: center; padding: 6px 6px; border-radius: 12px; justify-content: center; }
+.choices.voitures .choice b { font-size: 15px; line-height: 1.15; }
+.voiture-desc { margin: 0; flex: none; }
 .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
 .swatch { width: 38px; height: 38px; border-radius: 50%; border: 3px solid var(--ink); cursor: pointer; }
 .skins { display: flex; flex-wrap: wrap; gap: 8px; }

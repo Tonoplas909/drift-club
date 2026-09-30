@@ -29,8 +29,13 @@ export class Showroom {
 
   setCar(id: CarId, color: string, skin?: SkinId): void {
     if (this.view) { this.scene.remove(this.view.root); this.view.dispose(); }
-    this.view = new CarView(this.assets.cars[id], color, false, skinDef(id, skin));
+    const model = this.assets.cars[id];
+    this.view = new CarView(model, color, false, skinDef(id, skin));
     this.scene.add(this.view.root);
+    // cadrage : la caméra recule pour les grandes voitures et s'approche des petites (4,4 m = cadrage de référence)
+    const k = ((model.shape?.length ?? 4.4) + 1.6) / 6;
+    this.camera.position.set(5.5 * k, 2.4 * (0.6 + 0.4 * k), 6.5 * k);
+    this.camera.lookAt(0, 0.7, 0);
   }
 
   private readonly frame = (now: number): void => {
