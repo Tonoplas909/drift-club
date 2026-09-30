@@ -50,6 +50,8 @@ describe('messageErreur', () => {
     expect(messageErreur({ code: 'PGRST202', message: 'no function' })).toMatch(/pas encore disponible/);
     expect(messageErreur({ code: '42P01', message: 'relation does not exist' })).toMatch(/pas encore disponible/);
     expect(messageErreur({ code: 'P0001', message: 'Temps invalide.' })).toBe('Temps invalide.');
+    expect(messageErreur({ code: 'P0001', message: 'Voiture invalide.' })).toMatch(/pas encore acceptée/);
+    expect(messageErreur({ code: '23514', message: 'new row violates check constraint "scores_voiture_valide"' })).toMatch(/pas encore acceptée/);
   });
   it('niveaux en ligne', () => {
     expect(messageErreur({ code: 'PGRST202', message: 'Could not find the function public.niveaux_en_ligne(p_decalage) in the schema cache' })).toBe('Les niveaux en ligne ne sont pas encore disponibles.');

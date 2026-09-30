@@ -1,6 +1,6 @@
 import type { Ground } from '../track/terrain';
 
-export type CarId = 'equilibree' | 'legere' | 'turbo';
+export type CarId = 'equilibree' | 'legere' | 'turbo' | 'kei' | 'muscle' | 'rotative' | 'break';
 export type ModeId = 'arcade' | 'semi' | 'exigeant';
 
 export interface CarParams {
@@ -32,6 +32,7 @@ export interface CarParams {
   yawDamp: number;       // 1/s, amortissement de lacet en travers (β > 15°)
   throttleRise: number;  // 1/s, montée de l'accélérateur lissé
   throttleFall: number;  // 1/s, descente de l'accélérateur lissé
+  rpmMax: number;        // tr/min, régime au rupteur (son et compte-tours ; sans effet sur la dynamique)
 }
 
 export interface AssistParams {

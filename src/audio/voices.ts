@@ -139,8 +139,8 @@ export class EngineVoice {
     }
     this.gear = gear;
 
-    // limiteur : le son « rebondit » près de 7500 tr/min
-    const a = limiteurQuantite(rpm);
+    // limiteur : le son « rebondit » près du rupteur de la voiture
+    const a = limiteurQuantite(rpm, this.p.rpmMax);
     this.lim.gain.setTargetAtTime(1 - 0.3 * a, t, 0.03);
     this.limDepth.gain.setTargetAtTime(0.3 * a, t, 0.03);
 

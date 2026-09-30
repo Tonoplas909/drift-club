@@ -19,7 +19,7 @@ const carModel = (): CarModel => ({
   paint: new THREE.Color(0xff0000),
 });
 const fakeAssets = (): Assets => ({
-  cars: { equilibree: carModel(), legere: carModel(), turbo: carModel() },
+  cars: { equilibree: carModel(), legere: carModel(), turbo: carModel(), kei: carModel(), muscle: carModel(), rotative: carModel(), break: carModel() },
   decor: { sapin0: box(), sapin1: box(), sapin2: box(), feuillu0: box(), feuillu1: box(), feuillu2: box(), rocher0: box(), rocher1: box(), rocherHaut0: box(), panneau0: box(), pneus0: box(), chevron0: box(), borne0: box(), barriere: box() },
 });
 

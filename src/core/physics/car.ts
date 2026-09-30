@@ -218,6 +218,6 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
   const lo = GEAR_STEPS[gear - 1];
   const hi = gear < GEAR_STEPS.length ? GEAR_STEPS[gear] : 1;
   const inGear = clamp((f - lo) / Math.max(1e-6, hi - lo), 0, 1);
-  const targetRpm = car.speed < 0.5 && throttle <= 0 ? 900 : 1500 + inGear * 5500 + (spin > 0 ? 1200 : 0);
-  car.rpm += (clamp(targetRpm, 900, 7500) - car.rpm) * Math.min(1, 12 * dt);
+  const targetRpm = car.speed < 0.5 && throttle <= 0 ? 900 : 1500 + inGear * (p.rpmMax - 2000) + (spin > 0 ? 1200 : 0);
+  car.rpm += (clamp(targetRpm, 900, p.rpmMax) - car.rpm) * Math.min(1, 12 * dt);
 }

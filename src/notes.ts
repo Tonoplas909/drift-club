@@ -13,6 +13,19 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.3.14',
+    date: '30/09/2026',
+    titre: 'Quatre nouvelles voitures',
+    notes: [
+      'La Kei : minuscule et très légère, elle pivote en un rien de temps mais plafonne vite.',
+      'La Muscle : gros coupé à moteur avant, couple énorme, grosses glisses et direction paresseuse.',
+      'La Rotative : coupé à moteur rotatif et phares escamotables, parfaitement équilibré, qui monte à 9000 tr/min.',
+      'Le Break : le break familial stable et pardonnant… qui glisse très bien.',
+      'Chaque nouvelle voiture a sa voix moteur et 32 livrées, dont 2 exotiques, à gagner dans les caisses.',
+      'Le Garage présente les 7 voitures en grille (en rangée défilante sur téléphone).',
+    ],
+  },
+  {
     version: '0.3.13',
     date: '30/09/2026',
     titre: 'Détail des points en haut de l\'écran',

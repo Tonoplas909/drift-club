@@ -6,6 +6,7 @@ import {
 } from '../../src/audio/params';
 import { fillNoise, saturationCurve, softClipCurve } from '../../src/audio/noise';
 import { CAR_IDS } from '../../src/core/physics/cars';
+import type { CarId } from '../../src/core/physics/types';
 import { RARETES } from '../../src/core/raretes';
 
 const RARETES_ORDRE = Object.keys(RARETES) as (keyof typeof RARETES)[];
@@ -23,11 +24,28 @@ describe('moteur : régime → fréquence', () => {
   });
   it('chaque voiture a un profil, la Légère est plus aiguë et la Turbo plus grave', () => {
     for (const id of CAR_IDS) expect(CAR_SOUND[id]).toBeDefined();
-    const f = (id: 'equilibree' | 'legere' | 'turbo') => engineTargets(CAR_SOUND[id], 4000, 1).freq;
+    const f = (id: CarId) => engineTargets(CAR_SOUND[id], 4000, 1).freq;
     expect(f('legere')).toBeGreaterThan(f('equilibree'));
     expect(f('turbo')).toBeLessThan(f('equilibree'));
     expect(CAR_SOUND.turbo.turbo).toBe(true);
     expect(CAR_SOUND.equilibree.turbo).toBe(false);
+  });
+  it('voix des nouvelles voitures : Kei aiguë, Muscle grave, Rotative très haut perchée ; rupteurs alignés sur la physique', async () => {
+    const { CARS } = await import('../../src/core/physics/cars');
+    const f = (id: CarId, rpm: number) => engineTargets(CAR_SOUND[id], rpm, 1).freq;
+    expect(f('kei', 4000)).toBeGreaterThan(f('equilibree', 4000));
+    expect(f('muscle', 4000)).toBeLessThan(f('equilibree', 4000) * 0.7);
+    const max = (id: CarId) => engineTargets(CAR_SOUND[id], CARS[id].rpmMax, 1).freq;
+    expect(max('rotative')).toBeGreaterThan(max('kei'));
+    expect(max('rotative')).toBeGreaterThan(max('equilibree') * 1.2);
+    for (const id of CAR_IDS) expect(CAR_SOUND[id].rpmMax ?? RPM_MAX).toBe(CARS[id].rpmMax);
+  });
+  it('limiteur et régime normalisé suivent le rupteur de la voiture', () => {
+    expect(rpmNorm(9000, 9000)).toBe(1);
+    expect(rpmNorm(7500, 9000)).toBeLessThan(1);
+    expect(limiteurQuantite(8000, 9000)).toBe(0);
+    expect(limiteurQuantite(9000, 9000)).toBe(1);
+    expect(limiteurQuantite(6200, 6200)).toBe(1);
   });
   it('en charge : plus fort et plus brillant qu\'en décélération ; tout monte avec le régime', () => {
     for (const id of CAR_IDS) {

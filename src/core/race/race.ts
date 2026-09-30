@@ -116,7 +116,7 @@ export class RaceSim {
       const after = Math.max(0, Math.ceil(this.countdown - 1e-9));
       if (after < before) ev.push({ type: 'decompte', n: after });
       if (this.countdown <= 0) this.phase = 'course';
-      this.car.rpm = 900 + clamp(input.gaz, 0, 1) * 5200;
+      this.car.rpm = 900 + clamp(input.gaz, 0, 1) * (this.config.car.rpmMax - 2300);
       return ev;
     }
 

@@ -11,6 +11,7 @@ const TRIM = 0x1d1d24;
 const LIGHT_FRONT = 0xfff4c2;
 const LIGHT_REAR = 0xd9302a;
 const POPUP = 0xdfe3ea;
+const CHROME = 0xc9ced8;
 
 /** Silhouette d'une voiture (m). z = 0 au centre de gravité, avant vers +z. */
 export interface CarShape {
@@ -31,7 +32,12 @@ export interface CarShape {
   roofRearZ: number;
   roofY: number;
   aileron: 'aucun' | 'petit' | 'grand';
-  phares: 'escamotables' | 'fixes';
+  /** escamotables : capots de phares fermés ; relevees : phares escamotables sortis ; fixes : feux dans le nez */
+  phares: 'escamotables' | 'relevees' | 'fixes';
+  /** largeur des roues (m), 0,24 par défaut */
+  wheelW?: number;
+  /** bosse : prise d'air de capot ; chromes : pare-chocs chromés ; galerie : barres de toit ; echappements : deux sorties d'échappement */
+  extras?: ('bosse' | 'chromes' | 'galerie' | 'echappements')[];
 }
 
 /** Longueurs et essieux alignés sur la physique (CARS : length, cgToFront, cgToFront − wheelbase). */
@@ -50,6 +56,32 @@ export const CAR_SHAPES: Record<CarId, CarShape> = {
     length: 4.6, width: 1.82, groundClear: 0.24, wheelR: 0.34, frontAxle: 1.45, rearAxle: -1.35,
     noseY: 0.42, hoodFrontY: 0.64, cowlZ: 0.55, cowlY: 0.84, deckZ: -1.55, deckY: 0.88, tailY: 0.86,
     roofFrontZ: -0.12, roofRearZ: -0.75, roofY: 1.24, aileron: 'grand', phares: 'fixes',
+  },
+  // kei : minuscule, haute et carrée, pare-brise droit et hayon presque vertical
+  kei: {
+    length: 3.5, width: 1.6, groundClear: 0.2, wheelR: 0.26, frontAxle: 1.02, rearAxle: -1.18,
+    noseY: 0.5, hoodFrontY: 0.72, cowlZ: 0.78, cowlY: 0.9, deckZ: -1.4, deckY: 0.95, tailY: 0.92,
+    roofFrontZ: 0.52, roofRearZ: -1.3, roofY: 1.46, aileron: 'aucun', phares: 'fixes', wheelW: 0.2,
+  },
+  // muscle : capot interminable, coupé fastback large, pare-chocs chromés
+  muscle: {
+    length: 4.9, width: 1.95, groundClear: 0.24, wheelR: 0.36, frontAxle: 1.3, rearAxle: -1.6,
+    noseY: 0.5, hoodFrontY: 0.74, cowlZ: 0.3, cowlY: 1.0, deckZ: -1.85, deckY: 1.0, tailY: 0.94,
+    roofFrontZ: -0.2, roofRearZ: -0.85, roofY: 1.38, aileron: 'aucun', phares: 'fixes', wheelW: 0.3,
+    extras: ['bosse', 'chromes', 'echappements'],
+  },
+  // rotative : coupé bas en coin, phares escamotables sortis
+  rotative: {
+    length: 4.25, width: 1.72, groundClear: 0.22, wheelR: 0.31, frontAxle: 1.25, rearAxle: -1.25,
+    noseY: 0.34, hoodFrontY: 0.5, cowlZ: 0.7, cowlY: 0.74, deckZ: -1.5, deckY: 0.82, tailY: 0.8,
+    roofFrontZ: 0.1, roofRearZ: -0.75, roofY: 1.15, aileron: 'petit', phares: 'relevees', wheelW: 0.25,
+    extras: ['echappements'],
+  },
+  // break : toit long jusqu'à l'arrière, hayon presque vertical, barres de toit
+  break: {
+    length: 4.7, width: 1.78, groundClear: 0.25, wheelR: 0.32, frontAxle: 1.3, rearAxle: -1.4,
+    noseY: 0.44, hoodFrontY: 0.64, cowlZ: 0.85, cowlY: 0.86, deckZ: -2.15, deckY: 0.95, tailY: 0.93,
+    roofFrontZ: 0.15, roofRearZ: -2.0, roofY: 1.34, aileron: 'aucun', phares: 'fixes', extras: ['galerie'],
   },
 };
 
@@ -109,11 +141,24 @@ export function buildJdmCar(s: CarShape): CarModel {
     ...both((side) => coloredBox(0.4, 0.1, 0.04, side * (w / 2 - 0.3), s.tailY - 0.14, -h - 0.02, LIGHT_REAR)),
     ...both((side) => coloredBox(0.12, 0.08, 0.14, side * (cw / 2 + 0.06), s.cowlY + 0.1, s.cowlZ - 0.2, PAINT)),
   ];
-  if (s.phares === 'escamotables') {
+  if (s.phares === 'relevees') {
+    // phares sortis : deux blocs dressés sur le capot, feu clair sur la face avant
+    parts.push(...both((side) => coloredBox(0.34, 0.16, 0.12, side * (w / 2 - 0.32), s.hoodFrontY + 0.1, h - 0.42, POPUP)));
+    parts.push(...both((side) => coloredBox(0.26, 0.11, 0.03, side * (w / 2 - 0.32), s.hoodFrontY + 0.1, h - 0.35, LIGHT_FRONT)));
+  } else if (s.phares === 'escamotables') {
     parts.push(...both((side) => coloredBox(0.36, 0.04, 0.22, side * (w / 2 - 0.32), s.hoodFrontY + 0.03, h - 0.3, POPUP)));
   } else {
     parts.push(...both((side) => coloredBox(0.34, 0.1, 0.04, side * (w / 2 - 0.3), s.noseY + 0.12, h + 0.02, LIGHT_FRONT)));
   }
+  const ex = s.extras ?? [];
+  if (ex.includes('bosse')) parts.push(coloredBox(0.6, 0.1, 0.7, 0, s.hoodFrontY + 0.16, h - 1.05, PAINT), coloredBox(0.5, 0.03, 0.14, 0, s.hoodFrontY + 0.2, h - 0.76, TRIM));
+  if (ex.includes('chromes')) parts.push(
+    coloredBox(w - 0.02, 0.1, 0.1, 0, s.groundClear + 0.16, h + 0.02, CHROME),
+    coloredBox(w - 0.02, 0.1, 0.1, 0, s.groundClear + 0.16, -h - 0.02, CHROME),
+    coloredBox(0.9, 0.08, 0.05, 0, s.noseY + 0.02, h + 0.04, CHROME),
+  );
+  if (ex.includes('echappements')) parts.push(...both((side) => coloredBox(0.11, 0.09, 0.1, side * 0.42, s.groundClear + 0.02, -h - 0.04, CHROME)));
+  if (ex.includes('galerie')) parts.push(...both((side) => coloredBox(0.04, 0.05, s.roofFrontZ - s.roofRearZ - 0.1, side * (cw / 2 - 0.16), s.roofY + 0.09, (s.roofFrontZ + s.roofRearZ) / 2, TRIM)), coloredBox(cw - 0.32, 0.04, 0.04, 0, s.roofY + 0.09, s.roofFrontZ - 0.15, TRIM), coloredBox(cw - 0.32, 0.04, 0.04, 0, s.roofY + 0.09, s.roofRearZ + 0.15, TRIM));
   if (s.aileron === 'petit') parts.push(coloredBox(w - 0.3, 0.05, 0.2, 0, s.deckY + 0.04, -h + 0.22, PAINT));
   if (s.aileron === 'grand') {
     parts.push(
@@ -126,7 +171,7 @@ export function buildJdmCar(s: CarShape): CarModel {
   if (!body) throw new Error('carrosserie impossible à assembler');
   body.computeBoundingSphere();
 
-  const wheel = wheelGeometry(s.wheelR, 0.24);
+  const wheel = wheelGeometry(s.wheelR, s.wheelW ?? 0.24);
   const wx = w / 2 - 0.12;
   const wheels: WheelModel[] = [];
   for (const [z, front] of [[s.frontAxle, true], [s.rearAxle, false]] as const) {

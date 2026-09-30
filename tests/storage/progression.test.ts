@@ -21,14 +21,14 @@ describe('progression (clés et livrées gagnées)', () => {
   });
   it('aller-retour de la progression', () => {
     const st = new Store(memoryKV());
-    const p = { cles: 9, debloques: { equilibree: ['touge'], legere: [], turbo: ['carbone', 'or'] }, caisseOfferte: true, ouvertes: 4 };
+    const p = { cles: 9, debloques: { equilibree: ['touge'], legere: [], turbo: ['carbone', 'or'], kei: [], muscle: [], rotative: [], break: [] }, caisseOfferte: true, ouvertes: 4 };
     st.saveProgression(p);
     expect(st.loadProgression({})).toEqual(p);
   });
   it('migration : les livrées déjà choisies restent débloquées (uniquement à la création)', () => {
     const kv = memoryKV();
     const p = new Store(kv).loadProgression({ turbo: 'carbone', legere: 'bande', equilibree: 'unie' });
-    expect(p.debloques).toEqual({ equilibree: [], legere: ['bande'], turbo: ['carbone'] });
+    expect(p.debloques).toEqual({ equilibree: [], legere: ['bande'], turbo: ['carbone'], kei: [], muscle: [], rotative: [], break: [] });
     // une progression existante n'est plus complétée par les réglages
     expect(new Store(kv).loadProgression({ turbo: 'or' }).debloques.turbo).toEqual(['carbone']);
   });
@@ -36,7 +36,7 @@ describe('progression (clés et livrées gagnées)', () => {
     const kv = memoryKV();
     kv.setItem(CLE, JSON.stringify({ cles: 2, caisseOfferte: true, ouvertes: 1, debloques: { turbo: ['fantome', 'carbone'], velo: ['x'] } }));
     const p = new Store(kv).loadProgression({});
-    expect(p.debloques).toEqual({ equilibree: [], legere: [], turbo: ['carbone'] });
+    expect(p.debloques).toEqual({ equilibree: [], legere: [], turbo: ['carbone'], kei: [], muscle: [], rotative: [], break: [] });
     expect(p.cles).toBe(2);
     const kv2 = memoryKV();
     kv2.setItem(CLE, '{pas du json');
@@ -50,7 +50,7 @@ describe('progression (clés et livrées gagnées)', () => {
 });
 
 describe('progression du compte (copie gardée sur l\'appareil)', () => {
-  const compte = { cles: 6, debloques: { equilibree: [], legere: ['bande'], turbo: [] }, caisseOfferte: true, ouvertes: 2 };
+  const compte = { cles: 6, debloques: { equilibree: [], legere: ['bande'], turbo: [], kei: [], muscle: [], rotative: [], break: [] }, caisseOfferte: true, ouvertes: 2 };
   it('aller-retour par compte, sans toucher à la progression locale', () => {
     const kv = memoryKV();
     const st = new Store(kv);
