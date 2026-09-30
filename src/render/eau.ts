@@ -21,7 +21,7 @@ export class Eau {
 
   constructor(plans: readonly PlanEau[], p: Palette, quality: QualityLevel) {
     this.group.name = 'eau';
-    const bleu = new THREE.Color(0x4fa9e0).lerp(new THREE.Color(p.hemiSky), 0.22).lerp(new THREE.Color(p.fog), 0.1);
+    const bleu = new THREE.Color(p.eau ?? 0x4fa9e0).lerp(new THREE.Color(p.hemiSky), 0.22).lerp(new THREE.Color(p.fog), 0.1);
     const mat = toonMaterial({ color: bleu });
     mat.transparent = true;
     mat.opacity = 0.76;

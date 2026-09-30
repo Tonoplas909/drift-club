@@ -49,6 +49,7 @@ export function buildDecor(env: Environment, assets: Assets, q: QualityLevel, sh
       if (list.length === 0) return;
       const far = li === 1;
       const mesh = new THREE.InstancedMesh(geo, mat, list.length);
+      mesh.name = far ? `${key}:loin` : key;
       list.forEach((it, i) => {
         qt.setFromAxisAngle(up, it.rot);
         s.setScalar(it.scale);

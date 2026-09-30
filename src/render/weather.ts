@@ -23,6 +23,9 @@ export function positionFlocon(
   out.y = cy + modulo(by - vitesse * t, H) - H * 0.35;
 }
 
+/** Réglages d'une chute de particules : neige (défaut) ou pétales de cerisier (plus gros, plus lents, portés par le vent). */
+export interface OptionsChute { couleur?: number; taille?: number; vitesse?: [number, number]; derive?: number; petale?: boolean; nom?: string }
+
 /** Chute de neige : un seul `Points` (une draw call), quelques centaines de flocons. */
 export class Snowfall {
   readonly points: THREE.Points;
@@ -32,9 +35,12 @@ export class Snowfall {
   private readonly pos: Float32Array;
   private readonly tex: THREE.CanvasTexture;
   private t = 0;
+  private readonly derive: number;
   private readonly tmp = { x: 0, y: 0, z: 0 };
 
-  constructor(readonly count: number, seed = 5) {
+  constructor(readonly count: number, seed = 5, opts: OptionsChute = {}) {
+    this.derive = opts.derive ?? 0;
+    const [vMin, vMax] = opts.vitesse ?? [1.6, 3.2];
     const rng = mulberry32(seed);
     this.base = new Float32Array(count * 3);
     this.vitesse = new Float32Array(count);
@@ -44,7 +50,7 @@ export class Snowfall {
       this.base[i * 3] = rng() * NEIGE_LARGEUR;
       this.base[i * 3 + 1] = rng() * NEIGE_HAUTEUR;
       this.base[i * 3 + 2] = rng() * NEIGE_LARGEUR;
-      this.vitesse[i] = 1.6 + rng() * 1.6;
+      this.vitesse[i] = vMin + rng() * (vMax - vMin);
       this.phase[i] = rng() * Math.PI * 2;
     }
     const canvas = document.createElement('canvas');
@@ -52,22 +58,25 @@ export class Snowfall {
     const ctx = canvas.getContext('2d');
     if (ctx) {
       ctx.fillStyle = '#fff';
-      ctx.beginPath(); ctx.arc(16, 16, 14, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath();
+      if (opts.petale) ctx.ellipse(16, 16, 14, 8, 0.6, 0, Math.PI * 2);
+      else ctx.arc(16, 16, 14, 0, Math.PI * 2);
+      ctx.fill();
     }
     this.tex = new THREE.CanvasTexture(canvas);
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(this.pos, 3));
-    const mat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.09, map: this.tex, alphaTest: 0.5, sizeAttenuation: true, depthWrite: false });
+    const mat = new THREE.PointsMaterial({ color: opts.couleur ?? 0xffffff, size: opts.taille ?? 0.09, map: this.tex, alphaTest: 0.5, sizeAttenuation: true, depthWrite: false });
     this.points = new THREE.Points(geo, mat);
     this.points.frustumCulled = false;
-    this.points.name = 'neige';
+    this.points.name = opts.nom ?? 'neige';
   }
 
   update(dt: number, camera: THREE.Vector3): void {
     this.t += dt;
     const o = this.tmp;
     for (let i = 0; i < this.count; i++) {
-      positionFlocon(this.base[i * 3], this.base[i * 3 + 1], this.base[i * 3 + 2], this.vitesse[i], this.phase[i], this.t, camera.x, camera.y, camera.z, o);
+      positionFlocon(this.base[i * 3] + this.derive * this.t, this.base[i * 3 + 1], this.base[i * 3 + 2], this.vitesse[i], this.phase[i], this.t, camera.x, camera.y, camera.z, o);
       this.pos[i * 3] = o.x; this.pos[i * 3 + 1] = o.y; this.pos[i * 3 + 2] = o.z;
     }
     (this.points.geometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
