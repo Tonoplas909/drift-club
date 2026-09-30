@@ -5,7 +5,8 @@ import { nearestSampleWithin } from '../track/projection';
 import { mulberry32 } from '../math/rng';
 import { fbm } from '../math/noise';
 import { smoothstep, DEG } from '../math/vec';
-import { COLLIDER_RADIUS, SOLID_DISTANCE, type DecorKind, type EnvItem, type Environment } from './types';
+import { COLLIDER_RADIUS, SOLID_DISTANCE, VARIANTS, type DecorKind, type EnvItem, type Environment } from './types';
+import { THEMES, type Essence } from './themes';
 
 /** Au-dessus de ce seuil, le masque de forêt vaut « forêt ». */
 export function forestThreshold(densite: number): number {
@@ -23,14 +24,24 @@ export function coteExterieur(k: number, precedent: number): number {
   return precedent;
 }
 
-const MANUAL_KIND: Record<string, DecorKind> = {
-  arbre: 'feuillu', sapin: 'sapin', rocher: 'rocher', pneus: 'pneus', panneau: 'panneau',
-};
+/** Essence tirée selon les poids du thème à l'altitude relative `t` (0 = bas de la route, 1 = 60 m plus haut). */
+function pickEssence(essences: readonly Essence[], r: number, t: number): Essence {
+  let total = 0;
+  for (const e of essences) total += e.bas + (e.haut - e.bas) * t;
+  const target = r * total;
+  let acc = 0;
+  for (const e of essences) {
+    acc += e.bas + (e.haut - e.bas) * t;
+    if (target < acc) return e;
+  }
+  return essences[essences.length - 1];
+}
 
 export function generateEnvironment(level: Level, track: TrackData, terrain: Terrain): Environment {
   const env: Environment = { items: [], circles: [], segments: [], barriers: [] };
   const { graine, densite } = level.decor;
   const rng = mulberry32(graine);
+  const theme = THEMES[level.environnement];
   const S = track.samples;
   const lowest = S.reduce((m, s) => Math.min(m, s.y), Infinity);
   const manual = level.objets;
@@ -86,10 +97,11 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Ter
       env.barriers.push({ x: o.x, y: terrain.heightAt(o.x, o.z), z: o.z, rot, len: 4 });
       continue;
     }
-    add({ kind: MANUAL_KIND[o.type], variant: 0, x: o.x, y: terrain.heightAt(o.x, o.z), z: o.z, rot, scale: 1, solid: true, manual: true });
+    add({ kind: theme.objets[o.type], variant: 0, x: o.x, y: terrain.heightAt(o.x, o.z), z: o.z, rot, scale: 1, solid: true, manual: true });
   }
 
   // 3. Chevrons à l'extérieur des virages de rayon < 30 m (tous les 8 m, à w + 2,2 m)
+  const chevron = theme.bord.chevron, borne = theme.bord.borne;
   const tightZone = new Uint8Array(S.length);
   let runStart = -1;
   for (let i = 0; i <= S.length; i++) {
@@ -102,8 +114,8 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Ter
           const side = sp.k > 0 ? -1 : 1;
           const off = sp.w + 2.2;
           const x = sp.x + sp.nx * side * off, z = sp.z + sp.nz * side * off;
-          if (nearManual(x, z, 2)) continue;
-          add({ kind: 'chevron', variant: 0, x, y: terrain.heightAt(x, z), z, rot: Math.atan2(-side * sp.nx, -side * sp.nz), scale: 1, solid: true, manual: false });
+          if (!chevron || nearManual(x, z, 2)) continue;
+          add({ kind: chevron, variant: 0, x, y: terrain.heightAt(x, z), z, rot: Math.atan2(-side * sp.nx, -side * sp.nz), scale: 1, solid: true, manual: false });
         }
         for (let k = Math.max(0, runStart - 10); k < Math.min(S.length, i + 10); k++) tightZone[k] = 1;
       }
@@ -114,19 +126,40 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Ter
   // 4. Bornes tous les 25 m, des deux côtés, à w + 1,6 m
   for (let s = 10; s < track.length - 10; s += 25) {
     const i = Math.min(S.length - 1, Math.round(s));
-    if (tightZone[i]) continue;
+    if (!borne || tightZone[i]) continue;
     const sp = S[i];
     for (const side of [1, -1]) {
       if ((side > 0 ? leftCovered : rightCovered)[i]) continue;
       const off = sp.w + 1.6;
       const x = sp.x + sp.nx * side * off, z = sp.z + sp.nz * side * off;
       if (nearManual(x, z, 2)) continue;
-      add({ kind: 'borne', variant: 0, x, y: terrain.heightAt(x, z), z, rot: Math.atan2(sp.tx, sp.tz), scale: 1, solid: true, manual: false });
+      add({ kind: borne, variant: 0, x, y: terrain.heightAt(x, z), z, rot: Math.atan2(sp.tx, sp.tz), scale: 1, solid: true, manual: false });
+    }
+  }
+
+  // 4b. Petits objets de bord de route propres au thème (tirages toujours consommés → déterminisme)
+  for (const ex of theme.bord.extras) {
+    for (let s = 6; s < track.length - 6; s += ex.tousLes) {
+      for (const side of [1, -1]) {
+        const pick = rng(), jitter = rng(), rotR = rng(), scaleR = rng(), variantR = rng();
+        if (pick >= ex.probabilite) continue;
+        const i = Math.min(S.length - 1, Math.max(0, Math.round(s + (jitter - 0.5) * ex.tousLes * 0.8)));
+        if (tightZone[i] || (side > 0 ? leftCovered : rightCovered)[i]) continue;
+        const sp = S[i];
+        const off = sp.w + ex.decalage;
+        const x = sp.x + sp.nx * side * off, z = sp.z + sp.nz * side * off;
+        if (nearManual(x, z, 3) || inCorridor(x, z, 3, terrain.distanceToRoad(x, z))) continue;
+        add({
+          kind: ex.kind, variant: Math.min(VARIANTS[ex.kind] - 1, Math.floor(variantR * VARIANTS[ex.kind])),
+          x, y: terrain.heightAt(x, z), z, rot: rotR * Math.PI * 2, scale: 0.8 + 0.5 * scaleR, solid: true, manual: false,
+        });
+      }
     }
   }
 
   // 5. Arbres en bosquets (6 tirages par case, toujours consommés → déterminisme)
   const thr = forestThreshold(densite);
+  const arbres = theme.arbres;
   const b = track.bounds;
   const trees = (cell: number, dMin: number, dMax: number): void => {
     for (let gz = b.minZ - dMax; gz < b.maxZ + dMax; gz += cell) {
@@ -136,12 +169,14 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Ter
         const d = terrain.distanceToRoad(x, z);
         if (d < dMin || d >= dMax) continue;
         if (inCorridor(x, z, 3, d) || nearManual(x, z, 4)) continue;
-        let p = forestMask(x, z, graine) > thr ? 0.85 : 0.08 * (0.5 + densite);
+        let p = forestMask(x, z, graine) > thr ? arbres.pForet : arbres.pHors * (0.5 + densite);
         if (d < 12) p *= 0.5;
         if (pick >= p) continue;
         const y = terrain.heightAt(x, z);
-        const kind: DecorKind = kindR < 0.4 + 0.6 * smoothstep(0, 60, y - lowest) ? 'sapin' : 'feuillu';
-        add({ kind, variant: Math.min(2, Math.floor(variantR * 3)), x, y, z, rot: rotR * Math.PI * 2, scale: 0.8 + 0.5 * scaleR, solid: d < SOLID_DISTANCE, manual: false });
+        const ess = pickEssence(arbres.essences, kindR, smoothstep(0, 60, y - lowest));
+        const [sMin, sAmp] = ess.echelle ?? [0.8, 0.5];
+        const nv = VARIANTS[ess.kind];
+        add({ kind: ess.kind, variant: Math.min(nv - 1, Math.floor(variantR * nv)), x, y, z, rot: rotR * Math.PI * 2, scale: sMin + sAmp * scaleR, solid: d < SOLID_DISTANCE, manual: false });
       }
     }
   };
@@ -149,6 +184,7 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Ter
   trees(14, 60, 320);
 
   // 6. Rochers, plus fréquents sur les pentes
+  const roc = theme.rochers;
   for (let gz = b.minZ - 200; gz < b.maxZ + 200; gz += 11) {
     for (let gx = b.minX - 200; gx < b.maxX + 200; gx += 11) {
       const x = gx + rng() * 11, z = gz + rng() * 11;
@@ -158,12 +194,13 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Ter
       if (inCorridor(x, z, 4, d) || nearManual(x, z, 4)) continue;
       const g = terrain.gradientAt(x, z);
       const slope = Math.hypot(g.gx, g.gz);
-      const p = (0.03 + 0.25 * smoothstep(0.25, 0.8, slope)) * (0.5 + densite / 2);
+      const p = (roc.base + roc.pente * smoothstep(0.25, 0.8, slope)) * (0.5 + densite / 2);
       if (pick >= p) continue;
-      const kind: DecorKind = kindR < 0.2 ? 'rocherHaut' : 'rocher';
+      const kind: DecorKind = kindR < roc.partHauts ? roc.haut : roc.normal;
+      const nv = VARIANTS[kind];
       add({
-        kind, variant: kind === 'rocher' ? Math.min(1, Math.floor(variantR * 2)) : 0,
-        x, y: terrain.heightAt(x, z) - 0.3, z, rot: rotR * Math.PI * 2, scale: 0.8 + 0.5 * scaleR,
+        kind, variant: Math.min(nv - 1, Math.floor(variantR * nv)),
+        x, y: terrain.heightAt(x, z) - 0.3, z, rot: rotR * Math.PI * 2, scale: roc.echelle[0] + roc.echelle[1] * scaleR,
         solid: d < SOLID_DISTANCE, manual: false,
       });
     }

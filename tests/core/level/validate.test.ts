@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { validateLevel } from '../../../src/core/level/validate';
+import { ENVIRONNEMENTS } from '../../../src/core/level/types';
 import { makeLevel, straightLevel } from '../../fixtures/levels';
 
 const errs = (raw: unknown): string[] => {
@@ -28,6 +29,16 @@ describe('validateLevel', () => {
     expect(errs({ ...straightLevel(), nom: '' }).join()).toMatch(/nom/);
     expect(errs({ ...straightLevel(), ambiance: 'nuit' }).join()).toMatch(/ambiance/);
     expect(errs({ ...straightLevel(), environnement: 'lune' }).join()).toMatch(/environnement/);
+  });
+  it('accepte chaque environnement et le conserve, refuse les valeurs inconnues avec la liste attendue', () => {
+    for (const environnement of ENVIRONNEMENTS) {
+      const r = validateLevel({ ...straightLevel(), environnement });
+      expect(r.ok && r.level.environnement).toBe(environnement);
+    }
+    expect(errs({ ...straightLevel(), environnement: 'Montagne' }).join()).toMatch(/montagne, neige, desert, automne/);
+    expect(errs({ ...straightLevel(), environnement: 3 }).join()).toMatch(/environnement/);
+    const { environnement: _e, ...sans } = straightLevel();
+    expect(errs(sans).join()).toMatch(/environnement/);
   });
   it('vérifie le nombre de points', () => {
     expect(errs(makeLevel([[0, 0, 0, 10]])).join()).toMatch(/2 à 150 points/);

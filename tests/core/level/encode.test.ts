@@ -3,7 +3,7 @@ import { encoderNiveau, decoderNiveau, normaliserNiveau, versBase64url, depuisBa
 import { loadLevel } from '../../../src/core/loadLevel';
 import { empreinteNiveau } from '../../../src/core/level/fingerprint';
 import { NIVEAUX_OFFICIELS } from '../../../src/levels';
-import type { Level, TypeObjet } from '../../../src/core/level/types';
+import { ENVIRONNEMENTS, type Level, type TypeObjet } from '../../../src/core/level/types';
 import { curveLevel, straightLevel } from '../../fixtures/levels';
 
 const officiel = (i: number): Level => {
@@ -104,6 +104,31 @@ describe('encoderNiveau / decoderNiveau', () => {
     expect((await decoderNiveau(`  ${code}\n`)).ok).toBe(true);
   });
 
+  it('chaque environnement fait l’aller-retour', async () => {
+    for (const environnement of ENVIRONNEMENTS) {
+      const lv = { ...niveauTypique(), environnement };
+      const r = await decoderNiveau(await encoderNiveau(lv));
+      if (!r.ok) throw new Error(r.erreurs.join());
+      expect(r.level.environnement).toBe(environnement);
+      expect(r.level).toEqual(normaliserNiveau(lv));
+    }
+  });
+  it('les codes diffèrent d’un environnement à l’autre', async () => {
+    const codes = await Promise.all(ENVIRONNEMENTS.map((environnement) => encoderNiveau({ ...niveauTypique(), environnement })));
+    expect(new Set(codes).size).toBe(ENVIRONNEMENTS.length);
+  });
+  it('un lien « montagne » créé avant les thèmes se décode toujours pareil', async () => {
+    // code produit par la version 0.2.x (environnement = indice 0)
+    const ancien = '1.NcwxCsJQEIThq8jUU-xmTcjbc4jNsoXBVwQ0glEQJHeXh8pU31_MGwscx7k-X7vLXBcQJzgOdX2sICpciCtciTs8QtimIsmwkVq0hWSojNTB_hqMrfxUlPZFEhM8kjjDQzvbs5ckbu1caSLsRFgkc_sA';
+    const attendu = {
+      format: 1, nom: 'Vieux lien', auteur: 'Tests', environnement: 'montagne', ambiance: 'coucher',
+      route: [{ x: 0, z: 0, y: 0, l: 10 }, { x: 3.8, z: 19.1, y: 0, l: 10 }, { x: 14.6, z: 35.4, y: 0, l: 10 }, { x: 30.9, z: 46.2, y: 0, l: 10 }, { x: 50, z: 50, y: 0, l: 10 }],
+      barrieres: [], decor: { graine: 1234, densite: 0.5 }, objets: [{ type: 'sapin', x: 30, z: 20, rot: 90 }],
+    };
+    const r = await decoderNiveau(ancien);
+    if (!r.ok) throw new Error(r.erreurs.join());
+    expect(r.level).toEqual(attendu);
+  });
   it('les niveaux officiels font l\'aller-retour et donnent des liens courts', async () => {
     const lignes: string[] = [];
     for (let i = 0; i < NIVEAUX_OFFICIELS.length; i++) {
