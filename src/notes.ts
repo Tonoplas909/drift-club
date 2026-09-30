@@ -13,6 +13,17 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.3.11',
+    date: '30/09/2026',
+    titre: 'Décors corrigés et un vrai lac',
+    notes: [
+      'Relief entièrement revu : fini les falaises verticales et les routes en crête entre les épingles (Col du Loup, Épingles du Diable…). Les talus sont réguliers et la route n\'est plus jamais enterrée.',
+      'Arbres, rochers et bâtiments ne se retrouvent plus sur la route ni perchés dans les pentes.',
+      'Le Circuit du Lac a enfin son lac ! Si tu tombes à l\'eau, la voiture est replacée sur la route.',
+      'Éditeur : nouvel outil « Lac » pour dessiner des plans d\'eau dans tes niveaux ; ils sont conservés dans les liens, les .json et les niveaux publiés.',
+    ],
+  },
+  {
     version: '0.3.10',
     date: '30/09/2026',
     titre: 'Affichage à la carte',
