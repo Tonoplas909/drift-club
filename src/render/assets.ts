@@ -5,10 +5,10 @@ import type { CarId } from '../core/physics/types';
 import type { DecorKind } from '../core/env/types';
 import { CAR_IDS } from '../core/physics/cars';
 import { borneGeometry, chevronGeometry, barrierGeometry, tireStack, wheelGeometry } from './procedural';
-import { buildJdmCar, CAR_SHAPES } from './jdmCars';
+import { buildJdmCar, CAR_SHAPES, type CarShape } from './jdmCars';
 
 export interface WheelModel { geometry: THREE.BufferGeometry; position: THREE.Vector3; front: boolean; left: boolean }
-export interface CarModel { body: THREE.BufferGeometry; wheels: WheelModel[]; paint: THREE.Color }
+export interface CarModel { body: THREE.BufferGeometry; wheels: WheelModel[]; paint: THREE.Color; /** silhouette, pour poser les livrées (absente : pas de livrée) */ shape?: CarShape }
 export interface Assets { cars: Record<CarId, CarModel>; decor: Record<string, THREE.BufferGeometry> }
 
 export const decorKey = (kind: DecorKind, variant: number): string => `${kind}${variant}`;
