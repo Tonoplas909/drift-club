@@ -11,6 +11,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { toonMaterial } from './materials';
 import { epauleDe, type Palette } from './palettes';
 import { THEMES } from '../core/env/themes';
+import { RIVE } from '../core/env/eau';
 import type { QualityLevel } from './quality';
 
 const CHUNK = 128;
@@ -33,10 +34,15 @@ export function buildTerrain(level: Level, track: TrackData, terrain: Terrain, p
   const cR = new THREE.Color(p.rock), cS = epauleDe(p);
   const cT = p.trottoir !== undefined ? new THREE.Color(p.trottoir) : null;
   const c = new THREE.Color();
+  const lacs = terrain.plans.length > 0;
+  const cSable = new THREE.Color(0xd9c894), cFond = new THREE.Color(0x2d6a8f);
 
   for (let z0 = terrain.minZ; z0 < terrain.maxZ; z0 += CHUNK) {
     for (let x0 = terrain.minX; x0 < terrain.maxX; x0 += CHUNK) {
-      const dmin = Math.max(0, terrain.distanceToRoad(x0 + CHUNK / 2, z0 + CHUNK / 2) - CHUNK * 0.71);
+      const cx = x0 + CHUNK / 2, cz = z0 + CHUNK / 2;
+      let dmin = Math.max(0, terrain.distanceToRoad(cx, cz) - CHUNK * 0.71);
+      // les rives ont besoin d'une maille fine, comme les abords de la route
+      if (Math.abs(terrain.distanceEau(cx, cz)) < CHUNK * 0.71 + RIVE) dmin = 0;
       const step = chunkStep(dmin, q);
       const n = Math.round(CHUNK / step);
       const N = n + 1;
@@ -47,15 +53,12 @@ export function buildTerrain(level: Level, track: TrackData, terrain: Terrain, p
         for (let i = 0; i < N; i++) {
           const x = x0 + i * step, z = z0 + j * step;
           const k = j * N + i;
-          let h = terrain.heightAt(x, z);
           const near = nearestSampleWithin(track, x, z, 14);
           if (near) {
-            const w = track.samples[near.index].w;
             roadDist[k] = near.dist;
-            roadW[k] = w;
-            h -= 0.15 * (1 - smoothstep(w + 0.5, w + 2, near.dist));
+            roadW[k] = track.samples[near.index].w;
           }
-          heights[k] = h;
+          heights[k] = terrain.hauteurRendue(x, z);
         }
       }
       const vCount = N * N + 4 * N * 2;
@@ -71,10 +74,18 @@ export function buildTerrain(level: Level, track: TrackData, terrain: Terrain, p
           const slope = Math.max(Math.abs(hx), Math.abs(hz)) / (2 * step);
           c.copy(cA).lerp(cB, fbm(x / 30, z / 30, seed + 5));
           c.lerp(cF, smoothstep(thr, thr + 0.08, forestMask(x, z, seed)) * 0.85);
-          c.lerp(cR, smoothstep(0.6, 1.0, slope));
+          c.lerp(cR, smoothstep(0.7, 1.15, slope));
           // trottoir (ville) : bande claire le long de la route, là où se posent lampadaires et mobilier
           if (cT && roadDist[k] < 1e8) c.lerp(cT, 1 - smoothstep(roadW[k] + 3.6, roadW[k] + 4.8, roadDist[k]));
           if (roadDist[k] < 1e8) c.lerp(cS, 1 - smoothstep(roadW[k] + 0.5, roadW[k] + 1.5, roadDist[k]));
+          // lac : plage claire sur la rive, fond de plus en plus sombre sous l'eau (vu à travers la surface translucide)
+          if (lacs) {
+            const sd = terrain.distanceEau(x, z);
+            if (sd > -4) {
+              c.lerp(cSable, smoothstep(-4, -0.5, sd));
+              if (sd > 0.5) c.lerp(cFond, smoothstep(0.5, 9, sd));
+            }
+          }
           col[k * 3] = c.r; col[k * 3 + 1] = c.g; col[k * 3 + 2] = c.b;
         }
       }

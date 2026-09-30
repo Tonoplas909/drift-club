@@ -15,6 +15,7 @@ import { FixedStepLoop } from './loop';
 import { interpolatePose } from './pose';
 import type { Hud } from './hud';
 import type { PreparedLevel } from './prepare';
+import { camDepuisUrl, type CamLibre } from '../debug/camLibre';
 
 export interface DebugHook {
   attach(car: CarParams, assists: AssistParams, cam: ChaseConfig): void;
@@ -63,8 +64,27 @@ export class GameSession {
     this.loop = new FixedStepLoop(() => this.simStep());
     this.camCfg = deps.reglages.cameraLoin ? CAMERA_LOIN : CAMERA_PROCHE;
     deps.debug?.attach(CARS[deps.reglages.voiture], MODES[deps.reglages.mode], this.camCfg);
+    if (deps.debug) this.exposerDebug();
     window.addEventListener('resize', this.onResize);
     this.onResize();
+  }
+
+  /** `window.__dc` (sous `?debug` seulement) : inspection et caméra libre pour vérifier le décor à l'œil. */
+  private exposerDebug(): void {
+    const cam = camDepuisUrl(location.search);
+    if (cam) this.world.camLibre = cam;
+    const tp = (s: number): void => {
+      const { track, terrain } = this.level;
+      const sp = track.samples[Math.max(0, Math.min(track.samples.length - 1, Math.round(s)))];
+      for (const c of [this.race.car, this.race.prevCar]) {
+        c.x = sp.x; c.z = sp.z; c.y = terrain.heightAt(sp.x, sp.z); c.heading = Math.atan2(sp.tx, sp.tz);
+        c.vx = c.vz = c.speed = 0;
+      }
+    };
+    (window as unknown as { __dc: unknown }).__dc = {
+      world: this.world, level: this.level, teleporter: tp,
+      camera: (c: CamLibre | null) => { this.world.camLibre = c; },
+    };
   }
 
   private newRace(): RaceSim {
