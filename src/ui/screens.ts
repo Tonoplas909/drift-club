@@ -5,7 +5,10 @@ import type { RaceResult } from '../core/race/race';
 import { validateLevel } from '../core/level/validate';
 import type { Reglages, Qualite } from '../storage/store';
 import { COULEURS } from './couleurs';
-import { accentSkin, choisirSkin, skinChoisie, skinsDe, type SkinsChoisies } from '../core/skins';
+import { accentSkin, choisirSkin, couleurEffective, skinChoisie, skinDef, skinsDe, type SkinId, type SkinsChoisies } from '../core/skins';
+import { RARETES } from '../core/raretes';
+import { ECONOMIE, livreeDebloquee, type GainCourse, type Progression } from '../core/economie';
+import { iconeCadenas, iconeCle } from './svg';
 import { formatScore, formatTime } from './format';
 
 export function levelSummary(data: unknown): { nom: string; longueur: number; ambiance: 'jour' | 'coucher' } | null {
@@ -87,14 +90,17 @@ export class Screens {
     )));
   }
 
-  accueil(o: { onJouer(): void; onGarage(): void; onEditeur(): void; onCompte(): void; onReglages(): void; persistent: boolean; compte: string }): void {
+  accueil(o: { onJouer(): void; onGarage(): void; onCaisses(): void; onEditeur(): void; onCompte(): void; onReglages(): void; persistent: boolean; compte: string }): void {
     const compte = h('button', { class: 'btn sec', onclick: o.onCompte }, o.compte);
     this.boutonCompte = compte;
     this.show(h('div', { class: 'screen accueil' },
       h('h1', { class: 'logo big' }, 'Drift', h('span', {}, 'Club')),
       h('div', { class: 'menu' },
         h('button', { class: 'btn big', onclick: o.onJouer }, 'Jouer'),
-        h('button', { class: 'btn sec', onclick: o.onGarage }, 'Garage'),
+        h('div', { class: 'duo' },
+          h('button', { class: 'btn sec', onclick: o.onGarage }, 'Garage'),
+          h('button', { class: 'btn sec', onclick: o.onCaisses }, 'Caisses'),
+        ),
         h('button', { class: 'btn sec', onclick: o.onEditeur }, 'Éditeur'),
         compte,
         h('button', { class: 'btn sec', onclick: o.onReglages }, 'Réglages'),
@@ -156,23 +162,59 @@ export class Screens {
     return !!this.ecranNiveaux && this.root.contains(this.ecranNiveaux);
   }
 
-  garage(o: { voiture: CarId; couleur: string; skins: SkinsChoisies; onChange(voiture: CarId, couleur: string, skins: SkinsChoisies): void; onRetour(): void }): void {
+  garage(o: {
+    voiture: CarId; couleur: string; skins: SkinsChoisies; progression: Progression;
+    onChange(voiture: CarId, couleur: string, skins: SkinsChoisies): void;
+    /** aperçu 3D d'une livrée non enregistrée (verrouillée) ou retour à la livrée enregistrée */
+    onApercu(voiture: CarId, couleur: string, skin: SkinId): void;
+    onCaisses(): void; onRetour(): void;
+  }): void {
     let voiture = o.voiture, couleur = o.couleur, skins = o.skins;
-    const change = () => { o.onChange(voiture, couleur, skins); render(); };
+    /** livrée verrouillée en cours d'aperçu (jamais enregistrée) */
+    let apercu: SkinId | null = null;
+    const change = () => { apercu = null; o.onChange(voiture, couleur, skins); render(); };
     const render = () => {
-      this.show(h('div', { class: 'screen garage' }, h('div', { class: 'panel side' },
-        h('h2', {}, 'Garage'),
+      const choisie = skinChoisie(skins, voiture), affichee = apercu ?? choisie, def = skinDef(voiture, affichee);
+      const verrou = apercu !== null;
+      const forcee = def.couleurForcee !== undefined;
+      const defilement = this.root.querySelector('.garage-corps')?.scrollTop ?? 0; // la liste garde sa place au re-rendu
+      const corps = h('div', { class: 'garage-corps' },
         h('div', { class: 'choices' }, ...CAR_IDS.map((id) =>
           h('button', { class: 'choice' + (id === voiture ? ' on' : ''), onclick: () => { voiture = id; change(); } },
             h('b', {}, CARS[id].nom), h('small', {}, DESCRIPTIONS_VOITURES[id])))),
-        h('div', { class: 'swatches' }, ...COULEURS.map((c) =>
-          h('button', { class: 'swatch' + (c.hex === couleur ? ' on' : ''), style: `background:${c.hex}`, title: c.nom, 'aria-label': c.nom, onclick: () => { couleur = c.hex; change(); } }))),
+        h('div', { class: 'swatches' + (forcee ? ' figees' : '') }, ...COULEURS.map((c) =>
+          h('button', { class: 'swatch' + (c.hex === couleur ? ' on' : ''), style: `background:${c.hex}`, title: forcee ? 'Couleur imposée par la livrée' : c.nom, 'aria-label': c.nom, disabled: forcee, onclick: () => { couleur = c.hex; change(); } }))),
         h('h3', {}, 'Livrée'),
-        h('div', { class: 'skins' }, ...skinsDe(voiture).map((s) =>
-          h('button', { class: 'chip' + (s.id === skinChoisie(skins, voiture) ? ' on' : ''), title: s.nom, onclick: () => { skins = choisirSkin(skins, voiture, s.id); change(); } },
-            h('i', { style: `background:linear-gradient(135deg,${couleur} 50%,${accentSkin(s, couleur)} 50%)` }), s.nom))),
-        h('button', { class: 'btn', onclick: o.onRetour }, 'Retour'),
+        h('div', { class: 'skins' }, ...skinsDe(voiture).map((s) => {
+          const libre = livreeDebloquee(o.progression, voiture, s.id);
+          const classe = 'chip' + (libre ? '' : ' lock') + (libre && s.id === choisie && !verrou ? ' on' : '') + (s.id === apercu ? ' apercu' : '');
+          return h('button', {
+            class: classe, style: `--rc:${RARETES[s.rarete].couleur}`,
+            title: `${s.nom} · ${RARETES[s.rarete].nom}${libre ? '' : ' · verrouillée'}`,
+            onclick: () => {
+              if (libre) { skins = choisirSkin(skins, voiture, s.id); change(); return; }
+              apercu = s.id; // aperçu seulement : rien n'est enregistré
+              o.onApercu(voiture, couleur, s.id);
+              render();
+            },
+          }, h('i', { style: `background:linear-gradient(135deg,${couleurEffective(s, couleur)} 50%,${accentSkin(s, couleur)} 50%)` }), s.nom, !libre && iconeCadenas());
+        })),
+      );
+      this.show(h('div', { class: 'screen garage' }, h('div', { class: 'panel side' },
+        h('h2', {}, 'Garage'),
+        corps,
+        h('div', { class: 'skin-info', style: `--rc:${RARETES[def.rarete].couleur}` },
+          h('span', { class: 'cs-rarete' }, RARETES[def.rarete].nom),
+          h('b', {}, def.nom),
+          verrou && h('span', { class: 'verrou' }, 'Verrouillée — à gagner dans une caisse'),
+          forcee && h('span', { class: 'petit' }, 'Couleur imposée par la livrée'),
+        ),
+        h('div', { class: 'row' },
+          h('button', { class: 'btn sec', onclick: o.onCaisses }, iconeCle(), `Caisses (${o.progression.cles} clé${o.progression.cles > 1 ? 's' : ''})`),
+          h('button', { class: 'btn', onclick: o.onRetour }, 'Retour'),
+        ),
       )));
+      corps.scrollTop = defilement;
     };
     render();
   }
@@ -214,10 +256,12 @@ export class Screens {
     )));
   }
 
-  resultats(o: { result: RaceResult; record: boolean; persistent: boolean; onRecommencer(): void; onSuivant: (() => void) | null; onMenu(): void; menuLabel?: string; /** bloc classement en ligne, rempli après l'envoi du score */ enLigne?: HTMLElement | null }): void {
+  resultats(o: { result: RaceResult; record: boolean; persistent: boolean; /** clés gagnées à l'arrivée et total */ cles?: GainCourse; onCaisses?: () => void; onRecommencer(): void; onSuivant: (() => void) | null; onMenu(): void; menuLabel?: string; /** bloc classement en ligne, rempli après l'envoi du score */ enLigne?: HTMLElement | null }): void {
     const r = o.result;
     const ecart = r.time - r.targetTime;
-    this.show(h('div', { class: 'screen dim' }, h('div', { class: 'panel' },
+    // deux colonnes (score | clés et boutons) sur téléphone en paysage, sinon une seule pile (voir styles.css)
+    this.show(h('div', { class: 'screen dim' }, h('div', { class: 'panel resultats' },
+      h('div', { class: 'res-g' },
       h('h2', {}, 'Arrivée !'),
       o.record && h('div', { class: 'badge' }, o.persistent ? 'Nouveau record !' : 'Nouveau record (non enregistré)'),
       h('div', { class: 'score' }, formatScore(r.score)),
@@ -227,11 +271,22 @@ export class Screens {
         h('tr', {}, h('td', {}, 'Temps'), h('td', {}, `${formatTime(r.time)} (${ecart <= 0 ? '−' : '+'}${formatTime(Math.abs(ecart))} / cible)`)),
         h('tr', {}, h('td', {}, 'Meilleur drift'), h('td', {}, formatScore(r.bestDrift))),
       ),
+      ),
+      h('div', { class: 'res-d' },
+      o.cles && h('div', { class: 'gains' }, iconeCle(),
+        h('div', {},
+          h('b', {}, `+${o.cles.arrivee} clé${o.cles.arrivee > 1 ? 's' : ''}`),
+          o.cles.record > 0 && h('b', { class: 'record' }, `+${o.cles.record} clé record`),
+          h('small', {}, `Total : ${o.cles.total} clé${o.cles.total > 1 ? 's' : ''}`, o.cles.total >= ECONOMIE.coutCaisse ? ' · une caisse est prête !' : ''),
+        ),
+        o.onCaisses && h('button', { class: 'btn sm' + (o.cles.total >= ECONOMIE.coutCaisse ? '' : ' sec'), onclick: o.onCaisses }, 'Caisses'),
+      ),
       o.enLigne,
       h('div', { class: 'row' },
         h('button', { class: 'btn', onclick: o.onRecommencer }, 'Recommencer'),
         o.onSuivant && h('button', { class: 'btn', onclick: o.onSuivant }, 'Niveau suivant'),
         h('button', { class: 'btn sec', onclick: o.onMenu }, o.menuLabel ?? 'Menu'),
+      ),
       ),
     )));
   }
