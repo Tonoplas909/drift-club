@@ -21,7 +21,16 @@ Jeu de drift en 3D dans le navigateur : enchaîne les drifts sur des routes de m
 
 Trois voitures : **L'Équilibrée** (pour débuter), **La Légère** (agile) et **La Turbo** (puissante). Les records sont enregistrés par niveau et par mode.
 
-Au **Garage**, on choisit la voiture, sa **couleur** (8 teintes) et sa **livrée** (4 à 6 par voiture : Unie, double bande, bicolore, numéro de course, touge, carbone…). La livrée se pose par-dessus la couleur choisie et est mémorisée pour chaque voiture. Elles sont décrites par des données dans `src/core/skins.ts` : ajouter une livrée = ajouter une entrée dans `SKINS`.
+Au **Garage**, on choisit la voiture, sa **couleur** (8 teintes) et sa **livrée** (16 par voiture : Unie, double bande, damier, pois, camouflage, éclairs, flammes, taxi, noir et or…). La livrée se pose par-dessus la couleur choisie et est mémorisée pour chaque voiture ; quelques livrées (Or massif, Chrome, Noir mat, Taxi…) **imposent** leur couleur de carrosserie, et le Garage l'indique. Elles sont décrites par des données dans `src/core/skins.ts` : ajouter une livrée = ajouter une entrée dans `SKINS` (id, nom, rareté, éléments) ; elle entre alors toute seule dans les caisses. Les éléments de décor (bandes, damier, flammes, éclairs, camouflage, pois, diagonales, dents de scie…) sont générés en procédural dans `src/render/skins.ts`.
+
+### Raretés, clés et caisses
+
+Chaque livrée a une **rareté** : Commune (bleu, 79,9 %), Rare (violet, 16 %), Épique (rose, 3,2 %), Légendaire (rouge, 0,64 %) et Exotique (or, 0,26 %). « Unie » est toujours débloquée ; les autres se gagnent dans des **caisses**, toutes voitures confondues (on peut tomber sur une livrée d'une autre voiture).
+
+- Les **clés** se gagnent en jouant : 1 par arrivée, +1 sur un nouveau record local. Une **caisse** coûte 3 clés ; une caisse est offerte au premier lancement. Un doublon rend 1 clé. Tous ces nombres sont réunis dans `ECONOMIE` (`src/core/economie.ts`).
+- Le bouton **Caisses** (accueil, Garage, résultats) ouvre la roulette façon CS:GO : les cartes défilent puis s'arrêtent sur la livrée gagnée (bouton « Passer », animation raccourcie si le système demande de réduire les animations). « Équiper » ouvre le Garage sur la livrée.
+- Au Garage, les livrées verrouillées portent un cadenas : on peut les **prévisualiser** en 3D mais pas les équiper.
+- Le tirage est pur et testé (`src/core/caisses.ts`, `tirer(rng, inventaire)` et `construireBande`) ; la progression est locale (`driftclub.v1.progression`), sans achat ni argent réel. Les livrées déjà choisies avant l'arrivée des caisses restent débloquées.
 
 Cinq niveaux : **Premiers virages**, **Forêt des Pins**, **Col du Loup**, **Lacets du Belvédère** (montée en épingles) et **Vallée des Crêtes** (descente rapide au coucher du soleil).
 
