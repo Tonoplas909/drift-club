@@ -23,8 +23,13 @@ describe('angleFactor', () => {
     expect(angleFactor(15)).toBeCloseTo(0.5, 9);
     expect(angleFactor(20)).toBeCloseTo(0.75, 9);
     expect(angleFactor(30)).toBe(1);
-    expect(angleFactor(75)).toBeCloseTo(0.75, 9);
-    expect(angleFactor(95)).toBe(0);
+    expect(angleFactor(60)).toBe(1);
+    expect(angleFactor(90)).toBeCloseTo(0.7, 9);
+    expect(angleFactor(120)).toBeCloseTo(0.4, 9);
+    expect(angleFactor(150)).toBeCloseTo(0.1, 9);
+    expect(angleFactor(165)).toBeCloseTo(0.05, 9);
+    expect(angleFactor(180)).toBe(0);
+    expect(angleFactor(-90)).toBeCloseTo(0.7, 9);
   });
 });
 
@@ -65,13 +70,20 @@ describe('stepScore', () => {
     expect(st.multiplier).toBe(1);
     expect(st.total).toBeCloseTo(1600, -1);
   });
-  it('replacement et tête-à-queue font perdre', () => {
+  it('le replacement fait perdre', () => {
     const a = createScore();
     hold(a, DRIFT, 1);
     expect(stepScore(a, { ...STRAIGHT, reset: true }, SIM_DT)?.type).toBe('lose');
+  });
+  it('un tête-à-queue ne fait plus perdre : le drift continue puis s\'encaisse', () => {
     const b = createScore();
     hold(b, DRIFT, 1);
-    expect(stepScore(b, frame({ betaRad: 100 * DEG, speed: 60 / 3.6 }), SIM_DT)?.type).toBe('lose');
+    const avant = b.drift;
+    for (let i = 0; i < 60; i++) expect(stepScore(b, frame({ betaRad: 130 * DEG, speed: 60 / 3.6 }), SIM_DT)?.type).not.toBe('lose');
+    expect(b.drift).toBeGreaterThan(avant);
+    hold(b, STRAIGHT, 0.6);
+    expect(b.total).toBeGreaterThan(0);
+    expect(b.multiplier).toBe(2);
   });
   it('hors route ou sans avancer : aucun point', () => {
     const st = createScore();
