@@ -353,6 +353,7 @@ Accueil → Éditeur : **Nouveau niveau**, modifier un de **Mes niveaux**, ou **
 - **Ouverture d'un lien** : carte « Niveau partagé : *nom*, par *auteur* » → Jouer / Enregistrer dans mes niveaux.
 - **Importer** : coller un code ou charger un `.json`.
 - Tout import passe par la validation (§5.6).
+- **Précisions de mise en œuvre** : le code est `1.<base64url>` (le `1` est la version du code) ; le JSON compact stocke la route en différences successives ; le décodage plafonne le JSON à 200 ko et applique la validation complète. Le niveau reçu est le niveau **arrondi** (0,1 m, rotation au degré, densité au centième) : c'est lui qu'on publie et dont on calcule l'empreinte, pour que tous les joueurs partagent les mêmes records. Le lien `#en-ligne=<uuid>` désigne un niveau publié (Supabase, migration `0003`).
 - **Records** d'un niveau non officiel : liés à une empreinte SHA-256 de son contenu canonique **hors `nom` et `auteur`** (renommer ne réinitialise pas les records ; modifier la route, si). Niveaux officiels : liés à leur identifiant.
 
 ## 12. Sauvegarde (localStorage)

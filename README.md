@@ -40,7 +40,7 @@ Au tactile : glisse le pouce gauche pour tourner, boutons Gaz, Frein et Drift à
 
 ## Éditeur de niveaux
 
-Depuis l'accueil, **Éditeur** ouvre « Mes niveaux » : **Nouveau niveau**, **Copier un niveau officiel**, **Importer un .json**, puis pour chaque niveau **Modifier**, **Jouer**, **Renommer**, **Dupliquer**, **Exporter** (fichier `.json` lisible) et **Supprimer** (avec confirmation). Tes niveaux apparaissent aussi dans **Jouer → Mes niveaux**, avec leurs records.
+Depuis l'accueil, **Éditeur** ouvre « Mes niveaux » : **Nouveau niveau**, **Copier un niveau officiel**, **Importer**, puis pour chaque niveau **Modifier**, **Jouer**, **Renommer**, **Dupliquer**, **Exporter** (fichier `.json` lisible), **Partager** et **Supprimer** (avec confirmation). Tes niveaux apparaissent aussi dans **Jouer → Mes niveaux**, avec leurs records.
 
 Dans l'éditeur, la route est vue de dessus (grille en mètres, largeur réelle de la chaussée). Cinq outils :
 
@@ -63,6 +63,22 @@ Le **profil en long** (bandeau du bas, repliable) montre la hauteur en fonction 
 | Annuler / Rétablir | Ctrl+Z / Ctrl+Y ou Ctrl+Maj+Z (100 états) |
 | Supprimer la sélection | Suppr ou Retour arrière |
 | Désélectionner / annuler un glissement | Échap |
+
+## Partager un niveau
+
+Le bouton **Partager** (dans l'éditeur et dans « Mes niveaux » ; grisé tant que le niveau n'est pas valide) ouvre une fenêtre avec trois façons de faire jouer ton niveau :
+
+| Façon | Ce que c'est |
+|---|---|
+| **Lien** | `https://…/#n=<code>` : le niveau tout entier est dans le lien (compressé, quelques centaines de caractères pour un niveau ordinaire ; un avertissement s'affiche au-delà de 8 000). Aucun compte ni serveur : il suffit de l'envoyer. **Copier le lien**, **Copier le code** ou, sur téléphone, **Partager…**. |
+| **Fichier .json** | **Télécharger le .json** : format lisible, à envoyer tel quel. |
+| **En ligne** | **Publier en ligne** (compte avec pseudo requis) : le niveau rejoint l'onglet **En ligne** de **Jouer**, visible de tous, avec un lien court `#en-ligne=<id>`. |
+
+Ouvrir un lien affiche « Niveau partagé : *nom*, par *auteur* » avec **Jouer**, **Enregistrer dans mes niveaux** et **Modifier une copie**. **Importer** (dans **Jouer** ou dans « Mes niveaux ») accepte un code, un lien complet ou un fichier `.json`. Tout niveau reçu est vérifié comme s'il venait de l'éditeur : un niveau invalide affiche la liste des erreurs et n'est jamais chargé.
+
+Dans **Jouer → En ligne**, les niveaux publiés se trient par **Récents** ou **Populaires** (nombre de parties). Chaque niveau a **Jouer**, **Classement** (comme les niveaux perso), **Enregistrer** dans Mes niveaux, et **Retirer** si tu en es l'auteur.
+
+Bon à savoir : un lien ou une publication arrondit la route au décimètre (les records d'un niveau sont liés à son contenu arrondi, pas à ton brouillon exact). Le nom et l'auteur ne comptent pas dans les records. Les niveaux en ligne demandent la mise en place de Supabase (migration `0003`, voir [`supabase/README.md`](supabase/README.md)) ; sans elle, l'onglet **En ligne** affiche « pas encore disponible » et le reste du partage fonctionne.
 
 ## Classement en ligne
 
