@@ -387,6 +387,7 @@ input[type=text], input[type=email], input[type=password] { user-select: text; -
 .cs-fiche h2 { margin: 0; font-size: 32px; font-weight: 800; line-height: 1.05; }
 .cs-fiche p { margin: 0; }
 .cs-obj { font-size: 19px; }
+.cs-desc { font-style: italic; margin: 2px 0 6px; max-width: 34em; }
 .cs-total { display: flex; align-items: center; gap: 6px; font-weight: 800; }
 .cs-fiche .row { margin-top: 4px; }
 .cs-fiche .btn { font-size: 15px; padding: 6px 12px; }

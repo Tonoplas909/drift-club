@@ -191,7 +191,7 @@ export class Screens {
           const classe = 'chip' + (libre ? '' : ' lock') + (libre && s.id === choisie && !verrou ? ' on' : '') + (s.id === apercu ? ' apercu' : '');
           return h('button', {
             class: classe, style: `--rc:${RARETES[s.rarete].couleur}`,
-            title: `${s.nom} · ${RARETES[s.rarete].nom}${libre ? '' : ' · verrouillée'}`,
+            title: `${s.nom} · ${RARETES[s.rarete].nom}${libre ? '' : ' · verrouillée'} — ${s.description}`,
             onclick: () => {
               if (libre) { skins = choisirSkin(skins, voiture, s.id); change(); return; }
               apercu = s.id; // aperçu seulement : rien n'est enregistré
@@ -207,6 +207,7 @@ export class Screens {
         h('div', { class: 'skin-info', style: `--rc:${RARETES[def.rarete].couleur}` },
           h('span', { class: 'cs-rarete' }, RARETES[def.rarete].nom),
           h('b', {}, def.nom),
+          h('span', { class: 'petit skin-desc' }, def.description),
           verrou && h('span', { class: 'verrou' }, 'Verrouillée — à gagner dans une caisse'),
           forcee && h('span', { class: 'petit' }, 'Couleur imposée par la livrée'),
         ),
