@@ -18,7 +18,7 @@ Jeu web de drift en 3D, vue à la troisième personne. On pilote une voiture au 
 3. 60 images/s sur un téléphone moyen (qualité Basse) ; le jeu suit la fréquence de l'écran (120/144 Hz) sur un PC qui le permet.
 4. Créer un niveau jouable dans l'éditeur et l'envoyer à un pote par un lien prend quelques minutes.
 
-**Hors périmètre (pour l'instant)** : classement en ligne, médailles, fantôme, multijoueur, cônes/objets renversables, musique, sauts, ponts et croisements de route, manette, environnements autres que « montagne », ambiance de nuit.
+**Hors périmètre (pour l'instant)** : classement en ligne, médailles, fantôme, multijoueur, cônes/objets renversables, musique, sauts, ponts et croisements de route, manette, ambiance de nuit.
 
 ## 2. Découpage en lots
 
@@ -157,12 +157,12 @@ Ajouter `?debug` à l'URL affiche un panneau avec des curseurs pour tous les par
 | `format` | entier ; 1 pour cette version. Les versions antérieures sont converties (migration) au chargement. |
 | `nom` | 1–40 caractères |
 | `auteur` | 0–30 caractères |
-| `environnement` | `"montagne"` (seul disponible au lot 1) |
+| `environnement` | `"montagne"`, `"neige"`, `"desert"` ou `"automne"` : choisit tout le décor (§5.5). L'ordre de la liste est figé (le code de partage stocke l'indice, montagne = 0) ; un nouveau thème s'ajoute à la fin. |
 | `ambiance` | `"jour"` ou `"coucher"` |
 | `route` | 2–150 points ; `x`, `z` en mètres ; `y` (hauteur) ∈ [−50, 150] ; `l` (largeur) ∈ [6, 20] ; distance entre points consécutifs ∈ [5, 150] m. Départ = premier point, arrivée = dernier. |
 | `barrieres` | tronçons de `de` à `a` (indices de points, `de < a`), `cote` ∈ `gauche`, `droite`, `deux`, `ext` (extérieur du virage : suit le côté extérieur, change de côté aux inflexions). Ailleurs, le bord donne sur l'herbe. |
 | `decor` | `graine` entier ∈ [0, 2³¹−1] ; `densite` ∈ [0, 1] |
-| `objets` | 0–300 ; `type` ∈ `arbre`, `sapin`, `rocher`, `pneus`, `barriere`, `panneau` ; `rot` en degrés |
+| `objets` | 0–300 ; `type` ∈ `arbre`, `sapin`, `rocher`, `pneus`, `barriere`, `panneau` ; `rot` en degrés. Leur apparence dépend de l'environnement (§5.5). |
 
 Longueur de route totale ≤ 3 km.
 
@@ -186,13 +186,25 @@ Longueur de route totale ≤ 3 km.
 - **Limite de zone** : si la voiture s'éloigne à plus de 35 m de l'axe de la route, elle est automatiquement replacée (comme R, §4.6, avec les mêmes conséquences sur le score).
 
 ### 5.5 Environnement procédural (`generateEnvironment`)
-Entièrement déterminé par `environnement`, `graine`, `densite` et la route. Pour « montagne » :
-- **Forêt en bosquets** : un bruit à graine définit zones denses, clairières et lisières ; mélange sapins/feuillus, variations de taille et de rotation.
+Entièrement déterminé par `environnement`, `graine`, `densite` et la route. Un environnement est une **donnée** : règles de placement dans `src/core/env/themes.ts` (`THEMES`), couleurs et modèles dans `src/render/palettes.ts` (`PALETTES_THEMES`) et `src/render/themes.ts` (`THEMES_VISUELS`). `generateEnvironment` ne connaît aucun thème en particulier. Pour « montagne » :
+- **Forêt en bosquets** : un bruit à graine définit zones denses, clairières et lisières ; mélange sapins/feuillus (les sapins dominent en altitude), variations de taille et de rotation.
 - **Rochers**, plus fréquents sur les pentes raides.
 - **Bord de route** : panneaux à chevrons à l'extérieur des virages de rayon < 30 m, bornes le long des bords tous les ~25 m.
 - **Couloir libre** : rien n'est généré à moins de `largeur/2 + 3 m` de l'axe, ni à moins de 4 m d'un objet placé à la main.
-- **Solide** : tout objet à moins de 40 m de l'axe de la route (collision). Au-delà : visuel seulement — la voiture ne peut pas l'atteindre (§5.4, limite de zone).
-- Un environnement est une **donnée** (palette, types d'objets, règles de placement) : ajouter « neige », « désert », etc. plus tard ne demande pas de nouveau code de génération.
+- **Solide** : tout objet à moins de 40 m de l'axe de la route (collision, rayon propre à chaque type de décor). Au-delà : visuel seulement — la voiture ne peut pas l'atteindre (§5.4, limite de zone).
+
+Chaque thème fixe : le mélange d'essences (poids en bas et en altitude, échelles), la densité en forêt et hors forêt, les rochers (fréquence, pente, part de rochers « hauts »), les objets de bord de route (chevrons, bornes, petits objets espacés), la correspondance des objets posés à la main, les palettes des deux ambiances (ciel, brouillard, lumières, sol, forêt, roche, asphalte, accotement, fumée, reliefs lointains), et éventuellement une météo.
+
+| Thème | Décor généré | Couleurs / ambiance |
+|---|---|---|
+| `montagne` | sapins, feuillus, rochers, bornes, chevrons | herbe verte, montagnes enneigées (aspect d'origine, inchangé) |
+| `neige` | sapins et feuillus givrés (neige sur les faces tournées vers le haut), rochers gelés, congères et piquets rouge/blanc de déneigement | sol blanc-bleuté, brouillard dense (×0,65), flocons (Haute qualité uniquement) |
+| `desert` (Canyon) | cactus, buissons secs, arbres morts et acacias, rochers rouges, mesas, peu de végétation | sable ocre, ciel voilé chaud, reliefs lointains en mesas |
+| `automne` | feuillus roux/jaunes/rouges, mélèzes dorés, sapins sombres, souches et tas de feuilles | sol brun-olive, lumière dorée |
+
+**Objets posés à la main** (`arbre`, `sapin`, `rocher`, `pneus`, `panneau` ; `barriere` est toujours la glissière) : `arbre` → feuillu, `sapin` → sapin, `rocher` → rocher, sauf dans le canyon où `arbre` → arbre sec et `sapin` → cactus. Ils sont recolorés selon le thème (rochers rouges, arbres enneigés ou roux). L'éditeur affiche le nom du décor courant (« Cactus » à la place de « Sapin »).
+
+**Aperçu (développement)** : `?theme=<id>` et `?ambiance=<jour|coucher>` dans l'URL remplacent l'environnement / l'ambiance de tout niveau au chargement, sans modifier le niveau.
 
 ### 5.6 Validation
 Un niveau importé ou édité est validé : types, bornes du tableau 5.1, limites, **aucun croisement de route** (deux portions non voisines de la route à moins de `largeur_a/2 + largeur_b/2 + 4 m`), virages de rayon < 8 m signalés. Résultat : liste d'erreurs lisibles en français. Un niveau invalide n'est jamais chargé dans le jeu.
@@ -297,12 +309,13 @@ Touches lues par **position physique** (`KeyboardEvent.code`) : AZERTY et QWERTY
 - **Route** : asphalte, lignes blanches de bord, ligne centrale en pointillés, vibreurs rouge/blanc (§5.2).
 - **Terrain** : couleurs par sommet (herbe claire/foncée par bruit, plus sombre sous la forêt, roche sur les pentes raides).
 - **Ciel** en dégradé + **brouillard** de même teinte.
-- **Ambiances** `jour` et `coucher` : palettes ciel/lumière/brouillard.
-- Décor Kenney : ses matériaux sont remplacés par des matériaux toon de même couleur. Voitures : profil latéral extrudé (caisse, habitacle vitré, passages de roues), détails en blocs (feux, pare-chocs, aileron), roues procédurales.
+- **Ambiances** `jour` et `coucher` : palettes ciel/lumière/brouillard, propres à chaque environnement (§5.5).
+- Décor Kenney : ses matériaux sont remplacés par des matériaux toon de même couleur. Les thèmes recolorent ces modèles (feuillage, roche, neige par la normale) et ajoutent des modèles procéduraux au même style (aplats + contours). Voitures : profil latéral extrudé (caisse, habitacle vitré, passages de roues), détails en blocs (feux, pare-chocs, aileron), roues procédurales.
 
 ### 9.2 Effets
 - Fumée de pneus : particules instanciées, pool fixe.
 - Traces de gomme sur la route : tampon circulaire (les plus anciennes disparaissent).
+- Neige (thème `neige`) : ~900 flocons dans un seul `Points`, volume qui suit la caméra ; désactivée en qualité Basse. La fumée des dérapages prend la couleur du thème (poussière, poudreuse…).
 
 ### 9.3 Performance
 - Décor : un `InstancedMesh` par type d'objet.

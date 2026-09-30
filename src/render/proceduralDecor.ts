@@ -48,8 +48,8 @@ export function cactusGeometry(variant: number): Part {
 export function buissonGeometry(variant: number): Part {
   if (variant === 0) {
     return merge([
-      blob(0.5, 1, 0.75, 1, 0, 0.3, 0, 0xb59a55), blob(0.4, 1, 0.75, 1, 0.5, 0.25, 0.2, 0xa38640),
-      blob(0.36, 1, 0.75, 1, -0.4, 0.22, -0.3, 0xc2a862), blob(0.3, 1, 0.8, 1, 0.1, 0.45, -0.2, 0xd0b870),
+      blob(0.5, 1, 0.75, 1, 0, 0.3, 0, 0x8a9350), blob(0.4, 1, 0.75, 1, 0.5, 0.25, 0.2, 0x7d8748),
+      blob(0.36, 1, 0.75, 1, -0.4, 0.22, -0.3, 0x9aa25c), blob(0.3, 1, 0.8, 1, 0.1, 0.45, -0.2, 0xa9b06a),
     ]);
   }
   const rng = mulberry32(31);
