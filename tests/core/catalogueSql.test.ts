@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import fichier from '../../supabase/migrations/0006_catalogue_skins.sql?raw';
 import { genererCatalogueSql, lignesCatalogue, sqlTexte } from '../../src/core/catalogueSql';
 import { SKINS, SKIN_DEFAUT } from '../../src/core/skins';
 
@@ -53,7 +53,6 @@ describe('genererCatalogueSql', () => {
   });
 
   it('le fichier 0006 commité est à jour avec le catalogue (relancer tools/gen-catalogue-sql.ts sinon)', () => {
-    const fichier = readFileSync(new URL('../../supabase/migrations/0006_catalogue_skins.sql', import.meta.url), 'utf8');
     expect(fichier).toBe(sql);
   });
 });
