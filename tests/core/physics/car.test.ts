@@ -295,3 +295,14 @@ describe('voiture : robustesse', () => {
     expect(d).not.toBe(c);
   });
 });
+
+describe('vitesse pratique (échelle de la jauge)', () => {
+  it('correspond à une courte ligne droite : ~110 km/h pour La Légère, sous la vitesse max', async () => {
+    const { vitessePratique } = await import('../../../src/core/physics/vitessePratique');
+    const kmh = (id: CarId) => vitessePratique(CARS[id]) * 3.6;
+    expect(kmh('legere')).toBeGreaterThan(100);
+    expect(kmh('legere')).toBeLessThan(115);
+    for (const id of CAR_IDS) expect(vitessePratique(CARS[id])).toBeLessThan(CARS[id].maxSpeed);
+    expect(kmh('turbo')).toBeGreaterThan(kmh('equilibree'));
+  });
+});

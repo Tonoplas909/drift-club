@@ -16,6 +16,7 @@ import { SmokeSystem, SkidMarks } from './effects';
 import { ChaseCamera, type ChaseConfig, type CameraTarget } from './camera';
 import { SpeedGauge, gaugeRatio } from './speedGauge';
 import { CARS } from '../core/physics/cars';
+import { vitessePratique } from '../core/physics/vitessePratique';
 
 export interface WorldInit {
   renderer: THREE.WebGLRenderer;
@@ -39,6 +40,8 @@ export class World {
   private readonly terrainGroup: THREE.Group;
   private readonly carView: CarView;
   private readonly gauge = new SpeedGauge();
+  /** vitesse à laquelle la jauge est pleine (m/s) */
+  private readonly gaugeMax: number;
   private smoke: SmokeSystem;
   private skids: SkidMarks;
   private quality: QualityLevel;
@@ -82,6 +85,7 @@ export class World {
 
     this.carView = new CarView(assets.cars[init.carId], init.color, q.shadows);
     this.scene.add(this.carView.root, this.gauge.root);
+    this.gaugeMax = vitessePratique(CARS[init.carId]);
     this.smoke = new SmokeSystem(q.smokeMax, 0xe9e6e1);
     this.skids = new SkidMarks(q.skidMax);
     this.scene.add(this.smoke.mesh, this.skids.mesh);
@@ -136,7 +140,7 @@ export class World {
     this.chase.update(this.target, cfg, dt, this.init.terrain);
     this.sky.position.copy(this.camera.position);
     const params = CARS[this.init.carId];
-    this.gauge.update(pose.x, pose.y, pose.z, params.width, gaugeRatio(car.speed, car.reverse, params.maxSpeed), this.camera, dt);
+    this.gauge.update(pose.x, pose.y, pose.z, params.width, gaugeRatio(car.speed, car.reverse, this.gaugeMax), this.camera, dt);
 
     const d = this.palette.sunDir;
     this.sun.position.set(pose.x + d[0] * 80, pose.y + d[1] * 80, pose.z + d[2] * 80);

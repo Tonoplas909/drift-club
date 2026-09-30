@@ -9,9 +9,9 @@ const ECART = 0.7;
 /** bas de la jauge au-dessus du sol (m) */
 const BAS = 0.35;
 
-/** Remplissage de la jauge : 0 à l'arrêt ou en marche arrière, 1 à la vitesse max. */
-export function gaugeRatio(speed: number, reverse: boolean, maxSpeed: number): number {
-  return reverse ? 0 : clamp(speed / maxSpeed, 0, 1);
+/** Remplissage de la jauge : 0 à l'arrêt ou en marche arrière, 1 à `pleine` (m/s) et au-delà. */
+export function gaugeRatio(speed: number, reverse: boolean, pleine: number): number {
+  return reverse ? 0 : clamp(speed / pleine, 0, 1);
 }
 
 /** Couleur au niveau `t` de la jauge : vert → jaune → rouge. */
