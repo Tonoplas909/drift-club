@@ -121,7 +121,7 @@ export const SKINS: Record<CarId, SkinDef[]> = {
     sk('bicolore', 'Bas de caisse', 'commune', [{ type: 'basDeCaisse', teinte: 'sombre', hauteur: 0.15 }, { type: 'laterale', teinte: 'sombre', bas: 0.06, haut: 0.1 }]),
     sk('filet', 'Filet', 'commune', [{ type: 'laterale', teinte: 'contraste', bas: 0.05, haut: 0.08 }, { type: 'toit', teinte: 'sombre' }]),
     sk('dents', 'Dents de scie', 'commune', [{ type: 'dents', teinte: 'contraste', hauteur: 0.14, pas: 0.17 }]),
-    sk('portieres', 'Portières', 'commune', [{ type: 'portieres', teinte: 'sombre', bas: 0.1, haut: 0.1 }]),
+    sk('portieres', 'Portières noires', 'commune', [{ type: 'portieres', teinte: NOIR, bas: 0.1, haut: 0.1 }]),
     sk('course', 'Course n°13', 'rare', [
       { type: 'numero', chiffres: '13', fond: CRAIE, encre: NOIR },
       { type: 'bandes', teinte: 'contraste', largeur: 0.1, ecart: 0.06, zones: ['capot'] },
@@ -162,7 +162,7 @@ export const SKINS: Record<CarId, SkinDef[]> = {
     UNIE,
     sk('rayures', 'Double bande', 'commune', [{ type: 'bandes', teinte: 'contraste', largeur: 0.18, ecart: 0.1 }]),
     sk('pois', 'Pois', 'commune', [{ type: 'pois', teinte: 'contraste', rayon: 0.045, pas: 0.19 }]),
-    sk('diagonales', 'Diagonales', 'commune', [{ type: 'diagonales', teinte: 'clair', nombre: 2, largeur: 0.16 }]),
+    sk('diagonales', 'Diagonales', 'commune', [{ type: 'diagonales', teinte: 'contraste', nombre: 2, largeur: 0.16 }]),
     sk('filet', 'Filet', 'commune', [{ type: 'laterale', teinte: 'contraste', bas: 0.06, haut: 0.09 }, { type: 'basDeCaisse', teinte: 'sombre', hauteur: 0.08 }]),
     sk('bicolore', 'Toit contrasté', 'commune', [{ type: 'toit', teinte: 'contraste' }, { type: 'basDeCaisse', teinte: 'sombre', hauteur: 0.1 }]),
     sk('carbone', 'Carbone', 'rare', [{ type: 'capot', teinte: '#26282e' }, { type: 'toit', teinte: '#26282e' }, { type: 'basDeCaisse', teinte: '#26282e', hauteur: 0.13 }]),
@@ -175,7 +175,7 @@ export const SKINS: Record<CarId, SkinDef[]> = {
     sk('camo', 'Camouflage', 'rare', [{ type: 'camouflage', teintes: ['sombre', 'clair'], graine: 7, case: 0.14 }]),
     sk('touge', 'Sponsor touge', 'epique', [
       { type: 'laterale', teinte: 'contraste', bas: 0.07, haut: 0.12 },
-      { type: 'chevrons', teinte: 'clair', nombre: 5, zone: [0, 0.45] },
+      { type: 'chevrons', teinte: 'contraste', nombre: 5, zone: [0, 0.45] },
       { type: 'bandes', teinte: 'sombre', largeur: 0.3, ecart: 0, zones: ['capot'] },
     ]),
     sk('eclairs', 'Éclairs', 'epique', [{ type: 'eclairs', teinte: '#3ad6ff', nombre: 4 }, { type: 'laterale', teinte: 'sombre', bas: 0.06, haut: 0.09 }]),
