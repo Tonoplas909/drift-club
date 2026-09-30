@@ -13,6 +13,19 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.3.0',
+    date: '30/09/2026',
+    titre: 'Caisses et 48 livrées',
+    notes: [
+      '16 livrées par voiture (48 en tout) : damier, flammes, éclairs, camouflage, pois, taxi, carbone… et des livrées à couleur imposée comme Or massif, Chrome ou Noir et or.',
+      'Chaque livrée a une rareté : Commune, Rare, Épique, Légendaire ou Exotique.',
+      'Nouveau : les caisses ! Ouvre-en une (3 clés) pour gagner une livrée au hasard, avec la roulette qui défile et ralentit jusqu\'au gain. Les chances sont affichées à l\'écran.',
+      'Gagne des clés en jouant : 1 par course terminée, +1 en cas de nouveau record. Une livrée déjà obtenue rend 1 clé.',
+      'Une caisse offerte (3 clés) pour commencer. Les livrées que tu avais déjà choisies restent débloquées.',
+      'Dans le Garage, les livrées verrouillées portent un cadenas mais se prévisualisent.',
+    ],
+  },
+  {
     version: '0.2.2',
     date: '30/09/2026',
     titre: 'Notes de version',
