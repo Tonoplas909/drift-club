@@ -9,7 +9,7 @@ import type { AssistParams, CarParams, CarState, StepContext } from '../physics/
 import { createCarState, copyCarState, stepCar } from '../physics/car';
 import { buildCollisionWorld, resolveCollisions, CRASH_IMPACT, type CollisionWorld } from '../physics/collision';
 import {
-  createScore, stepScore, finishScore, timeBonus, DEFAULT_SCORE_PARAMS,
+  createScore, stepScore, finishScore, timeBonus, comboRestant, DEFAULT_SCORE_PARAMS,
   type ScoreEvent, type ScoreParams, type ScoreState,
 } from '../scoring/score';
 import { clamp } from '../math/vec';
@@ -51,6 +51,8 @@ export interface HudData {
   drift: number;
   multiplier: number;
   driftActive: boolean;
+  /** fraction du temps restant avant la fin du combo (null : pas de compte à rebours) */
+  combo: number | null;
   progress: number;
   wrongWay: boolean;
   speedKmh: number;
@@ -188,6 +190,7 @@ export class RaceSim {
       drift: this.score.drift * this.score.multiplier,
       multiplier: this.score.multiplier,
       driftActive: this.score.active,
+      combo: comboRestant(this.score, this.sp),
       progress: clamp(this.maxProgressS / this.config.track.length, 0, 1),
       wrongWay: this.wrongWay,
       speedKmh: this.car.speed * 3.6,

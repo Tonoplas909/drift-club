@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createScore, stepScore, finishScore, timeBonus, angleFactor, type ScoreFrame, type ScoreEvent, type ScoreState } from '../../../src/core/scoring/score';
+import { createScore, stepScore, finishScore, timeBonus, angleFactor, comboRestant, type ScoreFrame, type ScoreEvent, type ScoreState } from '../../../src/core/scoring/score';
 import { SIM_DT } from '../../../src/core/constants';
 import { DEG } from '../../../src/core/math/vec';
 
@@ -117,5 +117,23 @@ describe('stepScore', () => {
   it('bonus de temps', () => {
     expect(timeBonus(60, 50)).toBe(20000);
     expect(timeBonus(60, 70)).toBe(0);
+  });
+});
+
+describe('comboRestant (barre du combo)', () => {
+  it('null sans combo ou pendant un drift, 1 à l\'encaissement, décroît jusqu\'à 0 puis retour à x1', () => {
+    const st = createScore();
+    expect(comboRestant(st)).toBeNull();
+    hold(st, DRIFT, 1);
+    expect(comboRestant(st)).toBeNull(); // drift en cours
+    hold(st, STRAIGHT, 0.5 + SIM_DT);
+    expect(st.multiplier).toBe(2);
+    const debut = comboRestant(st)!;
+    expect(debut).toBeGreaterThan(0.95);
+    hold(st, STRAIGHT, 0.75);
+    expect(comboRestant(st)!).toBeCloseTo(0.5, 1);
+    hold(st, STRAIGHT, 0.8);
+    expect(st.multiplier).toBe(1);
+    expect(comboRestant(st)).toBeNull();
   });
 });

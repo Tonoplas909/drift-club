@@ -116,6 +116,17 @@ export function stepScore(st: ScoreState, f: ScoreFrame, dt: number, p: ScorePar
   return null;
 }
 
+/**
+ * Temps restant avant que le combo retombe à x1, en fraction (1 = juste encaissé, 0 = retombe),
+ * ou null quand aucun compte à rebours n'est en cours (pas de combo, drift en cours ou en attente d'encaissement).
+ */
+export function comboRestant(st: ScoreState, p: ScoreParams = DEFAULT_SCORE_PARAMS): number | null {
+  if (st.multiplier <= 1 || st.active || st.pending) return null;
+  const fenetre = p.comboTimeout - p.bankDelay;
+  if (fenetre <= 0) return null;
+  return Math.min(1, Math.max(0, (p.comboTimeout - st.sinceBank) / fenetre));
+}
+
 /** À l'arrivée : encaisse le drift en cours s'il y en a un. */
 export function finishScore(st: ScoreState, p: ScoreParams = DEFAULT_SCORE_PARAMS): ScoreEvent | null {
   return st.pending ? bank(st, p) : null;
