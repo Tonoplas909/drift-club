@@ -6,7 +6,7 @@ import { EditorDoc } from '../core/editor/history';
 import { analyseLevel, type AnalyseNiveau } from '../core/editor/analyse';
 import {
   addPoint, insertPoint, movePoint, setPoint, deletePoint, toggleBarrier, addObjet, moveObjet, rotateObjet, deleteObjet,
-  nearestPoint, nearestObjet, type CoteEdit,
+  nearestPoint, nearestObjet, addLac, deleteLac, setNiveauLac, erreurContourLac, type CoteEdit,
 } from '../core/editor/ops';
 import type { TrackData } from '../core/track/buildTrack';
 import type { Store } from '../storage/store';
@@ -37,6 +37,7 @@ const OUTILS: { id: Outil; nom: string; aide: string }[] = [
   { id: 'route', nom: 'Route', aide: 'Route' },
   { id: 'barrieres', nom: 'Barrières', aide: 'Barrières' },
   { id: 'objets', nom: 'Objets', aide: 'Objets' },
+  { id: 'lac', nom: 'Lac', aide: 'Lac' },
   { id: 'decor', nom: 'Décor', aide: 'Décor' },
   { id: 'infos', nom: 'Infos', aide: 'Infos' },
 ];
@@ -76,6 +77,8 @@ export class Editeur {
   private outil: Outil = 'route';
   private typeObjet: TypeObjet = 'arbre';
   private cote: CoteEdit = 'ext';
+  /** contour du lac en cours de tracé (outil « Lac ») */
+  private lacBrouillon: { x: number; z: number }[] = [];
   private profilOuvert: boolean;
   private resume!: ResumeValidation;
 
@@ -280,7 +283,7 @@ export class Editeur {
     if (this.vue && this.w > 0) {
       dessiner(this.ctx, {
         vue: this.vue, w: this.w, h: this.h, level: this.doc.level, analyse: this.analyse, fantome: this.fantome,
-        selection: this.selection, outil: this.outil, rayon: this.rayonPoignee,
+        selection: this.selection, outil: this.outil, rayon: this.rayonPoignee, brouillonLac: this.lacBrouillon,
       });
     }
     if (this.profilOuvert && this.wp > 0 && this.hp > 0) {
@@ -391,7 +394,8 @@ export class Editeur {
 
   private choisirOutil(o: Outil): void {
     this.outil = o;
-    if ((o === 'barrieres' || o === 'decor' || o === 'infos') && this.selection) this.selection = null;
+    if (o !== 'lac') this.lacBrouillon = [];
+    if ((o === 'barrieres' || o === 'lac' || o === 'decor' || o === 'infos') && this.selection) this.selection = null;
     if (o === 'route' && this.selection?.kind === 'objet') this.selection = null;
     if (o === 'objets' && this.selection?.kind === 'point') this.selection = null;
     this.rafraichirOutils();
@@ -407,6 +411,16 @@ export class Editeur {
     this.el.append(t);
     window.clearTimeout(this.toastTimer);
     this.toastTimer = window.setTimeout(() => t.remove(), 2600);
+  }
+
+  private terminerLac(): void {
+    const erreur = erreurContourLac(this.doc.level, this.lacBrouillon);
+    if (erreur) { this.toast(erreur); return; }
+    const contour = this.lacBrouillon;
+    this.doc.apply((l) => { addLac(l, contour); });
+    this.lacBrouillon = [];
+    for (const f of this.majPanneau) f();
+    this.planifier();
   }
 
   private supprimerSelection(): void {
@@ -607,6 +621,11 @@ export class Editeur {
       let idx = -1;
       this.doc.apply((d) => { idx = addObjet(d, this.typeObjet, w.x, w.z, 0); });
       if (idx >= 0) this.selectionner({ kind: 'objet', i: idx });
+    } else if (this.outil === 'lac') {
+      if (this.lacBrouillon.length >= LIMITES.eauPointsMax) { this.toast(`Maximum ${LIMITES.eauPointsMax} points par lac.`); return; }
+      this.lacBrouillon.push({ x: Math.round(w.x * 10) / 10, z: Math.round(w.z * 10) / 10 });
+      for (const f of this.majPanneau) f();
+      this.planifier();
     } else {
       this.selectionner(null);
     }
@@ -765,6 +784,30 @@ export class Editeur {
           );
         }
         return out;
+      }
+      case 'lac': {
+        const etat = aide('');
+        const fin = h('button', { class: 'btn sm', onclick: () => this.terminerLac() }, 'Terminer le lac');
+        const efface = h('button', { class: 'btn sec sm', onclick: () => { this.lacBrouillon = []; for (const f of this.majPanneau) f(); this.planifier(); } }, 'Effacer le contour');
+        const suppr = h('button', { class: 'btn sec sm', onclick: () => { const n = (this.doc.level.eau?.length ?? 0) - 1; if (n >= 0) this.doc.apply((l) => deleteLac(l, n)); } }, icone('corbeille'), 'Supprimer le dernier lac');
+        this.majPanneau.push(() => {
+          const n = this.lacBrouillon.length, lacs = this.doc.level.eau?.length ?? 0;
+          etat.textContent = n > 0 ? `Contour en cours : ${n} point${n > 1 ? 's' : ''}.` : `${lacs} lac${lacs > 1 ? 's' : ''} sur ${LIMITES.eauMax}.`;
+          (fin as HTMLButtonElement).disabled = n < LIMITES.eauPointsMin;
+          (efface as HTMLButtonElement).disabled = n === 0;
+          (suppr as HTMLButtonElement).disabled = lacs === 0 || n > 0;
+        });
+        return [
+          titre('Lac'),
+          aide('Clique pour placer les points du contour du lac (3 au moins), puis « Terminer le lac ». La route reste au sec : garde au moins 6 m entre son bord et l\'eau.'),
+          etat, fin, efface,
+          this.curseur({
+            label: 'Hauteur de l\'eau (dernier lac)', min: LIMITES.hauteurMin, max: LIMITES.hauteurMax, step: 1,
+            lire: () => { const e = this.doc.level.eau; return e && e.length > 0 ? Math.round(e[e.length - 1].niveau) : 0; },
+            ecrire: (l, v) => { if (l.eau && l.eau.length > 0) setNiveauLac(l, l.eau.length - 1, v); }, format: (v) => `${v} m`,
+          }),
+          suppr,
+        ];
       }
       case 'decor': {
         const descTheme = aide('');
