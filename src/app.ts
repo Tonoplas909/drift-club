@@ -13,6 +13,7 @@ import { prepareLevel, type PreparedLevel } from './game/prepare';
 import { NIVEAUX_OFFICIELS, cleNiveauOfficiel } from './levels';
 import { Screens, levelSummary, type NiveauCarte } from './ui/screens';
 import { formatDistance } from './ui/format';
+import { skinChoisie } from './core/skins';
 import type { RaceResult } from './core/race/race';
 import type { Level } from './core/level/types';
 import { empreinteNiveau } from './core/level/fingerprint';
@@ -228,17 +229,19 @@ export class App {
 
   private garage(retour: () => void): void {
     if (this.showroom) {
-      this.showroom.setCar(this.reglages.voiture, this.reglages.couleur);
+      this.showroom.setCar(this.reglages.voiture, this.reglages.couleur, skinChoisie(this.reglages.skins, this.reglages.voiture));
       this.showroom.start();
     }
     this.screens.garage({
       voiture: this.reglages.voiture,
       couleur: this.reglages.couleur,
-      onChange: (voiture, couleur) => {
+      skins: this.reglages.skins,
+      onChange: (voiture, couleur, skins) => {
         this.reglages.voiture = voiture;
         this.reglages.couleur = couleur;
+        this.reglages.skins = skins;
         this.save();
-        this.showroom?.setCar(voiture, couleur);
+        this.showroom?.setCar(voiture, couleur, skinChoisie(skins, voiture));
       },
       onRetour: () => { this.showroom?.stop(); retour(); },
     });

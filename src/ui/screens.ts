@@ -5,6 +5,7 @@ import type { RaceResult } from '../core/race/race';
 import { validateLevel } from '../core/level/validate';
 import type { Reglages, RecordEntry, Qualite } from '../storage/store';
 import { COULEURS } from './couleurs';
+import { accentSkin, choisirSkin, skinChoisie, skinsDe, type SkinsChoisies } from '../core/skins';
 import { formatScore, formatTime } from './format';
 
 export function levelSummary(data: unknown): { nom: string; longueur: number; ambiance: 'jour' | 'coucher' } | null {
@@ -155,16 +156,21 @@ export class Screens {
     return !!this.ecranNiveaux && this.root.contains(this.ecranNiveaux);
   }
 
-  garage(o: { voiture: CarId; couleur: string; onChange(voiture: CarId, couleur: string): void; onRetour(): void }): void {
-    let voiture = o.voiture, couleur = o.couleur;
+  garage(o: { voiture: CarId; couleur: string; skins: SkinsChoisies; onChange(voiture: CarId, couleur: string, skins: SkinsChoisies): void; onRetour(): void }): void {
+    let voiture = o.voiture, couleur = o.couleur, skins = o.skins;
+    const change = () => { o.onChange(voiture, couleur, skins); render(); };
     const render = () => {
       this.show(h('div', { class: 'screen garage' }, h('div', { class: 'panel side' },
         h('h2', {}, 'Garage'),
         h('div', { class: 'choices' }, ...CAR_IDS.map((id) =>
-          h('button', { class: 'choice' + (id === voiture ? ' on' : ''), onclick: () => { voiture = id; o.onChange(voiture, couleur); render(); } },
+          h('button', { class: 'choice' + (id === voiture ? ' on' : ''), onclick: () => { voiture = id; change(); } },
             h('b', {}, CARS[id].nom), h('small', {}, DESCRIPTIONS_VOITURES[id])))),
         h('div', { class: 'swatches' }, ...COULEURS.map((c) =>
-          h('button', { class: 'swatch' + (c.hex === couleur ? ' on' : ''), style: `background:${c.hex}`, title: c.nom, 'aria-label': c.nom, onclick: () => { couleur = c.hex; o.onChange(voiture, couleur); render(); } }))),
+          h('button', { class: 'swatch' + (c.hex === couleur ? ' on' : ''), style: `background:${c.hex}`, title: c.nom, 'aria-label': c.nom, onclick: () => { couleur = c.hex; change(); } }))),
+        h('h3', {}, 'Livrée'),
+        h('div', { class: 'skins' }, ...skinsDe(voiture).map((s) =>
+          h('button', { class: 'chip' + (s.id === skinChoisie(skins, voiture) ? ' on' : ''), title: s.nom, onclick: () => { skins = choisirSkin(skins, voiture, s.id); change(); } },
+            h('i', { style: `background:linear-gradient(135deg,${couleur} 50%,${accentSkin(s, couleur)} 50%)` }), s.nom))),
         h('button', { class: 'btn', onclick: o.onRetour }, 'Retour'),
       )));
     };

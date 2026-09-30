@@ -110,6 +110,10 @@ html, body {
 .choice small { opacity: .75; }
 .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
 .swatch { width: 38px; height: 38px; border-radius: 50%; border: 3px solid var(--ink); cursor: pointer; }
+.skins { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font); font-size: 15px; background: #fff; border: 3px solid var(--ink); border-radius: 999px; padding: 4px 12px 4px 6px; cursor: pointer; }
+.chip i { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--ink); flex: none; }
+.chip.on { background: var(--yellow); box-shadow: 0 3px 0 var(--ink); }
 .swatch.on { outline: 4px solid var(--orange); outline-offset: 2px; }
 .screen.garage { background: none; align-items: flex-start; justify-content: center; }
 .panel.side { width: min(360px, 94vw); }
