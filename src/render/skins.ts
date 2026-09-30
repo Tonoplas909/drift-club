@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { resoudreTeinte, couleurEffective, type SkinDef, type SkinElement, type Teinte, type ZoneBande } from '../core/skins';
+import { resoudreTeinte, couleurEffective, type FormeDecor, type MotifPixel, type SkinDef, type SkinElement, type Teinte, type ZoneBande } from '../core/skins';
 import { mulberry32 } from '../core/math/rng';
 import { colorize } from './procedural';
 import { arch, type CarShape } from './jdmCars';
@@ -81,7 +81,7 @@ const xFlanc = (s: CarShape, side: number, epais = EPAIS): [number, number] =>
   side > 0 ? [s.width / 2 - 0.004, s.width / 2 + epais - 0.004] : [-s.width / 2 - epais + 0.004, -s.width / 2 + 0.004];
 
 /** Bande latérale entre deux courbes `lo`/`hi` (z → y), coupée là où elle sortirait de la caisse (passages de roues, haut de caisse). */
-function bandeFlanc(s: CarShape, side: number, lo: (z: number) => number, hi: (z: number) => number, z0: number, z1: number, color: THREE.ColorRepresentation, ep = EPAIS, N = 64): THREE.BufferGeometry[] {
+function bandeFlanc(s: CarShape, side: number, lo: (z: number) => number, hi: (z: number) => number, z0: number, z1: number, color: THREE.ColorRepresentation, ep = EPAIS, N = 64, minH = 0.025): THREE.BufferGeometry[] {
   const haut = hautCaisse(s), bas = basCaisse(s);
   const out: THREE.BufferGeometry[] = [];
   let run: { z: number; yl: number; yh: number }[] = [];
@@ -95,26 +95,56 @@ function bandeFlanc(s: CarShape, side: number, lo: (z: number) => number, hi: (z
   for (let i = 0; i <= N; i++) {
     const z = z1 + ((z0 - z1) * i) / N;
     const yl = Math.max(lo(z), interp(bas, z) + 0.015), yh = Math.min(hi(z), interp(haut, z) - 0.015);
-    if (yh - yl > 0.025) run.push({ z, yl, yh });
+    if (yh - yl > minH) run.push({ z, yl, yh });
     else flush();
   }
   flush();
   return out;
 }
 
-const SEGMENTS: Record<string, string> = {
-  '0': 'abcdef', '1': 'bc', '2': 'abdeg', '3': 'abcdg', '4': 'bcfg', '5': 'acdfg', '6': 'acdefg', '7': 'abc', '8': 'abcdefg', '9': 'abcdfg',
+/** Police 3 × 5 « blocs » : chaque chiffre est lisible même petit (le 1 a un pied et un drapeau, le 7 une barre et une jambe, le 4 un cadre ouvert). */
+const POLICE: Record<string, string[]> = {
+  '0': ['###', '#.#', '#.#', '#.#', '###'],
+  '1': ['.#.', '##.', '.#.', '.#.', '###'],
+  '2': ['###', '..#', '###', '#..', '###'],
+  '3': ['###', '..#', '###', '..#', '###'],
+  '4': ['#.#', '#.#', '###', '..#', '..#'],
+  '5': ['###', '#..', '###', '..#', '###'],
+  '6': ['###', '#..', '###', '#.#', '###'],
+  '7': ['###', '..#', '.#.', '.#.', '.#.'],
+  '8': ['###', '#.#', '###', '#.#', '###'],
+  '9': ['###', '#.#', '###', '..#', '###'],
 };
 
-/** Rectangles (u, v) — u vers la droite du lecteur, v vers le haut — d'un chiffre à 7 segments centré sur l'origine. */
-function chiffre(c: string, dw: number, dh: number, t: number): [number, number, number, number][] {
-  const w2 = dw / 2, h2 = dh / 2;
-  const seg: Record<string, [number, number, number, number]> = {
-    a: [-w2, w2, h2 - t, h2], d: [-w2, w2, -h2, -h2 + t], g: [-w2, w2, -t / 2, t / 2],
-    b: [w2 - t, w2, 0, h2], c: [w2 - t, w2, -h2, 0], f: [-w2, -w2 + t, 0, h2], e: [-w2, -w2 + t, -h2, 0],
-  };
-  return [...(SEGMENTS[c] ?? '')].map((k) => seg[k]);
+/** Rectangles [u0, u1, v0, v1] (en cases, u vers la droite du lecteur, v vers le haut, origine en bas à gauche) d'un chiffre de la police 3 × 5. */
+export function rectsChiffre(c: string): [number, number, number, number][] {
+  const rows = POLICE[c] ?? [];
+  const out: [number, number, number, number][] = [];
+  rows.forEach((row, r) => {
+    for (let i = 0; i < row.length; i++) {
+      if (row[i] !== '#') continue;
+      let j = i;
+      while (j + 1 < row.length && row[j + 1] === '#') j++;
+      out.push([i, j + 1, rows.length - 1 - r, rows.length - r]);
+      i = j;
+    }
+  });
+  return out;
 }
+
+/** Rectangles (u, v) — u vers la droite du lecteur, v vers le haut — d'un chiffre centré sur l'origine, large de `dw` et haut de `dh`. */
+function chiffre(c: string, dw: number, dh: number): [number, number, number, number][] {
+  return rectsChiffre(c).map(([u0, u1, v0, v1]) => [-dw / 2 + (u0 * dw) / 3, -dw / 2 + (u1 * dw) / 3, -dh / 2 + (v0 * dh) / 5, -dh / 2 + (v1 * dh) / 5]);
+}
+
+/** Bitmaps des motifs de pixels (rangées du haut vers le bas ; « # » = teinte, « o » = teinte de cœur). */
+const MOTIFS: Record<MotifPixel, string[]> = {
+  invader: ['..#.....#..', '...#...#...', '..#######..', '.##.###.##.', '###########', '#.#######.#', '#.#.....#.#', '...##.##...'],
+  coeur: ['.##.##.', '#######', '#######', '.#####.', '..###..', '...#...'],
+  fantome: ['..####..', '.######.', '#oo##oo#', '#oo##oo#', '########', '########', '########', '##.##.##'],
+  crane: ['.######.', '########', '#oo##oo#', '#oo##oo#', '########', '..#..#..', '.######.', '.#.##.#.'],
+  note: ['...#####', '...#####', '...#...#', '...#...#', '.###.###', '####.###', '.##..##.'],
+};
 
 type Couleur = (t: Teinte) => THREE.Color;
 
@@ -122,7 +152,7 @@ type Couleur = (t: Teinte) => THREE.Color;
 interface Ctx { s: CarShape; col: Couleur; ep: number }
 
 /** Épaisseur de la couche `k` : chaque élément de la livrée est posé un peu plus haut que le précédent (pas de z-fighting entre décors). */
-const epaisCouche = (k: number): number => EPAIS + Math.min(k, 3) * 0.006;
+const epaisCouche = (k: number): number => EPAIS + Math.min(k, 5) * 0.005;
 
 /** Décor de flanc : pour chaque côté, `f(side)` renvoie les pièces ; l'orientation de lecture est gérée par l'appelant. */
 const deuxCotes = (f: (side: number) => THREE.BufferGeometry[]): THREE.BufferGeometry[] => [...f(1), ...f(-1)];
@@ -228,21 +258,21 @@ function portieres(c: Ctx, e: Extract<SkinElement, { type: 'portieres' }>): THRE
 
 function numero(c: Ctx, e: Extract<SkinElement, { type: 'numero' }>): THREE.BufferGeometry[] {
   const { s, ep } = c;
-  const R = 0.17, [za, zb] = entreRoues(s, R + 0.05), zc = za + (zb - za) * (e.pos ?? 0.5);
+  const n = e.chiffres.length, R = n > 1 ? 0.2 : 0.17, [za, zb] = entreRoues(s, R + 0.05), zc = za + (zb - za) * (e.pos ?? 0.5);
   const haut = hautCaisse(s), yc = (s.groundClear + 0.05 + interp(haut, zc) - 0.04) / 2;
   const fond = c.col(e.fond), encre = c.col(e.encre);
-  const dw = 0.09, dh = 0.2, t = 0.03, gap = 0.04, n = e.chiffres.length;
+  const dw = n > 2 ? 0.09 : n > 1 ? 0.11 : 0.105, dh = n > 2 ? 0.2 : n > 1 ? 0.27 : 0.23, gap = n > 2 ? 0.03 : 0.04;
   const total = n * dw + (n - 1) * gap;
   return deuxCotes((side) => {
     const [xa, xb] = xFlanc(s, side, ep), [ya, yb] = xFlanc(s, side, ep + 0.008);
-    const forme: Pt[] = e.forme === 'carre'
+    const forme: Pt[] = e.forme === 'carre' || n > 2
       ? rect(zc - R, zc + R, yc - R, yc + R)
       : Array.from({ length: 20 }, (_, i) => [zc + R * Math.cos((i / 20) * Math.PI * 2), yc + R * Math.sin((i / 20) * Math.PI * 2)]);
     const parts = [slab(forme, xa, xb, fond)];
     // u vers la droite du lecteur : à gauche de la voiture (x > 0) la droite est l'arrière (−z), à l'opposé sur l'autre flanc
     [...e.chiffres].forEach((ch, k) => {
       const u0 = -total / 2 + k * (dw + gap) + dw / 2;
-      for (const [ua, ub, va, vb] of chiffre(ch, dw, dh, t)) {
+      for (const [ua, ub, va, vb] of chiffre(ch, dw, dh)) {
         const za2 = zc - side * (u0 + ua), zb2 = zc - side * (u0 + ub);
         parts.push(slab(rect(Math.min(za2, zb2), Math.max(za2, zb2), yc + va, yc + vb), ya, yb, encre));
       }
@@ -317,7 +347,7 @@ function pois(c: Ctx, e: Extract<SkinElement, { type: 'pois' }>): THREE.BufferGe
 }
 
 function diagonales(c: Ctx, e: Extract<SkinElement, { type: 'diagonales' }>): THREE.BufferGeometry[] {
-  const { s } = c, [za, zb] = entreRoues(s, 0.03), pente = 1.2, epaisV = e.largeur * Math.sqrt(1 + pente * pente);
+  const { s } = c, [za, zb] = entreRoues(s, 0.03), pente = e.pente ?? 1.2, epaisV = e.largeur * Math.sqrt(1 + pente * pente);
   const yc = s.groundClear + 0.3, col = c.col(e.teinte), pas = (zb - za) / (e.nombre + 1);
   return deuxCotes((side) => {
     const out: THREE.BufferGeometry[] = [];
@@ -347,6 +377,293 @@ function degrade(c: Ctx, e: Extract<SkinElement, { type: 'degrade' }>): THREE.Bu
     out.push(...deuxCotes((side) => bandeFlanc(s, side, () => y, () => y + e.hauteur, za, fin, col, c.ep)));
   });
   return out;
+}
+
+/** Bande oblique sur le flanc `side` : centrée sur la droite de pente `pente` passant par (zi, yc), coupée entre yBas et yHaut et entre z0 et z1. */
+function oblique(c: Ctx, side: number, zi: number, yc: number, pente: number, largeur: number, yBas: number, yHaut: number, z0: number, z1: number, col: THREE.Color, N = 48): THREE.BufferGeometry[] {
+  const ev = largeur * Math.sqrt(1 + pente * pente), demi = (yHaut - yBas) / Math.abs(pente) + largeur;
+  return bandeFlanc(c.s, side, (z) => Math.max(yBas, yc + pente * (z - zi) - ev / 2), (z) => Math.min(yHaut, yc + pente * (z - zi) + ev / 2), Math.max(z0, zi - demi), Math.min(z1, zi + demi), col, c.ep, N);
+}
+
+/** Étendue en z de tout le flanc (comme les bandes latérales). */
+const toutFlanc = (s: CarShape): [number, number] => [-s.length / 2 + 0.2, s.length / 2 - 0.3];
+
+function barres(c: Ctx, e: Extract<SkinElement, { type: 'barres' }>): THREE.BufferGeometry[] {
+  const { s } = c, [z0, z1] = toutFlanc(s), out: THREE.BufferGeometry[] = [];
+  e.teintes.forEach((t, i) => {
+    const y = s.groundClear + e.bas + i * (e.hauteur + e.ecart), col = c.col(t);
+    out.push(...deuxCotes((side) => bandeFlanc(s, side, () => y, () => y + e.hauteur, z0, z1, col, c.ep, 64, 0.004)));
+  });
+  return out;
+}
+
+function bandesMulti(c: Ctx, e: Extract<SkinElement, { type: 'bandesMulti' }>): THREE.BufferGeometry[] {
+  const { s, ep } = c, h = s.length / 2, zones: ZoneBande[] = e.zones ?? ['capot', 'toit', 'coffre'];
+  const n = e.teintes.length, total = n * e.largeur + (n - 1) * e.ecart, out: THREE.BufferGeometry[] = [];
+  e.teintes.forEach((t, i) => {
+    const x0 = -total / 2 + i * (e.largeur + e.ecart), x1 = x0 + e.largeur, col = c.col(t);
+    if (zones.includes('capot')) out.push(slab(ruban(dessusCapot(s), BEVEL + ep, BEVEL - ENFONCE), x0, x1, col));
+    if (zones.includes('toit')) out.push(slab(rect(s.roofRearZ - 0.02, s.roofFrontZ + 0.02, s.roofY + 0.045, s.roofY + 0.055 + ep), x0, x1, col));
+    if (zones.includes('coffre') && s.deckZ - (-h + 0.15) > 0.3) {
+      out.push(slab(ruban([[s.deckZ - 0.1, s.deckY], [-h + 0.15, s.deckY], [-h, s.tailY]], BEVEL + ep, BEVEL - ENFONCE), x0, x1, col));
+    }
+  });
+  return out;
+}
+
+function bloc(c: Ctx, e: Extract<SkinElement, { type: 'bloc' }>): THREE.BufferGeometry[] {
+  const { s } = c, haut = hautCaisse(s), [za, zb] = entreRoues(s, 0.04), col = c.col(e.teinte);
+  const z1 = za + (zb - za) * e.de, z0 = za + (zb - za) * e.a; // fractions comptées depuis l'arrière
+  return deuxCotes((side) => bandeFlanc(s, side, () => s.groundClear + e.bas, (z) => interp(haut, z) - e.haut, Math.min(z0, z1), Math.max(z0, z1), col, c.ep));
+}
+
+/** Gros chiffres à plat sur le capot ou le toit, lus depuis l'arrière de la voiture (haut du chiffre vers le nez). */
+function grosNumero(c: Ctx, e: Extract<SkinElement, { type: 'grosNumero' }>): THREE.BufferGeometry[] {
+  const { s, ep } = c, col = c.col(e.teinte), n = e.chiffres.length;
+  const capot = e.zone === 'capot';
+  const zAr = capot ? s.cowlZ + 0.06 : s.roofRearZ + 0.06, zAv = capot ? s.length / 2 - 0.3 : s.roofFrontZ - 0.02;
+  const largeur = capot ? s.width - 0.4 : s.width - 0.5;
+  const cell = Math.min(0.17, ((zAv - zAr) * 0.82) / 5, (largeur * 0.84) / (n * 3 + (n - 1)));
+  const total = (n * 3 + (n - 1)) * cell, zc = (zAv + zAr) / 2, out: THREE.BufferGeometry[] = [];
+  [...e.chiffres].forEach((ch, k) => {
+    const u0 = -total / 2 + k * 4 * cell;
+    for (const [ua, ub, va, vb] of rectsChiffre(ch)) {
+      const xa = -(u0 + ub * cell), xb = -(u0 + ua * cell), z0 = zc + (va - 2.5) * cell, z1 = zc + (vb - 2.5) * cell;
+      out.push(capot ? dalleCapot(s, ep, xa, xb, z1, z0, col) : dalleToit(s, ep, xa, xb, z0, z1, col));
+    }
+  });
+  return out;
+}
+
+function pixels(c: Ctx, e: Extract<SkinElement, { type: 'pixels' }>): THREE.BufferGeometry[] {
+  const { s, ep } = c, bm = MOTIFS[e.motif], lignes = bm.length, colonnes = bm[0].length, t = e.taille;
+  const [za, zb] = entreRoues(s, 0.05), yc = s.groundClear + (e.y ?? 0.34);
+  const col = { '#': c.col(e.teinte), o: c.col(e.coeur ?? 'contraste') };
+  return deuxCotes((side) => {
+    const out: THREE.BufferGeometry[] = [];
+    for (const p of e.pos) {
+      const zc = za + (zb - za) * p;
+      bm.forEach((row, r) => {
+        for (let i = 0; i < colonnes; i++) {
+          const k = row[i];
+          if (k !== '#' && k !== 'o') continue;
+          let j = i;
+          while (j + 1 < colonnes && row[j + 1] === k) j++;
+          const u0 = (i - colonnes / 2) * t, u1 = (j + 1 - colonnes / 2) * t;
+          const a = zc - side * u0, b = zc - side * u1, v1 = yc + (lignes / 2 - r) * t, v0 = v1 - t;
+          const poly = rect(Math.min(a, b), Math.max(a, b), v0, v1);
+          if (surFlanc(s, poly)) {
+            const [xa, xb] = xFlanc(s, side, ep + (k === 'o' ? 0.006 : 0));
+            out.push(slab(poly, xa, xb, col[k]));
+          }
+          i = j;
+        }
+      });
+    }
+    return out;
+  });
+}
+
+const disque = (zc: number, yc: number, rz: number, ry: number, n = 12): Pt[] =>
+  Array.from({ length: n }, (_, k): Pt => [zc + rz * Math.cos((k / n) * Math.PI * 2), yc + ry * Math.sin((k / n) * Math.PI * 2)]);
+
+/** Segment épais (parallélogramme à épaisseur verticale) de (z0, y0) à (z1, y1). */
+const trait = (z0: number, y0: number, z1: number, y1: number, ep: number): Pt[] => [[z0, y0 - ep / 2], [z1, y1 - ep / 2], [z1, y1 + ep / 2], [z0, y0 + ep / 2]];
+
+/** Polygones d'une forme lisse centrée en (zc, yc), de rayon R et tournée de `rot` : `ext` (teinte) et `int` (teinte de cœur). */
+function polyForme(f: FormeDecor, zc: number, yc: number, R: number, rot: number): { ext: Pt[][]; int: Pt[][] } {
+  const tourne = (u: number, v: number): Pt => [zc + R * (u * Math.cos(rot) - v * Math.sin(rot)), yc + R * (u * Math.sin(rot) + v * Math.cos(rot))];
+  switch (f) {
+    case 'etoile': return { ext: [Array.from({ length: 10 }, (_, k) => { const a = Math.PI / 2 + (k * Math.PI) / 5, r = k % 2 ? 0.45 : 1; return tourne(r * Math.cos(a), r * Math.sin(a)); })], int: [] };
+    case 'coeur': return {
+      ext: [Array.from({ length: 24 }, (_, k) => {
+        const t = (k / 24) * Math.PI * 2;
+        return tourne((16 * Math.sin(t) ** 3) / 17, (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t) + 1.5) / 17);
+      })], int: [],
+    };
+    case 'fleur': return {
+      ext: Array.from({ length: 5 }, (_, k) => { const a = rot + Math.PI / 2 + (k * Math.PI * 2) / 5; return disque(zc + 0.58 * R * Math.cos(a), yc + 0.58 * R * Math.sin(a), 0.42 * R, 0.42 * R, 10); }),
+      int: [disque(zc, yc, 0.3 * R, 0.3 * R, 10)],
+    };
+    case 'losange': return { ext: [[tourne(0, 1), tourne(0.6, 0), tourne(0, -1), tourne(-0.6, 0)]], int: [] };
+    case 'rond': return { ext: [disque(zc, yc, R, R, 14)], int: [] };
+    case 'croix': return { ext: [rect(zc - R, zc + R, yc - 0.19 * R, yc + 0.19 * R), rect(zc - 0.19 * R, zc + 0.19 * R, yc - R, yc + R)], int: [] };
+    case 'fleche': {
+      // flèche montante en zigzag, pointe en haut à droite (une boursière qui s'envole)
+      const P: Pt[] = [[-0.9, -0.55], [-0.3, 0.02], [-0.02, -0.26], [0.55, 0.42]], t = 0.24;
+      const q: Pt[][] = [];
+      for (let k = 0; k < P.length - 1; k++) q.push(trait(zc + R * P[k][0], yc + R * P[k][1], zc + R * P[k + 1][0], yc + R * P[k + 1][1], R * t));
+      const [px, py] = P[3], dx = P[3][0] - P[2][0], dy = P[3][1] - P[2][1], l = Math.hypot(dx, dy), ux = dx / l, uy = dy / l;
+      q.push([[zc + R * (px + ux * 0.5), yc + R * (py + uy * 0.5)], [zc + R * (px - uy * 0.36), yc + R * (py + ux * 0.36)], [zc + R * (px + uy * 0.36), yc + R * (py - ux * 0.36)]]);
+      return { ext: q, int: [] };
+    }
+    case 'patte': return {
+      ext: [disque(zc, yc - 0.2 * R, 0.55 * R, 0.42 * R, 12), ...([[-0.66, 0.34], [-0.23, 0.68], [0.23, 0.68], [0.66, 0.34]] as Pt[]).map(([u, v]) => disque(zc + u * R, yc + v * R, 0.2 * R, 0.24 * R, 8))],
+      int: [],
+    };
+  }
+}
+
+/** Centres semés sur le flanc : rangées décalées de pas `pas`, avec un peu de désordre tiré de `rng`. */
+function semis(s: CarShape, pas: number, rng: () => number): Pt[] {
+  const h = s.length / 2, haut = hautCaisse(s), out: Pt[] = [];
+  let r = 0;
+  for (let y = s.groundClear + 0.08; y < s.groundClear + 0.72; y += pas * 0.87, r++) {
+    for (let z = -h + 0.35 + (r % 2 ? pas / 2 : 0); z < h - 0.5; z += pas) {
+      const zz = z + (rng() - 0.5) * pas * 0.45, yy = y + (rng() - 0.5) * pas * 0.45;
+      if (yy < interp(haut, zz) - 0.05) out.push([zz, yy]);
+    }
+  }
+  return out;
+}
+
+function formes(c: Ctx, e: Extract<SkinElement, { type: 'formes' }>): THREE.BufferGeometry[] {
+  const { s } = c, rng = mulberry32(e.graine), R = e.taille;
+  const [za, zb] = entreRoues(s, 0.05);
+  const centres: Pt[] = e.pas
+    ? semis(s, e.pas, rng)
+    : Array.from({ length: e.nombre ?? 1 }, (_, i): Pt => [za + ((zb - za) * (i + 0.5)) / (e.nombre ?? 1), s.groundClear + 0.34]);
+  const ext: Pt[][] = [], int: Pt[][] = [];
+  for (const [z, y] of centres) {
+    const rot = e.forme === 'etoile' || e.forme === 'coeur' || e.forme === 'losange' ? (rng() - 0.5) * 0.7 : 0;
+    const p = polyForme(e.forme, z, y, R * (e.pas ? 0.8 + rng() * 0.4 : 1), rot);
+    ext.push(...p.ext);
+    int.push(...p.int);
+  }
+  return [...poserFlancs(c, ext, c.col(e.teinte)), ...(e.coeur ? poserFlancs(c, int, c.col(e.coeur), 0.006) : [])];
+}
+
+function taches(c: Ctx, e: Extract<SkinElement, { type: 'taches' }>): THREE.BufferGeometry[] {
+  const { s } = c, rng = mulberry32(e.graine), ext: Pt[][] = [], int: Pt[][] = [];
+  for (const [z, y] of semis(s, e.pas, rng)) {
+    const n = 9, r = Array.from({ length: n }, () => e.taille * (0.65 + 0.7 * rng()));
+    const blob = (k: number): Pt[] => r.map((ri, i): Pt => [z + ri * k * Math.cos((i / n) * Math.PI * 2) * 1.2, y + ri * k * Math.sin((i / n) * Math.PI * 2)]);
+    ext.push(blob(1));
+    if (e.coeur) int.push(blob(0.5));
+  }
+  return [...poserFlancs(c, ext, c.col(e.teinte)), ...(e.coeur ? poserFlancs(c, int, c.col(e.coeur), 0.006) : [])];
+}
+
+function zebrures(c: Ctx, e: Extract<SkinElement, { type: 'zebrures' }>): THREE.BufferGeometry[] {
+  const { s } = c, [z0, z1] = toutFlanc(s), col = c.col(e.teinte), yc = s.groundClear + 0.4, out: THREE.BufferGeometry[] = [];
+  for (let zi = z0 - 0.2; zi <= z1 + 0.2; zi += e.pas) {
+    out.push(...deuxCotes((side) => oblique(c, side, zi, yc, e.pente, e.largeur, s.groundClear, 2, z0, z1, col, 40)));
+  }
+  return out;
+}
+
+function tigre(c: Ctx, e: Extract<SkinElement, { type: 'tigre' }>): THREE.BufferGeometry[] {
+  const { s } = c, rng = mulberry32(e.graine), h = s.length / 2, haut = hautCaisse(s), bas = basCaisse(s), polys: Pt[][] = [];
+  for (let z = -h + 0.4; z < h - 0.5; z += e.pas) {
+    const zz = z + (rng() - 0.5) * e.pas * 0.5, w = 0.045 + rng() * 0.04, tilt = (rng() - 0.5) * 0.08;
+    const top = interp(haut, zz) - 0.03, L = Math.min(0.14 + rng() * 0.26, top - interp(bas, zz) - 0.05);
+    if (L > 0.06) polys.push([[zz - w / 2, top], [zz + w / 2, top], [zz + tilt, top - L]]);
+    const zb = zz + e.pas / 2, w2 = 0.04 + rng() * 0.035, bot = interp(bas, zb) + 0.02, L2 = 0.07 + rng() * 0.1;
+    polys.push([[zb - w2 / 2, bot], [zb + w2 / 2, bot], [zb - tilt, bot + L2]]);
+  }
+  return poserFlancs(c, polys, c.col(e.teinte));
+}
+
+function gouttes(c: Ctx, e: Extract<SkinElement, { type: 'gouttes' }>): THREE.BufferGeometry[] {
+  const { s } = c, rng = mulberry32(e.graine), h = s.length / 2, haut = hautCaisse(s), bas = basCaisse(s), col = c.col(e.teinte);
+  const [z0, z1] = toutFlanc(s);
+  const bande = deuxCotes((side) => bandeFlanc(s, side, (z) => interp(haut, z) - 0.075, () => 2, z0, z1, col, c.ep));
+  const polys: Pt[][] = [];
+  for (let k = 0; k < e.nombre; k++) {
+    const z = -h + 0.5 + rng() * (s.length - 1.1), w = 0.05 + rng() * 0.04, top = interp(haut, z) - 0.06;
+    const L = Math.min(0.12 + rng() * 0.3, top - interp(bas, z) - 0.05);
+    if (L < 0.08) continue;
+    const bout = top - L + w / 2;
+    polys.push([[z - w / 2, top], [z - w / 2, bout], ...Array.from({ length: 7 }, (_, i): Pt => { const a = Math.PI + (i / 6) * Math.PI; return [z + (w / 2) * Math.cos(a), bout + (w / 2) * Math.sin(a)]; }), [z + w / 2, bout], [z + w / 2, top]]);
+  }
+  return [...bande, ...poserFlancs(c, polys, col)];
+}
+
+function hachures(c: Ctx, e: Extract<SkinElement, { type: 'hachures' }>): THREE.BufferGeometry[] {
+  const { s } = c, [za, zb] = entreRoues(s, 0.04), col = c.col(e.teinte), out: THREE.BufferGeometry[] = [];
+  const yBas = s.groundClear + e.bas, yHaut = s.groundClear + e.haut, yc = (yBas + yHaut) / 2;
+  for (let zi = za - 0.2; zi <= zb + 0.2; zi += e.pas) {
+    out.push(...deuxCotes((side) => oblique(c, side, zi, yc, 1.4, e.largeur, yBas, yHaut, za, zb, col, 24)));
+  }
+  return out;
+}
+
+function circuit(c: Ctx, e: Extract<SkinElement, { type: 'circuit' }>): THREE.BufferGeometry[] {
+  const { s } = c, rng = mulberry32(e.graine), g = 0.05, t = 0.016, [za, zb] = entreRoues(s, 0.05), polys: Pt[][] = [];
+  const yMin = s.groundClear + 0.12, yMax = s.groundClear + 0.6;
+  for (let i = 0; i < e.nombre; i++) {
+    let z = za + Math.round(rng() * ((zb - za) / g)) * g, y = yMin + Math.round(rng() * ((yMax - yMin) / g)) * g;
+    let dir = rng() < 0.5 ? 1 : -1;
+    polys.push(disque(z, y, 0.022, 0.022, 8));
+    for (let k = 0; k < 4; k++) {
+      const long = (2 + Math.floor(rng() * 5)) * g;
+      polys.push(rect(Math.min(z, z + dir * long), Math.max(z, z + dir * long), y - t / 2, y + t / 2));
+      z += dir * long;
+      const pas = 1 + Math.floor(rng() * 3), dy = (rng() < 0.5 ? 1 : -1) * g * pas;
+      const y2 = Math.max(yMin, Math.min(yMax, y + dy)), dz = dir * Math.abs(y2 - y);
+      if (y2 !== y) { polys.push(trait(z, y, z + dz, y2, t * 1.4)); z += dz; y = y2; }
+    }
+    polys.push(disque(z, y, 0.022, 0.022, 8));
+    dir = -dir;
+  }
+  return poserFlancs(c, polys, c.col(e.teinte));
+}
+
+function grille(c: Ctx, e: Extract<SkinElement, { type: 'grille' }>): THREE.BufferGeometry[] {
+  const { s, ep } = c, col = c.col(e.teinte), [z0, z1] = toutFlanc(s), t = e.epaisseur, out: THREE.BufferGeometry[] = [];
+  for (let y = s.groundClear + 0.06; y < s.groundClear + 0.8; y += e.pas) out.push(...deuxCotes((side) => bandeFlanc(s, side, () => y, () => y + t, z0, z1, col, ep, 64, 0.004)));
+  for (let z = z0 + e.pas / 2; z <= z1; z += e.pas) out.push(...deuxCotes((side) => bandeFlanc(s, side, () => 0, () => 2, z - t / 2, z + t / 2, col, ep, 2, 0.004)));
+  // capot et toit : lignes longitudinales et transversales
+  const hw = s.width / 2 - 0.1;
+  for (let x = 0; x <= hw; x += e.pas) for (const sg of x === 0 ? [1] : [1, -1]) {
+    out.push(slab(ruban(dessusCapot(s), BEVEL + ep, BEVEL - ENFONCE), sg * x - t / 2, sg * x + t / 2, col));
+  }
+  const zAv = s.length / 2 - 0.2, zAr = s.cowlZ + 0.03;
+  for (let z = zAv; z > zAr; z -= e.pas) out.push(dalleCapot(s, ep, -hw, hw, z, z - t, col));
+  const hwt = (s.width - 0.3 - 0.02) / 2 + 0.004;
+  for (let x = 0; x <= hwt; x += e.pas) for (const sg of x === 0 ? [1] : [1, -1]) out.push(dalleToit(s, ep, sg * x - t / 2, sg * x + t / 2, s.roofRearZ - 0.02, s.roofFrontZ + 0.02, col));
+  for (let z = s.roofRearZ; z < s.roofFrontZ; z += e.pas) out.push(dalleToit(s, ep, -hwt, hwt, z, z + t, col));
+  return out;
+}
+
+function scanner(c: Ctx, e: Extract<SkinElement, { type: 'scanner' }>): THREE.BufferGeometry[] {
+  const { s, ep } = c, n = e.teintes.length, h = s.length / 2, out: THREE.BufferGeometry[] = [];
+  if (e.zone === 'toit') {
+    const l = 0.8, zc = (s.roofFrontZ + s.roofRearZ) / 2;
+    e.teintes.forEach((t, i) => out.push(slab(rect(zc - 0.09, zc + 0.09, s.roofY + 0.045, s.roofY + 0.055 + ep), -l / 2 + (i * l) / n, -l / 2 + ((i + 1) * l) / n, c.col(t))));
+    return out;
+  }
+  const l = 0.62, y0 = s.noseY + 0.06, y1 = s.noseY + 0.14;
+  out.push(slab(rect(h - 0.02, h + 0.05, y0 - 0.02, y1 + 0.02), -l / 2 - 0.03, l / 2 + 0.03, new THREE.Color('#0d0d12')));
+  e.teintes.forEach((t, i) => out.push(slab(rect(h - 0.02, h + 0.058, y0, y1), -l / 2 + (i * l) / n + 0.006, -l / 2 + ((i + 1) * l) / n - 0.006, c.col(t))));
+  // reflet sur le bord du capot
+  const cw = 0.5;
+  e.teintes.forEach((t, i) => out.push(dalleCapot(s, ep, -cw / 2 + (i * cw) / n, -cw / 2 + ((i + 1) * cw) / n, h - 0.1, h - 0.17, c.col(t))));
+  return out;
+}
+
+/** Lame effilée de la base `base` à la pointe `tip` (u vers l'avant, v vers le haut), courbée de `arc`, large de `w` à la base. */
+function lame(base: Pt, tip: Pt, arc: number, w: number): Pt[] {
+  const N = 10, haut: Pt[] = [], bas: Pt[] = [];
+  for (let i = 0; i <= N; i++) {
+    const t = i / N, cx = base[0] + (tip[0] - base[0]) * t, cy = base[1] + (tip[1] - base[1]) * t + arc * Math.sin(Math.PI * t);
+    const demi = (w / 2) * Math.pow(1 - t, 0.85) * (1 + 0.5 * Math.sin(Math.PI * t));
+    haut.push([cx, cy + demi]);
+    if (i < N) bas.push([cx, cy - demi]);
+  }
+  return [...haut, ...bas.reverse()];
+}
+
+/** Griffes du flanc : [base, pointe, courbure, largeur] en mètres autour du centre de la portière (variante 1 : pointes vers l'arrière). */
+const GRIFFES: [Pt, Pt, number, number][] = [
+  [[0.78, -0.1], [-0.85, 0.13], 0.05, 0.16],
+  [[0.62, -0.23], [-0.7, -0.08], 0.04, 0.13],
+  [[0.5, 0.02], [-0.5, 0.15], 0.03, 0.11],
+];
+
+function tribal(c: Ctx, e: Extract<SkinElement, { type: 'tribal' }>): THREE.BufferGeometry[] {
+  const { s } = c, [za, zb] = entreRoues(s, 0.05), zc = (za + zb) / 2, yc = s.groundClear + 0.33, sens = e.variante === 1 ? 1 : -1;
+  return poserFlancs(c, GRIFFES.map(([b, t, arc, w]) => lame([b[0] * sens, b[1]], [t[0] * sens, t[1]], arc, w).map(([u, v]): Pt => [zc + u, yc + v])), c.col(e.teinte));
 }
 
 /** Camouflage en cases : pour chaque case, rien (carrosserie visible) ou une teinte, avec de la cohérence entre voisines. */
@@ -431,6 +748,21 @@ export function buildSkinGeometry(shape: CarShape, skin: SkinDef, principale: st
       case 'diagonales': parts.push(...diagonales(c, e)); break;
       case 'dents': parts.push(...dents(c, e)); break;
       case 'degrade': parts.push(...degrade(c, e)); break;
+      case 'barres': parts.push(...barres(c, e)); break;
+      case 'bandesMulti': parts.push(...bandesMulti(c, e)); break;
+      case 'bloc': parts.push(...bloc(c, e)); break;
+      case 'grosNumero': parts.push(...grosNumero(c, e)); break;
+      case 'pixels': parts.push(...pixels(c, e)); break;
+      case 'formes': parts.push(...formes(c, e)); break;
+      case 'taches': parts.push(...taches(c, e)); break;
+      case 'zebrures': parts.push(...zebrures(c, e)); break;
+      case 'tigre': parts.push(...tigre(c, e)); break;
+      case 'gouttes': parts.push(...gouttes(c, e)); break;
+      case 'hachures': parts.push(...hachures(c, e)); break;
+      case 'circuit': parts.push(...circuit(c, e)); break;
+      case 'grille': parts.push(...grille(c, e)); break;
+      case 'scanner': parts.push(...scanner(c, e)); break;
+      case 'tribal': parts.push(...tribal(c, e)); break;
     }
   });
   if (parts.length === 0) return null;
