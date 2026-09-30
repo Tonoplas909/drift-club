@@ -1,10 +1,9 @@
-import { LIMITES } from './types';
-import type { Level, PointRoute, Barriere, ObjetPlace, Ambiance, CoteBarriere, TypeObjet } from './types';
+import { LIMITES, ENVIRONNEMENTS } from './types';
+import type { Level, PointRoute, Barriere, ObjetPlace, Ambiance, CoteBarriere, TypeObjet, Environnement } from './types';
 
 export type ResultatValidation = { ok: true; level: Level } | { ok: false; erreurs: string[] };
 
 const AMBIANCES: readonly string[] = ['jour', 'coucher'];
-const ENVIRONNEMENTS: readonly string[] = ['montagne'];
 const COTES: readonly string[] = ['gauche', 'droite', 'deux', 'ext'];
 const TYPES_OBJETS: readonly string[] = ['arbre', 'sapin', 'rocher', 'pneus', 'barriere', 'panneau'];
 
@@ -29,8 +28,8 @@ export function validateLevel(raw: unknown): ResultatValidation {
   if (typeof auteur !== 'string' || auteur.length > LIMITES.auteurMax) {
     e.push(`auteur : 0 à ${LIMITES.auteurMax} caractères.`);
   }
-  if (typeof raw.environnement !== 'string' || !ENVIRONNEMENTS.includes(raw.environnement)) {
-    e.push('environnement : valeur inconnue (attendu : montagne).');
+  if (typeof raw.environnement !== 'string' || !(ENVIRONNEMENTS as readonly string[]).includes(raw.environnement)) {
+    e.push(`environnement : valeur inconnue (attendu : ${ENVIRONNEMENTS.join(', ')}).`);
   }
   if (typeof raw.ambiance !== 'string' || !AMBIANCES.includes(raw.ambiance)) {
     e.push('ambiance : « jour » ou « coucher ».');
@@ -122,7 +121,7 @@ export function validateLevel(raw: unknown): ResultatValidation {
       format: 1,
       nom: (nom as string).trim(),
       auteur: auteur as string,
-      environnement: 'montagne',
+      environnement: raw.environnement as Environnement,
       ambiance: raw.ambiance as Ambiance,
       route,
       barrieres,

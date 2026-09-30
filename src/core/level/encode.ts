@@ -1,3 +1,4 @@
+import { ENVIRONNEMENTS } from './types';
 import type { Level, CoteBarriere, TypeObjet } from './types';
 import { loadLevel } from '../loadLevel';
 
@@ -9,7 +10,6 @@ export const TAILLE_MAX_DECOMPRESSE = 200_000;
 export const LONGUEUR_MAX_CODE = 150_000;
 
 const AMBIANCES = ['jour', 'coucher'] as const;
-const ENVIRONNEMENTS = ['montagne'] as const;
 const COTES: readonly CoteBarriere[] = ['gauche', 'droite', 'deux', 'ext'];
 const TYPES: readonly TypeObjet[] = ['arbre', 'sapin', 'rocher', 'pneus', 'barriere', 'panneau'];
 
