@@ -26,8 +26,21 @@ html, body {
 #hud { display: none; }
 #hud.on { display: block; }
 /* version du jeu, discrète, masquée pendant la course */
-#version { position: absolute; left: max(8px, env(safe-area-inset-left)); bottom: max(6px, env(safe-area-inset-bottom)); z-index: 5; pointer-events: none; font-size: 11px; font-weight: 500; color: #fff; opacity: .45; font-variant-numeric: tabular-nums; }
-#hud.on ~ #version { display: none; }
+#version { position: absolute; left: max(8px, env(safe-area-inset-left)); bottom: max(6px, env(safe-area-inset-bottom)); z-index: 4; font: 600 12px var(--font); color: #fff; opacity: .6; font-variant-numeric: tabular-nums; background: rgba(21, 19, 28, .45); border: 0; border-radius: 10px; padding: 3px 9px; cursor: pointer; }
+#version:hover { opacity: 1; }
+/* une nouvelle version depuis la dernière visite : pastille orange */
+#version.nouveau { opacity: 1; }
+#version.nouveau::after { content: ''; display: inline-block; width: 8px; height: 8px; margin-left: 6px; border-radius: 50%; background: var(--orange); vertical-align: 1px; }
+/* masqué en course et dans l'éditeur (plein écran) */
+#hud.on ~ #version, body:has(.ed) #version { display: none; }
+/* notes de version */
+.notes { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; max-height: 62vh; padding-right: 4px; }
+.note h3 { margin: 0; font-size: 18px; text-transform: none; letter-spacing: 0; color: var(--ink); opacity: 1; }
+.note h3 span { font-weight: 600; }
+.note small { opacity: .6; }
+.note ul { margin: 4px 0 0; padding-left: 20px; }
+.note li { margin: 2px 0; }
+.note.derniere h3 { color: var(--orange); }
 .hud-top { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 16px; right: 16px; display: flex; justify-content: space-between; }
 .hud-box { background: var(--cream); border: 3px solid var(--ink); border-radius: 16px; padding: 2px 14px 0; box-shadow: 0 4px 0 var(--ink); text-align: center; min-width: 118px; }
 .hud-box small { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; opacity: .6; }
