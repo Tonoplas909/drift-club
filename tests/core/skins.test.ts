@@ -4,15 +4,41 @@ import { RARETES, RARETE_IDS } from '../../src/core/raretes';
 import { CAR_IDS } from '../../src/core/physics/cars';
 
 describe('données des livrées', () => {
-  it('au moins 12 livrées par voiture, « unie » en premier, ids uniques, noms français non vides', () => {
+  it('au moins 28 livrées par voiture, « unie » en premier, ids uniques, noms et descriptions non vides', () => {
     for (const car of CAR_IDS) {
       const l = SKINS[car];
-      expect(l.length).toBeGreaterThanOrEqual(12);
+      expect(l.length).toBeGreaterThanOrEqual(28);
       expect(l[0].id).toBe('unie');
       expect(l[0].elements).toEqual([]);
       expect(new Set(l.map((s) => s.id)).size).toBe(l.length);
-      for (const s of l) expect(s.nom.trim().length).toBeGreaterThan(0);
+      for (const s of l) {
+        expect(s.nom.trim().length).toBeGreaterThan(0);
+        expect(s.description.trim().length).toBeGreaterThan(10);
+      }
     }
+  });
+  it('pyramide des raretés : au moins 8 communes (hors unie), au plus 3 exotiques, plus de communes que de rares', () => {
+    for (const car of CAR_IDS) {
+      const n = (r: string) => SKINS[car].filter((s) => s.id !== 'unie' && s.rarete === r).length;
+      expect(n('commune')).toBeGreaterThanOrEqual(8);
+      expect(n('exotique')).toBeLessThanOrEqual(3);
+      expect(n('exotique')).toBeGreaterThanOrEqual(1);
+      expect(n('commune')).toBeGreaterThan(n('rare'));
+      expect(n('rare')).toBeGreaterThan(n('epique'));
+    }
+  });
+  it('hommages exotiques : couleurs imposées, sans marque ni titre écrit', () => {
+    const ids = ['dixsec', 'bleunitro', 'maitredrift', 'famille'];
+    for (const id of ids) {
+      const trouve = CAR_IDS.flatMap((c) => SKINS[c]).filter((s) => s.id === id);
+      expect(trouve.length).toBeGreaterThan(0);
+      for (const s of trouve) { expect(s.rarete).toBe('exotique'); expect(s.couleurForcee).toBeDefined(); }
+    }
+    const interdits = /toyota|nissan|mazda|ford|dodge|fast|furious|skyline|supra|rx-?7|charger|brian|dominic|toretto/i;
+    for (const s of CAR_IDS.flatMap((c) => SKINS[c])) expect(`${s.nom} ${s.description}`).not.toMatch(interdits);
+  });
+  it('les livrées non forcées à pastille : accent défini pour tous les types d\'éléments', () => {
+    for (const car of CAR_IDS) for (const s of SKINS[car]) expect(accentSkin(s, '#3a6ff0')).toMatch(/^#[0-9a-f]{6}$/i);
   });
   it('chaque livrée non unie a au moins un élément', () => {
     for (const car of CAR_IDS) for (const s of SKINS[car].slice(1)) expect(s.elements.length).toBeGreaterThan(0);
