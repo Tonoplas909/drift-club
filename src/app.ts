@@ -6,7 +6,7 @@ import { AudioEngine } from './audio/audio';
 import { KeyboardInput } from './input/keyboard';
 import { TouchControls } from './input/touch';
 import { InputManager } from './input/manager';
-import { Store, safeStorage, cleNiveauPerso, type Reglages, type MonNiveau, type RecordEntry } from './storage/store';
+import { Store, safeStorage, cleNiveauPerso, type Reglages, type MonNiveau } from './storage/store';
 import { Hud } from './game/hud';
 import { GameSession, type DebugHook } from './game/session';
 import { prepareLevel, type PreparedLevel } from './game/prepare';
@@ -30,7 +30,7 @@ import { lireFragment } from './share/lien';
 import { ouvrirPartage, ouvrirImport, carteNiveauPartage } from './ui/partage';
 import { panneauEnLigne } from './ui/enligne';
 import { ecranCompte } from './ui/compte';
-import { ecranClassement, zoneEnLigne } from './ui/classement';
+import { ecranClassement, zoneEnLigne, textePlace } from './ui/classement';
 
 /** D'où vient la course : `index` ≥ 0 pour un niveau officiel, `retour` ramène à l'écran d'origine. */
 interface Contexte { index: number; retour: () => void; menuLabel: string }
@@ -117,6 +117,9 @@ export class App {
 
   private compteChange(e: EtatCompte): void {
     this.screens.majCompte(this.libelleCompte(e));
+    // connexion ou déconnexion pendant le choix du niveau : les places affichées changent
+    if (this.screens.niveauxVisible() && (e.statut === 'connecte') !== this.placesConnecte) this.niveaux();
+    this.placesConnecte = e.statut === 'connecte';
     // lien « mot de passe oublié » : on ouvre l'écran Compte pour choisir le nouveau mot de passe
     if (e.statut === 'connecte' && e.recuperation && this.assets && !this.session) this.ecranCompte(() => this.accueil());
   }
@@ -150,32 +153,42 @@ export class App {
 
   private niveaux(): void {
     this.showroom?.stop();
+    const connecte = this.compte.etat.statut === 'connecte';
+    const attente = textePlace(connecte ? 'chargement' : 'deconnecte');
     const cartes = NIVEAUX_OFFICIELS.map((n) => {
       const s = levelSummary(n.data);
       return {
         nom: s?.nom ?? n.id,
         detail: s ? `${formatDistance(s.longueur)} · ${s.ambiance === 'jour' ? 'Jour' : 'Coucher de soleil'}` : '',
-        record: this.store.getRecord(cleNiveauOfficiel(n.id), this.reglages.mode),
+        place: attente,
       };
     });
     const mesNiveaux = this.store.listNiveaux();
-    const perso = mesNiveaux.map((n) => {
+    const perso: NiveauCarte[] = mesNiveaux.map((n) => {
       const a = analyseLevel(n.level);
       return {
         nom: n.level.nom,
         detail: `${formatDistance(longueurRoute(n.level))} · ${dateCourte(n.maj)}`,
-        record: null as RecordEntry | null,
+        place: attente,
         desactive: a.ok ? undefined : `Niveau à corriger dans l'éditeur : ${a.erreurs[0] ?? a.problemes[0]?.message ?? 'invalide'}`,
       };
     });
-    // les records des niveaux perso sont liés à l'empreinte du contenu (asynchrone)
-    void Promise.all(mesNiveaux.map((n) => empreinteNiveau(n.level))).then((empreintes) => {
-      empreintes.forEach((e, i) => { perso[i].record = this.store.getRecord(cleNiveauPerso(e), this.reglages.mode); });
-      if (this.niveauxAffiches === mesNiveaux && this.screens.niveauxVisible()) this.afficherNiveaux(cartes, perso, mesNiveaux);
-    });
+    if (connecte) void this.chargerPlaces(cartes, perso, mesNiveaux);
     this.niveauxAffiches = mesNiveaux;
     this.panneauEnLigne = null; // liste en ligne rechargée à chaque arrivée sur l'écran
     this.afficherNiveaux(cartes, perso, mesNiveaux);
+  }
+
+  /** Place du joueur dans le classement en ligne de chaque niveau (un seul appel), puis rafraîchit l'écran. */
+  private async chargerPlaces(cartes: NiveauCarte[], perso: NiveauCarte[], mesNiveaux: MonNiveau[]): Promise<void> {
+    const clesOff = NIVEAUX_OFFICIELS.map((n) => cleNiveauOfficiel(n.id));
+    // les niveaux perso sont classés par l'empreinte de leur contenu
+    const clesPerso = await Promise.all(mesNiveaux.map((n) => empreinteNiveau(n.level).then(cleNiveauPerso, () => null)));
+    const r = await this.classement.mesPlaces([...clesOff, ...clesPerso.filter((k): k is string => k !== null)]);
+    const texte = (k: string | null): string => (!r.ok || k === null ? textePlace('erreur') : textePlace({ place: r.valeur.get(k) ?? null }));
+    cartes.forEach((c, i) => { c.place = texte(clesOff[i]); });
+    perso.forEach((c, i) => { c.place = texte(clesPerso[i]); });
+    if (this.niveauxAffiches === mesNiveaux && this.screens.niveauxVisible()) this.afficherNiveaux(cartes, perso, mesNiveaux);
   }
 
   private panneauEnLigne: HTMLElement | null = null;
@@ -205,6 +218,7 @@ export class App {
   }
 
   private niveauxAffiches: MonNiveau[] | null = null;
+  private placesConnecte = false;
 
   private afficherNiveaux(cartes: NiveauCarte[], perso: NiveauCarte[], mesNiveaux: MonNiveau[]): void {
     this.screens.niveaux({

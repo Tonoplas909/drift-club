@@ -71,3 +71,22 @@ describe('ClassementService.chargerClassement', () => {
     expect(m.appels).toHaveLength(0);
   });
 });
+
+describe('ClassementService.mesPlaces', () => {
+  it('un seul appel pour tous les niveaux, clés invalides ignorées, lignes incohérentes rejetées', async () => {
+    const m = faussClient({ 'rpc.mes_places': { data: [
+      { niveau: 'off:a', rang: 3, total: 12, score: 5000, mode: 'semi' },
+      { niveau: 'off:b', rang: 5, total: 2, score: 10, mode: 'semi' },
+    ], error: null } });
+    const r = await new ClassementService(m.fournisseur).mesPlaces(['off:a', 'off:b', 'zzz', 'off:a']);
+    expect(m.appels).toHaveLength(1);
+    expect(m.appels[0].args).toEqual(['mes_places', { p_niveaux: ['off:a', 'off:b'] }]);
+    expect(r.ok && [...r.valeur.entries()]).toEqual([['off:a', { rang: 3, total: 12, score: 5000, mode: 'semi' }]]);
+  });
+  it('aucune clé : pas d\'appel ; erreur serveur : message', async () => {
+    const m = faussClient({ 'rpc.mes_places': { data: null, error: { code: 'PGRST202', message: 'Could not find the function' } } });
+    expect((await new ClassementService(m.fournisseur).mesPlaces([])).ok).toBe(true);
+    expect(m.appels).toHaveLength(0);
+    expect((await new ClassementService(m.fournisseur).mesPlaces(['off:a'])).ok).toBe(false);
+  });
+});
