@@ -32,7 +32,7 @@ Chaque livrée a une **rareté** : Commune (bleu, 79,9 %), Rare (violet, 16 %), 
 - Au Garage, les livrées verrouillées portent un cadenas : on peut les **prévisualiser** en 3D mais pas les équiper.
 - Le tirage est pur et testé (`src/core/caisses.ts`, `tirer(rng, inventaire)` et `construireBande`) ; la progression est locale (`driftclub.v1.progression`), sans achat ni argent réel. Les livrées déjà choisies avant l'arrivée des caisses restent débloquées.
 
-Cinq niveaux : **Premiers virages**, **Forêt des Pins**, **Col du Loup**, **Lacets du Belvédère** (montée en épingles) et **Vallée des Crêtes** (descente rapide au coucher du soleil).
+Dix niveaux : **Premiers virages**, **Forêt des Pins**, **Col du Loup**, **Lacets du Belvédère** (montée en épingles), **Vallée des Crêtes** (descente rapide au coucher du soleil), **Circuit du Lac** (grand fer à cheval de longs virages, le plus facile), **Épingles du Diable** (huit épingles empilées sur une face raide, le plus dur), **Route des Crêtes Nord** (longue crête rapide avec trois épingles), **Descente du Moulin** (descente technique en chicanes au coucher du soleil) et **Grand Huit** (un serpent de dix virages alternés).
 
 ## Commandes
 
