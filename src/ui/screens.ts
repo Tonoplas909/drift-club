@@ -108,13 +108,14 @@ export class Screens {
     )));
   }
 
-  accueil(o: { onJouer(): void; onGarage(): void; onCaisses(): void; onEditeur(): void; onCompte(): void; onReglages(): void; persistent: boolean; compte: string }): void {
+  accueil(o: { onJouer(): void; onZen(): void; onGarage(): void; onCaisses(): void; onEditeur(): void; onCompte(): void; onReglages(): void; persistent: boolean; compte: string }): void {
     const compte = h('button', { class: 'btn sec', onclick: o.onCompte }, o.compte);
     this.boutonCompte = compte;
     this.show(h('div', { class: 'screen accueil' },
       h('h1', { class: 'logo big' }, 'Drift', h('span', {}, 'Club')),
       h('div', { class: 'menu' },
         h('button', { class: 'btn big', onclick: o.onJouer }, 'Jouer'),
+        h('button', { class: 'btn sec', title: 'Balade sans fin, sans score : la route se dessine au fil des kilomètres', onclick: o.onZen }, 'Mode Zen'),
         h('div', { class: 'duo' },
           h('button', { class: 'btn sec', onclick: o.onGarage }, 'Garage'),
           h('button', { class: 'btn sec', onclick: o.onCaisses }, 'Caisses'),
@@ -277,6 +278,21 @@ export class Screens {
       h('button', { class: 'btn', onclick: o.onReprendre }, 'Reprendre'),
       h('button', { class: 'btn sec', onclick: o.onRecommencer }, 'Recommencer'),
       h('button', { class: 'btn sec', onclick: o.onMenu }, o.menuLabel ?? 'Menu'),
+    )));
+  }
+
+  /** Pause du mode Zen : reprendre, nouvelle route (autre graine), menu ; numéro de la route, copiable. */
+  pauseZen(o: { graine: number; onReprendre(): void; onNouvelleRoute(): void; onMenu(): void }): void {
+    const num = o.graine.toLocaleString('fr-FR');
+    const copier = h('button', { class: 'btn sm sec', onclick: () => {
+      void navigator.clipboard?.writeText(String(o.graine)).then(() => this.toast('Numéro de route copié'), () => this.toast(`Route n° ${num}`));
+    } }, 'Copier');
+    this.show(h('div', { class: 'screen dim' }, h('div', { class: 'panel' },
+      h('h2', {}, 'Pause'),
+      h('p', { class: 'hint zen-graine' }, `Mode Zen · route n° ${num} `, copier),
+      h('button', { class: 'btn', onclick: o.onReprendre }, 'Reprendre'),
+      h('button', { class: 'btn sec', onclick: o.onNouvelleRoute }, 'Nouvelle route'),
+      h('button', { class: 'btn sec', onclick: o.onMenu }, 'Menu'),
     )));
   }
 

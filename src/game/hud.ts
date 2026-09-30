@@ -1,4 +1,6 @@
 import type { HudData } from '../core/race/race';
+import type { HudZen } from '../core/zen/zenSim';
+import { THEMES } from '../core/env/themes';
 import { formatScore, formatTime } from '../ui/format';
 import { aiguille, svgJaugeAngle } from './jaugeAngle';
 
@@ -20,7 +22,9 @@ export class Hud {
       <div class="hud-wrong" data-k="wrong">Mauvais sens !</div>
       <div class="hud-progress"><div class="hud-bar"><i data-k="bar"></i></div></div>
       <div class="hud-angle" data-k="angleBox">${svgJaugeAngle()}<b data-k="angleVal">0°</b></div>
-      <div class="hud-speed"><b data-k="speed">0</b> km/h</div>`;
+      <div class="hud-speed"><b data-k="speed">0</b> km/h</div>
+      <div class="hud-zen"><b data-k="km">0,0</b> km<small data-k="region"></small></div>
+      <div class="hud-annonce" data-k="annonce"></div>`;
     root.querySelectorAll<HTMLElement>('[data-k]').forEach((e) => { this.el[e.dataset.k!] = e; });
   }
 
@@ -32,6 +36,37 @@ export class Hud {
 
   show(v: boolean): void {
     this.root.classList.toggle('on', v);
+  }
+
+  /** Mode Zen : ni score, ni chrono, ni détail des points ; distance parcourue et nom de la région. */
+  zen(v: boolean): void {
+    this.root.classList.toggle('zen', v);
+    this.el.annonce.classList.remove('on');
+  }
+
+  private zenKm = '';
+  private zenRegion = '';
+
+  updateZen(h: HudZen): void {
+    this.set('speed', String(Math.round(h.speedKmh)));
+    const km = (Math.max(0, h.distance) / 1000).toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    if (km !== this.zenKm) { this.zenKm = km; this.el.km.textContent = km; }
+    const region = THEMES[h.region].nom;
+    if (region !== this.zenRegion) { this.zenRegion = region; this.el.region.textContent = region; }
+    this.majAngle(h.angle);
+    if (h.wrongWay !== this.last.wrong) {
+      this.last.wrong = h.wrongWay;
+      this.el.wrong.classList.toggle('on', h.wrongWay);
+    }
+  }
+
+  /** Annonce discrète au centre de l'écran (entrée dans une nouvelle région). */
+  annonce(texte: string): void {
+    const a = this.el.annonce;
+    a.textContent = texte;
+    a.classList.remove('on');
+    void a.offsetWidth; // relance l'animation CSS
+    a.classList.add('on');
   }
 
   reset(): void {
@@ -92,15 +127,7 @@ export class Hud {
         this.el.fComboBox.hidden = !avecCombo;
       }
     }
-    // indicateur d'angle sous la voiture
-    const angle = String(Math.round(h.angle));
-    if (angle !== this.last.angle) {
-      this.last.angle = angle;
-      const a = Math.abs(h.angle);
-      this.el.aiguille.setAttribute('transform', `rotate(${aiguille(h.angle).toFixed(1)} 100 100)`);
-      this.el.angleVal.textContent = `${Math.round(a)}°`;
-      this.el.angleBox.className = 'hud-angle' + (a > 90 ? ' trop' : a > 60 ? ' large' : a >= 25 ? ' ideal' : a >= 15 ? ' moyen' : '');
-    }
+    this.majAngle(h.angle);
     let count = '';
     if (h.phase === 'compte') count = String(Math.max(1, Math.ceil(h.countdown - 1e-9)));
     else if (now < this.goUntil) count = 'Partez !';
@@ -113,6 +140,19 @@ export class Hud {
     if (bar !== this.last.bar) {
       this.last.bar = bar;
       this.el.bar.style.width = `${bar / 10}%`;
+    }
+  }
+
+  /** Indicateur d'angle sous la voiture. */
+  private majAngle(hAngle: number): void {
+    const h = { angle: hAngle };
+    const angle = String(Math.round(h.angle));
+    if (angle !== this.last.angle) {
+      this.last.angle = angle;
+      const a = Math.abs(h.angle);
+      this.el.aiguille.setAttribute('transform', `rotate(${aiguille(h.angle).toFixed(1)} 100 100)`);
+      this.el.angleVal.textContent = `${Math.round(a)}°`;
+      this.el.angleBox.className = 'hud-angle' + (a > 90 ? ' trop' : a > 60 ? ' large' : a >= 25 ? ' ideal' : a >= 15 ? ' moyen' : '');
     }
   }
 

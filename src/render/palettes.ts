@@ -145,3 +145,38 @@ export const PALETTES_THEMES: Record<Environnement, Record<Ambiance, Palette>> =
 export const PALETTES: Record<Ambiance, Palette> = PALETTES_THEMES.montagne;
 
 export const paletteDe = (env: Environnement, ambiance: Ambiance): Palette => PALETTES_THEMES[env][ambiance];
+
+/** Couleur `a` → `b` à la fraction `t` (composantes sRGB interpolées, comme les couleurs de la palette). */
+export function melangerCouleur(a: number, b: number, t: number): number {
+  if (t <= 0) return a;
+  if (t >= 1) return b;
+  const r = ((a >> 16) & 255) + ((((b >> 16) & 255) - ((a >> 16) & 255)) * t);
+  const g = ((a >> 8) & 255) + ((((b >> 8) & 255) - ((a >> 8) & 255)) * t);
+  const bl = (a & 255) + (((b & 255) - (a & 255)) * t);
+  return (Math.round(r) << 16) | (Math.round(g) << 8) | Math.round(bl);
+}
+
+/**
+ * Palette intermédiaire entre `a` et `b` (mode Zen : transitions entre décors et entre jour et coucher). Couleurs et
+ * nombres interpolés ; la forme des reliefs lointains et le trottoir suivent la palette dominante.
+ */
+export function melangerPalettes(a: Palette, b: Palette, t: number): Palette {
+  if (t <= 0) return a;
+  if (t >= 1) return b;
+  const c = (x: number, y: number) => melangerCouleur(x, y, t);
+  const n = (x: number, y: number) => x + (y - x) * t;
+  const d = [0, 1, 2].map((i) => n(a.sunDir[i], b.sunDir[i]));
+  const l = Math.hypot(d[0], d[1], d[2]) || 1;
+  const dom = t < 0.5 ? a : b;
+  return {
+    skyTop: c(a.skyTop, b.skyTop), skyBottom: c(a.skyBottom, b.skyBottom), fog: c(a.fog, b.fog),
+    sun: c(a.sun, b.sun), sunIntensity: n(a.sunIntensity, b.sunIntensity), sunDir: [d[0] / l, d[1] / l, d[2] / l],
+    hemiSky: c(a.hemiSky, b.hemiSky), hemiGround: c(a.hemiGround, b.hemiGround), hemiIntensity: n(a.hemiIntensity, b.hemiIntensity),
+    grassA: c(a.grassA, b.grassA), grassB: c(a.grassB, b.grassB), forestFloor: c(a.forestFloor, b.forestFloor), rock: c(a.rock, b.rock),
+    asphalt: c(a.asphalt, b.asphalt), line: c(a.line, b.line),
+    epaule: c(epauleDe(a).getHex(), epauleDe(b).getHex()),
+    trottoir: dom.trottoir,
+    fumee: c(a.fumee, b.fumee), brume: n(a.brume, b.brume),
+    reliefs: { roche: c(a.reliefs.roche, b.reliefs.roche), cime: c(a.reliefs.cime, b.reliefs.cime), ligne: dom.reliefs.ligne, forme: dom.reliefs.forme },
+  };
+}

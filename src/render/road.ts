@@ -89,13 +89,21 @@ function strip(a: V3[], b: V3[], uvA?: [number, number][], uvB?: [number, number
 
 const off = (sp: TrackSample, lat: number, dy: number): V3 => [sp.x + sp.nx * lat, sp.y + dy, sp.z + sp.nz * lat];
 
-export function buildRoad(track: TrackData, p: Palette, tex: RoadTextures): THREE.Group {
+/** Options (mode Zen) : pas de lignes ni d'arche, abscisse de départ des textures, couleur d'accotement par échantillon. */
+export interface OptionsRoute {
+  lignes?: boolean;
+  sDebut?: number;
+  epaule?: (sp: TrackSample) => THREE.Color;
+}
+
+export function buildRoad(track: TrackData, p: Palette, tex: RoadTextures, opts: OptionsRoute = {}): THREE.Group {
   const S = track.samples;
+  const s0 = opts.sDebut ?? 0;
   const group = new THREE.Group();
 
   // Surface texturée
   const surface = new THREE.Mesh(
-    strip(S.map((s) => off(s, s.w, 0.02)), S.map((s) => off(s, -s.w, 0.02)), S.map((s) => [0, s.s / 9]), S.map((s) => [1, s.s / 9])),
+    strip(S.map((s) => off(s, s.w, 0.02)), S.map((s) => off(s, -s.w, 0.02)), S.map((s) => [0, (s.s + s0) / 9]), S.map((s) => [1, (s.s + s0) / 9])),
     toonMaterial({ map: tex.road }),
   );
   surface.name = 'surface';
@@ -108,6 +116,15 @@ export function buildRoad(track: TrackData, p: Palette, tex: RoadTextures): THRE
     strip(S.map((s) => off(s, s.w + 0.7, -0.25)), S.map((s) => off(s, s.w, 0.02)), undefined, undefined, dark),
     strip(S.map((s) => off(s, -s.w, 0.02)), S.map((s) => off(s, -s.w - 0.7, -0.25)), undefined, undefined, dark),
   ]);
+  if (shoulders && opts.epaule) {
+    // couleur propre à chaque échantillon (fondu entre deux décors) : 2 sommets par échantillon, deux bandes
+    const col = shoulders.getAttribute('color') as THREE.BufferAttribute;
+    const n = S.length;
+    for (let i = 0; i < n; i++) {
+      const c = opts.epaule(S[i]);
+      for (const v of [i * 2, i * 2 + 1, 2 * n + i * 2, 2 * n + i * 2 + 1]) col.setXYZ(v, c.r, c.g, c.b);
+    }
+  }
   if (shoulders) {
     const m = new THREE.Mesh(shoulders, toonMaterial({ vertexColors: true }));
     m.name = 'accotements';
@@ -120,12 +137,13 @@ export function buildRoad(track: TrackData, p: Palette, tex: RoadTextures): THRE
   for (const c of track.curbs) {
     const seg = S.slice(c.from, c.to + 1);
     if (seg.length < 2) continue;
-    curbParts.push(strip(seg.map((s) => off(s, s.w + 0.9, 0.05)), seg.map((s) => off(s, s.w, 0.05)), seg.map((s) => [0, s.s / 2]), seg.map((s) => [1, s.s / 2])));
-    curbParts.push(strip(seg.map((s) => off(s, -s.w, 0.05)), seg.map((s) => off(s, -s.w - 0.9, 0.05)), seg.map((s) => [0, s.s / 2]), seg.map((s) => [1, s.s / 2])));
+    curbParts.push(strip(seg.map((s) => off(s, s.w + 0.9, 0.05)), seg.map((s) => off(s, s.w, 0.05)), seg.map((s) => [0, (s.s + s0) / 2]), seg.map((s) => [1, (s.s + s0) / 2])));
+    curbParts.push(strip(seg.map((s) => off(s, -s.w, 0.05)), seg.map((s) => off(s, -s.w - 0.9, 0.05)), seg.map((s) => [0, (s.s + s0) / 2]), seg.map((s) => [1, (s.s + s0) / 2])));
   }
   const curbs = new THREE.Mesh(curbParts.length ? mergeGeometries(curbParts)! : new THREE.BufferGeometry(), toonMaterial({ map: tex.curb }));
   curbs.name = 'vibreurs';
   group.add(curbs);
+  if (opts.lignes === false) return group;
 
   // Lignes de départ (s = 3 m) et d'arrivée (s = longueur − 1,5 m) en damier
   const lineAt = (s: number): THREE.Mesh => {

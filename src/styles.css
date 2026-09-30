@@ -101,6 +101,15 @@ html, body {
 .hud-bar i { display: block; height: 100%; width: 0; background: var(--orange); }
 .hud-speed { position: absolute; right: 16px; bottom: max(12px, env(safe-area-inset-bottom)); font-weight: 700; color: #fff; -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill; font-size: 18px; }
 .hud-speed b { font-size: 30px; font-variant-numeric: tabular-nums; }
+/* Mode Zen : pas de score, de chrono ni de progression ; distance parcourue et région en haut à gauche */
+.hud-zen, .hud-annonce { display: none; }
+#hud.zen .hud-top, #hud.zen .hud-facteurs, #hud.zen .hud-drift, #hud.zen .hud-count, #hud.zen .hud-progress { display: none; }
+#hud.zen .hud-zen { display: block; position: absolute; left: 16px; top: max(12px, env(safe-area-inset-top)); font-weight: 700; color: #fff; -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill; font-size: 18px; }
+.hud-zen b { font-size: 30px; font-variant-numeric: tabular-nums; }
+.hud-zen small { display: block; font-size: 15px; letter-spacing: .5px; opacity: .92; }
+#hud.zen .hud-annonce { display: block; position: absolute; top: 22%; left: 0; right: 0; text-align: center; font-size: 40px; font-weight: 800; color: #fff; -webkit-text-stroke: 4px var(--ink); paint-order: stroke fill; opacity: 0; pointer-events: none; }
+#hud.zen .hud-annonce.on { animation: annonce 3.6s ease-in-out forwards; }
+@keyframes annonce { 0% { opacity: 0; transform: translateY(8px); } 15%, 70% { opacity: .95; transform: none; } 100% { opacity: 0; transform: translateY(-6px); } }
 
 /* Commandes tactiles */
 #touch { display: none; }

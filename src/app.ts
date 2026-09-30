@@ -9,6 +9,7 @@ import { InputManager } from './input/manager';
 import { Store, safeStorage, cleNiveauPerso, type Reglages, type MonNiveau } from './storage/store';
 import { Hud } from './game/hud';
 import { GameSession, type DebugHook } from './game/session';
+import { ZenSession, nouvelleGraine } from './game/zenSession';
 import { prepareLevel, type PreparedLevel } from './game/prepare';
 import { forcerDecor } from './game/decorUrl';
 import { NIVEAUX_OFFICIELS, cleNiveauOfficiel } from './levels';
@@ -69,7 +70,7 @@ export class App {
   private readonly touchControls = new TouchControls($('touch'));
   private readonly input = new InputManager(this.keyboard, this.touchControls);
   private readonly touch = matchMedia('(pointer: coarse)').matches;
-  private session: GameSession | null = null;
+  private session: GameSession | ZenSession | null = null;
   private showroom: Showroom | null = null;
   private current: { index: number; prepared: PreparedLevel; contexte: Contexte } | null = null;
   private editeur: Editeur | null = null;
@@ -133,6 +134,9 @@ export class App {
       this.accueil();
       // lien de partage : à l'ouverture de la page, puis si le joueur colle un autre lien dans la barre d'adresse
       void this.ouvrirLien();
+      // développement : `?debug&zen=<graine>` lance directement une balade Zen
+      const zen = new URLSearchParams(location.search).get('zen');
+      if (this.debug && zen !== null) void this.lancerZen(Number(zen) || undefined);
       window.addEventListener('hashchange', () => { if (!this.session) void this.ouvrirLien(); });
     } catch {
       this.screens.error('Chargement impossible', "Les modèles 3D n'ont pas pu être chargés. Vérifie ta connexion.", [
@@ -244,6 +248,7 @@ export class App {
       compte: this.libelleCompte(),
       onCompte: () => this.ecranCompte(() => this.accueil()),
       onJouer: () => this.niveaux(),
+      onZen: () => void this.lancerZen(),
       onGarage: () => this.garage(() => this.accueil()),
       onCaisses: () => this.caisses(() => this.accueil()),
       onEditeur: () => this.hubEditeur(),
@@ -478,6 +483,36 @@ export class App {
     this.session.start();
   }
 
+  /** Mode Zen : balade sans fin sur une route générée au fil de l'eau (graine tirée au hasard, ou donnée). */
+  private async lancerZen(graine = nouvelleGraine()): Promise<void> {
+    if (!this.assets) return;
+    this.showroom?.stop();
+    this.screens.loading('Préparation de la route…');
+    await new Promise((r) => setTimeout(r, 30));
+    this.session?.dispose();
+    this.current = null;
+    this.session = new ZenSession(graine, {
+      renderer: this.renderer, assets: this.assets, hud: this.hud, audio: this.audio, input: this.input,
+      quality: new QualityManager(this.reglages.qualite, this.touch), reglages: this.reglages, debug: this.debug,
+    }, { onPause: () => this.pauseRace() });
+    this.screens.clear();
+    this.keyboard.capture = true;
+    this.touchControls.show(this.touch || this.input.touchActive);
+    this.session.start();
+  }
+
+  /** Mode Zen : nouvelle route (nouvelle graine), derrière un écran de chargement. */
+  private async nouvelleRoute(): Promise<void> {
+    const s = this.session;
+    if (!(s instanceof ZenSession)) return;
+    this.onEscape = null;
+    this.screens.loading('Nouvelle route…');
+    await new Promise((r) => setTimeout(r, 30));
+    s.restart();
+    this.screens.clear();
+    this.touchControls.show(this.touch || this.input.touchActive);
+  }
+
   // Éditeur de niveaux
 
   private hubEditeur(): void {
@@ -582,6 +617,7 @@ export class App {
   /** Recommence le niveau depuis le début (touche Retour arrière, pause ou résultats). */
   private recommencerCourse(): void {
     if (!this.session) return;
+    if (this.session instanceof ZenSession) { void this.nouvelleRoute(); return; }
     this.onEscape = null;
     this.screens.clear();
     this.touchControls.show(this.touch || this.input.touchActive);
@@ -594,6 +630,16 @@ export class App {
     this.save();
     this.touchControls.show(false);
     this.onEscape = () => this.reprendre();
+    const zen = this.session;
+    if (zen instanceof ZenSession) {
+      this.screens.pauseZen({
+        graine: zen.graine,
+        onReprendre: () => { this.onEscape = null; this.reprendre(); },
+        onNouvelleRoute: () => void this.nouvelleRoute(),
+        onMenu: () => { this.onEscape = null; this.quitterCourse(); },
+      });
+      return;
+    }
     this.screens.pause({
       onReprendre: () => { this.onEscape = null; this.reprendre(); },
       onRecommencer: () => this.recommencerCourse(),
@@ -604,7 +650,7 @@ export class App {
 
   private arrivee(r: RaceResult): void {
     const cur = this.current;
-    if (!cur || !this.session) return;
+    if (!cur || !(this.session instanceof GameSession)) return;
     this.session.pause();
     this.save();
     this.touchControls.show(false);
@@ -680,11 +726,12 @@ export class App {
 
   /** Ferme la course et renvoie l'écran où retourner. */
   private terminerCourse(): () => void {
-    this.session?.dispose();
-    this.session = null;
     this.keyboard.capture = false;
     this.touchControls.show(false);
-    const retour = this.current?.contexte.retour ?? (() => this.niveaux());
+    const zen = this.session instanceof ZenSession;
+    this.session?.dispose();
+    this.session = null;
+    const retour = this.current?.contexte.retour ?? (zen ? () => this.accueil() : () => this.niveaux());
     this.current = null;
     return retour;
   }

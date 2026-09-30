@@ -23,19 +23,114 @@ export function chunkStep(dmin: number, q: QualityLevel): number {
   return q === 'haute' ? base : base * 2;
 }
 
+/**
+ * Maillage d'un morceau carré de terrain (`taille` m, pas `step`) avec des jupes de 4 m sur les bords (elles cachent
+ * les fentes entre morceaux de mailles différentes). `couleur` reçoit la pente locale et écrit la couleur du sommet.
+ */
+export function geometrieMorceau(
+  x0: number, z0: number, taille: number, step: number,
+  hauteur: (x: number, z: number) => number,
+  couleur: (x: number, z: number, pente: number, out: THREE.Color) => void,
+): THREE.BufferGeometry {
+  const n = Math.round(taille / step);
+  const N = n + 1;
+  const heights = new Float32Array(N * N);
+  for (let j = 0; j < N; j++) {
+    for (let i = 0; i < N; i++) heights[j * N + i] = hauteur(x0 + i * step, z0 + j * step);
+  }
+  const vCount = N * N + 4 * N * 2;
+  const pos = new Float32Array(vCount * 3);
+  const col = new Float32Array(vCount * 3);
+  const c = new THREE.Color();
+  for (let j = 0; j < N; j++) {
+    for (let i = 0; i < N; i++) {
+      const k = j * N + i;
+      const x = x0 + i * step, z = z0 + j * step;
+      pos[k * 3] = x; pos[k * 3 + 1] = heights[k]; pos[k * 3 + 2] = z;
+      const hx = heights[j * N + Math.min(n, i + 1)] - heights[j * N + Math.max(0, i - 1)];
+      const hz = heights[Math.min(n, j + 1) * N + i] - heights[Math.max(0, j - 1) * N + i];
+      const slope = Math.max(Math.abs(hx), Math.abs(hz)) / (2 * step);
+      couleur(x, z, slope, c);
+      col[k * 3] = c.r; col[k * 3 + 1] = c.g; col[k * 3 + 2] = c.b;
+    }
+  }
+  const idx: number[] = [];
+  for (let j = 0; j < n; j++) {
+    for (let i = 0; i < n; i++) {
+      const a = j * N + i, b = a + 1, cc = a + N, d = cc + 1;
+      idx.push(a, cc, b, b, cc, d);
+    }
+  }
+  // Jupes (bords qui descendent de 4 m) : cachent les fentes entre morceaux de mailles différentes
+  let v = N * N;
+  const edges: number[][] = [
+    Array.from({ length: N }, (_, i) => i),
+    Array.from({ length: N }, (_, i) => n * N + i),
+    Array.from({ length: N }, (_, j) => j * N),
+    Array.from({ length: N }, (_, j) => j * N + n),
+  ];
+  for (const e of edges) {
+    const top0 = v;
+    for (const k of e) {
+      pos.set([pos[k * 3], pos[k * 3 + 1], pos[k * 3 + 2]], v * 3);
+      col.set([col[k * 3], col[k * 3 + 1], col[k * 3 + 2]], v * 3);
+      pos.set([pos[k * 3], pos[k * 3 + 1] - SKIRT, pos[k * 3 + 2]], (v + N) * 3);
+      col.set([col[k * 3], col[k * 3 + 1], col[k * 3 + 2]], (v + N) * 3);
+      v++;
+    }
+    for (let t = 0; t < N - 1; t++) {
+      const a = top0 + t, b = top0 + t + 1, a2 = a + N, b2 = b + N;
+      idx.push(a, a2, b, b, a2, b2);
+    }
+    v += N;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  geo.computeBoundingSphere();
+  return geo;
+}
+
+/** Matériau du terrain (couleurs par sommet, deux faces). */
+export function materiauTerrain(): THREE.MeshToonMaterial {
+  const mat = toonMaterial({ vertexColors: true });
+  mat.side = THREE.DoubleSide;
+  return mat;
+}
+
 export function buildTerrain(level: Level, track: TrackData, terrain: Terrain, p: Palette, q: QualityLevel): THREE.Group {
   const group = new THREE.Group();
   group.name = 'terrain';
-  const mat = toonMaterial({ vertexColors: true });
-  mat.side = THREE.DoubleSide;
+  const mat = materiauTerrain();
   const seed = level.decor.graine;
   const thr = forestThreshold(level.decor.densite, THEMES[level.environnement].arbres.seuilMin);
   const cA = new THREE.Color(p.grassA), cB = new THREE.Color(p.grassB), cF = new THREE.Color(p.forestFloor);
   const cR = new THREE.Color(p.rock), cS = epauleDe(p);
   const cT = p.trottoir !== undefined ? new THREE.Color(p.trottoir) : null;
-  const c = new THREE.Color();
   const lacs = terrain.plans.length > 0;
   const cSable = new THREE.Color(0xd9c894), cFond = new THREE.Color(0x2d6a8f);
+  const hauteur = (x: number, z: number): number => terrain.hauteurRendue(x, z);
+  const couleur = (x: number, z: number, slope: number, c: THREE.Color): void => {
+    const near = nearestSampleWithin(track, x, z, 14);
+    const roadDist = near ? near.dist : 1e9;
+    const roadW = near ? track.samples[near.index].w : 0;
+    c.copy(cA).lerp(cB, fbm(x / 30, z / 30, seed + 5));
+    c.lerp(cF, smoothstep(thr, thr + 0.08, forestMask(x, z, seed)) * 0.85);
+    c.lerp(cR, smoothstep(0.7, 1.15, slope));
+    // trottoir (ville) : bande claire le long de la route, là où se posent lampadaires et mobilier
+    if (cT && roadDist < 1e8) c.lerp(cT, 1 - smoothstep(roadW + 3.6, roadW + 4.8, roadDist));
+    if (roadDist < 1e8) c.lerp(cS, 1 - smoothstep(roadW + 0.5, roadW + 1.5, roadDist));
+    // lac : plage claire sur la rive, fond de plus en plus sombre sous l'eau (vu à travers la surface translucide)
+    if (lacs) {
+      const sd = terrain.distanceEau(x, z);
+      if (sd > -4) {
+        c.lerp(cSable, smoothstep(-4, -0.5, sd));
+        if (sd > 0.5) c.lerp(cFond, smoothstep(0.5, 9, sd));
+      }
+    }
+  };
 
   for (let z0 = terrain.minZ; z0 < terrain.maxZ; z0 += CHUNK) {
     for (let x0 = terrain.minX; x0 < terrain.maxX; x0 += CHUNK) {
@@ -43,88 +138,7 @@ export function buildTerrain(level: Level, track: TrackData, terrain: Terrain, p
       let dmin = Math.max(0, terrain.distanceToRoad(cx, cz) - CHUNK * 0.71);
       // les rives ont besoin d'une maille fine, comme les abords de la route
       if (Math.abs(terrain.distanceEau(cx, cz)) < CHUNK * 0.71 + RIVE) dmin = 0;
-      const step = chunkStep(dmin, q);
-      const n = Math.round(CHUNK / step);
-      const N = n + 1;
-      const heights = new Float32Array(N * N);
-      const roadDist = new Float32Array(N * N).fill(1e9);
-      const roadW = new Float32Array(N * N);
-      for (let j = 0; j < N; j++) {
-        for (let i = 0; i < N; i++) {
-          const x = x0 + i * step, z = z0 + j * step;
-          const k = j * N + i;
-          const near = nearestSampleWithin(track, x, z, 14);
-          if (near) {
-            roadDist[k] = near.dist;
-            roadW[k] = track.samples[near.index].w;
-          }
-          heights[k] = terrain.hauteurRendue(x, z);
-        }
-      }
-      const vCount = N * N + 4 * N * 2;
-      const pos = new Float32Array(vCount * 3);
-      const col = new Float32Array(vCount * 3);
-      for (let j = 0; j < N; j++) {
-        for (let i = 0; i < N; i++) {
-          const k = j * N + i;
-          const x = x0 + i * step, z = z0 + j * step;
-          pos[k * 3] = x; pos[k * 3 + 1] = heights[k]; pos[k * 3 + 2] = z;
-          const hx = heights[j * N + Math.min(n, i + 1)] - heights[j * N + Math.max(0, i - 1)];
-          const hz = heights[Math.min(n, j + 1) * N + i] - heights[Math.max(0, j - 1) * N + i];
-          const slope = Math.max(Math.abs(hx), Math.abs(hz)) / (2 * step);
-          c.copy(cA).lerp(cB, fbm(x / 30, z / 30, seed + 5));
-          c.lerp(cF, smoothstep(thr, thr + 0.08, forestMask(x, z, seed)) * 0.85);
-          c.lerp(cR, smoothstep(0.7, 1.15, slope));
-          // trottoir (ville) : bande claire le long de la route, là où se posent lampadaires et mobilier
-          if (cT && roadDist[k] < 1e8) c.lerp(cT, 1 - smoothstep(roadW[k] + 3.6, roadW[k] + 4.8, roadDist[k]));
-          if (roadDist[k] < 1e8) c.lerp(cS, 1 - smoothstep(roadW[k] + 0.5, roadW[k] + 1.5, roadDist[k]));
-          // lac : plage claire sur la rive, fond de plus en plus sombre sous l'eau (vu à travers la surface translucide)
-          if (lacs) {
-            const sd = terrain.distanceEau(x, z);
-            if (sd > -4) {
-              c.lerp(cSable, smoothstep(-4, -0.5, sd));
-              if (sd > 0.5) c.lerp(cFond, smoothstep(0.5, 9, sd));
-            }
-          }
-          col[k * 3] = c.r; col[k * 3 + 1] = c.g; col[k * 3 + 2] = c.b;
-        }
-      }
-      const idx: number[] = [];
-      for (let j = 0; j < n; j++) {
-        for (let i = 0; i < n; i++) {
-          const a = j * N + i, b = a + 1, cc = a + N, d = cc + 1;
-          idx.push(a, cc, b, b, cc, d);
-        }
-      }
-      // Jupes (bords qui descendent de 4 m) : cachent les fentes entre morceaux de mailles différentes
-      let v = N * N;
-      const edges: number[][] = [
-        Array.from({ length: N }, (_, i) => i),
-        Array.from({ length: N }, (_, i) => n * N + i),
-        Array.from({ length: N }, (_, j) => j * N),
-        Array.from({ length: N }, (_, j) => j * N + n),
-      ];
-      for (const e of edges) {
-        const top0 = v;
-        for (const k of e) {
-          pos.set([pos[k * 3], pos[k * 3 + 1], pos[k * 3 + 2]], v * 3);
-          col.set([col[k * 3], col[k * 3 + 1], col[k * 3 + 2]], v * 3);
-          pos.set([pos[k * 3], pos[k * 3 + 1] - SKIRT, pos[k * 3 + 2]], (v + N) * 3);
-          col.set([col[k * 3], col[k * 3 + 1], col[k * 3 + 2]], (v + N) * 3);
-          v++;
-        }
-        for (let t = 0; t < N - 1; t++) {
-          const a = top0 + t, b = top0 + t + 1, a2 = a + N, b2 = b + N;
-          idx.push(a, a2, b, b, a2, b2);
-        }
-        v += N;
-      }
-      const geo = new THREE.BufferGeometry();
-      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-      geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-      geo.setIndex(idx);
-      geo.computeVertexNormals();
-      geo.computeBoundingSphere();
+      const geo = geometrieMorceau(x0, z0, CHUNK, chunkStep(dmin, q), hauteur, couleur);
       const mesh = new THREE.Mesh(geo, mat);
       mesh.receiveShadow = true;
       mesh.userData.center = new THREE.Vector3(x0 + CHUNK / 2, 0, z0 + CHUNK / 2);
@@ -136,11 +150,16 @@ export function buildTerrain(level: Level, track: TrackData, terrain: Terrain, p
 
 /** Anneau de reliefs lointains (sans brouillard, couleurs déjà « noyées » dans la brume) : montagnes ou mesas selon la palette. */
 export function buildMountains(track: TrackData, p: Palette, seed: number): THREE.Mesh {
-  if (p.reliefs.forme === 'ville') return buildSkyline(track, p, seed);
   const b = track.bounds;
   const cx = (b.minX + b.maxX) / 2, cz = (b.minZ + b.maxZ) / 2;
-  const R = Math.max(b.maxX - b.minX, b.maxZ - b.minZ) / 2 + 700;
   const lowest = track.samples.reduce((m, s) => Math.min(m, s.y), Infinity);
+  const demi = Math.max(b.maxX - b.minX, b.maxZ - b.minZ) / 2;
+  if (p.reliefs.forme === 'ville') return anneauVille(p, seed, cx, cz, demi + 520, lowest);
+  return anneauReliefs(p, seed, cx, cz, demi + 700, lowest);
+}
+
+/** Anneau de reliefs (cônes ou mesas) de rayon `R` autour de (cx, cz), posé à `lowest` − 30 m. */
+export function anneauReliefs(p: Palette, seed: number, cx: number, cz: number, R: number, lowest: number): THREE.Mesh {
   const rng = mulberry32(seed + 3);
   const fog = new THREE.Color(p.fog);
   const rel = p.reliefs;
@@ -179,9 +198,12 @@ export function buildMountains(track: TrackData, p: Palette, seed: number): THRE
 /** Silhouettes d'immeubles et de tours en anneau (fond de la ville, sans brouillard, couleurs noyées dans la brume) : deux rangs de blocs. */
 export function buildSkyline(track: TrackData, p: Palette, seed: number): THREE.Mesh {
   const b = track.bounds;
-  const cx = (b.minX + b.maxX) / 2, cz = (b.minZ + b.maxZ) / 2;
-  const R = Math.max(b.maxX - b.minX, b.maxZ - b.minZ) / 2 + 520;
   const lowest = track.samples.reduce((m, s) => Math.min(m, s.y), Infinity);
+  return anneauVille(p, seed, (b.minX + b.maxX) / 2, (b.minZ + b.maxZ) / 2, Math.max(b.maxX - b.minX, b.maxZ - b.minZ) / 2 + 520, lowest);
+}
+
+/** Silhouettes d'immeubles en anneau de rayon `R` autour de (cx, cz). */
+export function anneauVille(p: Palette, seed: number, cx: number, cz: number, R: number, lowest: number): THREE.Mesh {
   const rng = mulberry32(seed + 5);
   const fog = new THREE.Color(p.fog);
   const mur = new THREE.Color(p.reliefs.roche).lerp(fog, 0.5);
