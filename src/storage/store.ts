@@ -4,6 +4,7 @@ import { MODE_IDS } from '../core/physics/assists';
 import type { Level } from '../core/level/types';
 import { validateLevel } from '../core/level/validate';
 import { validerSkins, type SkinsChoisies } from '../core/skins';
+import { offrirCaisse, progressionInitiale, validerProgression, type Progression } from '../core/economie';
 
 export interface KV {
   getItem(key: string): string | null;
@@ -42,6 +43,7 @@ export interface MonNiveau {
 const K_REGLAGES = 'driftclub.v1.reglages';
 const K_RECORDS = 'driftclub.v1.records';
 const K_NIVEAUX = 'driftclub.v1.niveaux';
+const K_PROGRESSION = 'driftclub.v1.progression';
 const QUALITES: Qualite[] = ['auto', 'basse', 'haute'];
 
 export function memoryKV(): KV {
@@ -123,6 +125,22 @@ export class Store {
 
   saveReglages(r: Reglages): void {
     this.write(K_REGLAGES, { ...r, v: VERSION_REGLAGES });
+  }
+
+  /**
+   * Progression (clés, livrées gagnées). Absente : première fois → les livrées déjà choisies (`skinsChoisies`) restent
+   * débloquées. La caisse offerte est créditée une seule fois ; la valeur lue est toujours validée.
+   */
+  loadProgression(skinsChoisies?: SkinsChoisies): Progression {
+    const raw = this.read(K_PROGRESSION);
+    const existe = typeof raw === 'object' && raw !== null && !Array.isArray(raw);
+    const p = offrirCaisse(existe ? validerProgression(raw) : progressionInitiale(skinsChoisies));
+    if (!existe || !(raw as Record<string, unknown>).caisseOfferte) this.saveProgression(p);
+    return p;
+  }
+
+  saveProgression(p: Progression): void {
+    this.write(K_PROGRESSION, p);
   }
 
   private records(): RecordsMap {
