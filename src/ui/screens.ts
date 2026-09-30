@@ -108,7 +108,7 @@ export class Screens {
     if (this.boutonCompte && this.root.contains(this.boutonCompte)) this.boutonCompte.textContent = libelle;
   }
 
-  niveaux(o: { cartes: NiveauCarte[]; perso: NiveauCarte[]; mode: ModeId; voiture: CarId; onChoisir(i: number): void; onChoisirPerso(i: number): void; onClassement(perso: boolean, i: number): void; onEditeur(): void; onGarage(): void; onReglages(): void; onRetour(): void }): void {
+  niveaux(o: { cartes: NiveauCarte[]; perso: NiveauCarte[]; mode: ModeId; voiture: CarId; onChoisir(i: number): void; onChoisirPerso(i: number): void; onClassement(perso: boolean, i: number): void; onImporter(): void; onEditeur(): void; onGarage(): void; onReglages(): void; onRetour(): void }): void {
     const carte = (c: NiveauCarte, i: number, choisir: (i: number) => void, perso: boolean): HTMLElement =>
       h('div', { class: 'cardw' },
         h('button', { class: 'card' + (c.desactive ? ' off' : ''), title: c.desactive ?? '', onclick: () => (c.desactive ? this.toast(c.desactive) : choisir(i)) },
@@ -126,7 +126,7 @@ export class Screens {
         h('div', { class: 'tabs' },
           h('button', { class: 'tab' + (perso ? '' : ' on'), onclick: () => { this.ongletNiveaux = 'off'; render(); } }, 'Officiels'),
           h('button', { class: 'tab' + (perso ? ' on' : ''), onclick: () => { this.ongletNiveaux = 'perso'; render(); } }, `Mes niveaux${o.perso.length ? ` (${o.perso.length})` : ''}`),
-          h('button', { class: 'tab', disabled: true }, 'Importer · bientôt'),
+          h('button', { class: 'tab', onclick: o.onImporter }, 'Importer'),
         ),
         h('p', { class: 'sub' }, 'Mode ', h('b', {}, MODE_NOMS[o.mode]), ' · Voiture ', h('b', {}, CARS[o.voiture].nom)),
         perso && o.perso.length === 0

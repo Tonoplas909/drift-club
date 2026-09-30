@@ -12,6 +12,7 @@ const PATHS: Record<string, string> = {
   corbeille: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
   gauche: '<path d="M20 12a8 8 0 1 1-3-6.2M20 4v5h-5" transform="scale(-1 1) translate(-24 0)"/>',
   droite: '<path d="M20 12a8 8 0 1 1-3-6.2M20 4v5h-5"/>',
+  partager: '<circle cx="18" cy="5.5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="18.5" r="2.6"/><path d="m8.3 10.8 7.4-4M8.3 13.2l7.4 4"/>',
   profil: '<path d="M3 17l5-6 4 3 5-8 4 5"/><path d="M3 21h18"/>',
 };
 
