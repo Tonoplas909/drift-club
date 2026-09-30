@@ -37,6 +37,11 @@ html, body {
 .hud-drift b { display: block; font-size: 46px; font-weight: 800; color: var(--yellow); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; line-height: 1; }
 .hud-drift span { font-size: 24px; font-weight: 800; color: #fff; -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; }
 .hud-drift.active b { transform: scale(1.06); }
+/* temps restant avant la fin du combo, sous le texte des points */
+.hud-combo { width: 180px; height: 10px; margin: 6px auto 0; border: 3px solid var(--ink); border-radius: 8px; background: rgba(21, 19, 28, .55); overflow: hidden; visibility: hidden; }
+.hud-combo.on { visibility: visible; }
+.hud-combo i { display: block; height: 100%; background: var(--yellow); transform-origin: left center; }
+.hud-combo.bas i { background: var(--red); }
 .hud-drift.bank b { color: var(--green); animation: pop .7s ease-out; }
 .hud-drift.lose b { color: var(--red); animation: shake .5s; }
 @keyframes pop { 0% { transform: scale(1.5); } 100% { transform: scale(1); } }

@@ -3,7 +3,7 @@ import { formatScore, formatTime } from '../ui/format';
 
 export class Hud {
   private readonly el: Record<string, HTMLElement> = {};
-  private last = { score: '', time: '', drift: '', mult: '', bar: -1, count: '', wrong: false, speed: '' };
+  private last = { score: '', time: '', drift: '', mult: '', bar: -1, combo: -1, count: '', wrong: false, speed: '' };
   private flashUntil = 0;
   private goUntil = 0;
 
@@ -13,7 +13,7 @@ export class Hud {
         <div class="hud-box"><small>Score</small><b data-k="score">0</b></div>
         <div class="hud-box"><small>Temps</small><b data-k="time">0:00.00</b></div>
       </div>
-      <div class="hud-drift" data-k="driftBox"><b data-k="drift"></b><span data-k="mult"></span></div>
+      <div class="hud-drift" data-k="driftBox"><b data-k="drift"></b><span data-k="mult"></span><div class="hud-combo" data-k="combo"><i data-k="comboBar"></i></div></div>
       <div class="hud-count" data-k="count"></div>
       <div class="hud-wrong" data-k="wrong">Mauvais sens !</div>
       <div class="hud-progress"><div class="hud-bar"><i data-k="bar"></i></div></div>
@@ -26,7 +26,8 @@ export class Hud {
   }
 
   reset(): void {
-    this.last = { score: '', time: '', drift: '', mult: '', bar: -1, count: '', wrong: false, speed: '' };
+    this.last = { score: '', time: '', drift: '', mult: '', bar: -1, combo: -1, count: '', wrong: false, speed: '' };
+    this.el.combo.classList.remove('on');
     this.flashUntil = 0;
     this.goUntil = 0;
     this.el.driftBox.className = 'hud-drift';
@@ -55,6 +56,16 @@ export class Hud {
         box.className = 'hud-drift on';
       } else {
         box.className = 'hud-drift';
+      }
+    }
+    // barre du combo : temps restant avant le retour à x1, visible aussi pendant « Encaissé ! »
+    const combo = h.combo === null ? -1 : Math.round(h.combo * 200);
+    if (combo !== this.last.combo) {
+      this.last.combo = combo;
+      this.el.combo.classList.toggle('on', combo >= 0);
+      if (combo >= 0) {
+        this.el.comboBar.style.transform = `scaleX(${combo / 200})`;
+        this.el.combo.classList.toggle('bas', combo < 70);
       }
     }
     let count = '';
