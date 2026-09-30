@@ -35,6 +35,20 @@ export const TOURS: readonly Batiment[] = [
   { w: 16, d: 16, etages: 11, style: 2 }, { w: 20, d: 20, etages: 12, style: 7 },
 ];
 
+/**
+ * Emprises rectangulaires (largeur selon x local, profondeur selon z local) des objets des autres thèmes, par variante :
+ * pontons et épaves (pirate), panneaux de mur et piliers (backrooms), pagodes et sanctuaires (japon).
+ */
+const EMPRISES_THEMES: Partial<Record<DecorKind, readonly [number, number][]>> = {
+  ponton: [[2.6, 12], [2.6, 8]],
+  epave: [[3.6, 10], [3.6, 9]],
+  mur: [[0.4, 8], [0.4, 8], [0.4, 3.2]],
+  pilier: [[1.1, 1.1]],
+  porteBureau: [[1.3, 0.3]],
+  pagode: [[9, 9], [7, 7]],
+  sanctuaire: [[2.6, 2.4]],
+};
+
 export const batimentDe = (kind: DecorKind, variant: number): Batiment | null =>
   kind === 'immeuble' ? IMMEUBLES[variant] ?? null : kind === 'tour' ? TOURS[variant] ?? null : null;
 
@@ -42,6 +56,8 @@ export const batimentDe = (kind: DecorKind, variant: number): Batiment | null =>
 export function boiteDe(kind: DecorKind, variant: number): [number, number] | null {
   const b = batimentDe(kind, variant);
   if (b) return [b.w, b.d];
+  const fixe = EMPRISES_THEMES[kind]?.[variant] ?? EMPRISES_THEMES[kind]?.[0];
+  if (fixe) return fixe;
   switch (kind) {
     case 'blocBeton': return [0.6, 3];
     case 'arretBus': return [1.6, 3.6];
