@@ -3,7 +3,7 @@ import { CARS, CAR_IDS } from '../core/physics/cars';
 import { MODE_IDS, MODE_NOMS } from '../core/physics/assists';
 import type { RaceResult } from '../core/race/race';
 import { validateLevel } from '../core/level/validate';
-import type { Reglages, RecordEntry, Qualite } from '../storage/store';
+import type { Reglages, Qualite } from '../storage/store';
 import { COULEURS } from './couleurs';
 import { accentSkin, choisirSkin, skinChoisie, skinsDe, type SkinsChoisies } from '../core/skins';
 import { formatScore, formatTime } from './format';
@@ -44,7 +44,7 @@ const DESCRIPTIONS_MODES: Record<ModeId, string> = {
   exigeant: 'Aucune aide. Tout se dose à la main.',
 };
 
-export interface NiveauCarte { nom: string; detail: string; record: RecordEntry | null; /** raison pour laquelle le niveau ne se lance pas */ desactive?: string }
+export interface NiveauCarte { nom: string; detail: string; /** place du joueur dans le classement en ligne (texte prêt à afficher) */ place: string; /** raison pour laquelle le niveau ne se lance pas */ desactive?: string }
 
 export class Screens {
   private progressEl: HTMLElement | null = null;
@@ -116,7 +116,7 @@ export class Screens {
           h('span', { class: 'num' }, String(i + 1)),
           h('b', {}, c.nom),
           h('small', {}, c.detail),
-          h('span', { class: 'rec' }, c.record ? `Record : ${formatScore(c.record.score)}` : 'Pas encore de record'),
+          h('span', { class: 'rec' }, c.place),
         ),
         h('button', { class: 'btn sm sec', onclick: () => o.onClassement(perso, i) }, 'Classement'),
       );

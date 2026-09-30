@@ -1,13 +1,23 @@
 import type { CarId, ModeId } from '../core/physics/types';
 import { CARS } from '../core/physics/cars';
 import { MODE_NOMS } from '../core/physics/assists';
-import type { LigneClassement, RangEnLigne, Resultat } from '../online/classement';
+import type { LigneClassement, MaPlace, RangEnLigne, Resultat } from '../online/classement';
 import { h } from './screens';
 import { formatScore, formatTime } from './format';
 
 /** 1 → « 1er », 3 → « 3e ». */
 export function rangFr(n: number): string {
   return n === 1 ? '1er' : `${n}e`;
+}
+
+/** Ligne affichée sous un niveau : la place du joueur dans le classement en ligne (tous modes). */
+export type EtatPlace = 'deconnecte' | 'chargement' | 'erreur' | { place: MaPlace | null };
+
+export function textePlace(e: EtatPlace): string {
+  if (e === 'deconnecte') return 'Connecte-toi pour voir ta place';
+  if (e === 'chargement') return 'Classement…';
+  if (e === 'erreur') return 'Classement indisponible';
+  return e.place ? `Place : ${rangFr(e.place.rang)} sur ${e.place.total}` : 'Pas encore classé';
 }
 
 const nomVoiture = (id: string): string => CARS[id as CarId]?.nom ?? id;

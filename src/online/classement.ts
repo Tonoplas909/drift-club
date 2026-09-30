@@ -31,6 +31,14 @@ export interface RangEnLigne {
   total: number;
 }
 
+/** Place du joueur connecté sur un niveau (meilleur score tous modes). */
+export interface MaPlace {
+  rang: number;
+  total: number;
+  score: number;
+  mode: string;
+}
+
 /** Seuls les niveaux officiels et perso ont un classement (même règle que le SQL). */
 export function cleEnLigne(cle: string): boolean {
   return /^(off|perso):[A-Za-z0-9_-]{1,80}$/.test(cle);
@@ -78,6 +86,28 @@ export class ClassementService {
         voiture: String(r.voiture ?? ''), maj: String(r.maj ?? ''), joueur: String(r.joueur ?? ''),
       }));
       return { ok: true, valeur: lignes };
+    } catch (e) {
+      return { ok: false, message: messageErreur(e) };
+    }
+  }
+
+  /** Places du joueur connecté sur plusieurs niveaux en un appel (niveaux sans score absents de la carte). */
+  async mesPlaces(niveaux: string[]): Promise<Resultat<Map<string, MaPlace>>> {
+    const cles = [...new Set(niveaux.filter(cleEnLigne))].slice(0, 200);
+    if (cles.length === 0) return { ok: true, valeur: new Map() };
+    try {
+      const client = await this.fournisseur();
+      if (!client) return { ok: false, message: MSG_INDISPONIBLE };
+      const { data, error } = await client.rpc('mes_places', { p_niveaux: cles });
+      if (error) return { ok: false, message: messageErreur(error) };
+      const places = new Map<string, MaPlace>();
+      for (const r of (Array.isArray(data) ? data : []) as Record<string, unknown>[]) {
+        const rang = nombre(r.rang), total = nombre(r.total), score = nombre(r.score);
+        if (typeof r.niveau === 'string' && rang >= 1 && total >= rang && Number.isFinite(score)) {
+          places.set(r.niveau, { rang, total, score, mode: String(r.mode ?? '') });
+        }
+      }
+      return { ok: true, valeur: places };
     } catch (e) {
       return { ok: false, message: messageErreur(e) };
     }
