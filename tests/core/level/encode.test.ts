@@ -124,6 +124,23 @@ describe('encoderNiveau / decoderNiveau', () => {
     expect(await empreinteNiveau(r.level)).toBe(await empreinteNiveau(normaliserNiveau(lv)));
     expect(await empreinteNiveau(r.level)).not.toBe(await empreinteNiveau(normaliserNiveau({ ...lv, environnement: 'montagne' })));
   });
+  it('les quatre décors ajoutés après « ville » ont les indices 5 à 8 et font l’aller-retour (ambiances comprises)', async () => {
+    expect(ENVIRONNEMENTS.indexOf('pirate')).toBe(5);
+    expect(ENVIRONNEMENTS.indexOf('backrooms')).toBe(6);
+    expect(ENVIRONNEMENTS.indexOf('espace')).toBe(7);
+    expect(ENVIRONNEMENTS.indexOf('japon')).toBe(8);
+    for (const environnement of ['pirate', 'backrooms', 'espace', 'japon'] as const) {
+      for (const ambiance of ['jour', 'coucher'] as const) {
+        const lv = { ...niveauTypique(), environnement, ambiance };
+        const r = await decoderNiveau(await encoderNiveau(lv));
+        if (!r.ok) throw new Error(r.erreurs.join());
+        expect(r.level.environnement).toBe(environnement);
+        expect(r.level.ambiance).toBe(ambiance);
+        expect(r.level).toEqual(normaliserNiveau(lv));
+        expect(await empreinteNiveau(r.level)).toBe(await empreinteNiveau(normaliserNiveau(lv)));
+      }
+    }
+  });
   it('les codes diffèrent d’un environnement à l’autre', async () => {
     const codes = await Promise.all(ENVIRONNEMENTS.map((environnement) => encoderNiveau({ ...niveauTypique(), environnement })));
     expect(new Set(codes).size).toBe(ENVIRONNEMENTS.length);
@@ -215,7 +232,7 @@ describe('encoderNiveau / decoderNiveau', () => {
       await ko(await cz('pas du json'), /invalide/);
       await ko(await cz('[]'), /invalide/);
       await ko(await cz('{"n":"x"}'), /invalide/);
-      await ko(await cz('{"n":"x","a":"","e":5,"m":0,"r":[],"b":[],"d":[1,50],"o":[]}'), /invalide/);
+      await ko(await cz('{"n":"x","a":"","e":9,"m":0,"r":[],"b":[],"d":[1,50],"o":[]}'), /invalide/);
     });
 
     it('trop gros une fois décompressé', async () => {
