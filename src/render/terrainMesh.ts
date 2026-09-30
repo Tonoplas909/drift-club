@@ -10,6 +10,7 @@ import { smoothstep } from '../core/math/vec';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { toonMaterial } from './materials';
 import { epauleDe, type Palette } from './palettes';
+import { THEMES } from '../core/env/themes';
 import type { QualityLevel } from './quality';
 
 const CHUNK = 128;
@@ -27,9 +28,10 @@ export function buildTerrain(level: Level, track: TrackData, terrain: Terrain, p
   const mat = toonMaterial({ vertexColors: true });
   mat.side = THREE.DoubleSide;
   const seed = level.decor.graine;
-  const thr = forestThreshold(level.decor.densite);
+  const thr = forestThreshold(level.decor.densite, THEMES[level.environnement].arbres.seuilMin);
   const cA = new THREE.Color(p.grassA), cB = new THREE.Color(p.grassB), cF = new THREE.Color(p.forestFloor);
   const cR = new THREE.Color(p.rock), cS = epauleDe(p);
+  const cT = p.trottoir !== undefined ? new THREE.Color(p.trottoir) : null;
   const c = new THREE.Color();
 
   for (let z0 = terrain.minZ; z0 < terrain.maxZ; z0 += CHUNK) {
@@ -70,6 +72,8 @@ export function buildTerrain(level: Level, track: TrackData, terrain: Terrain, p
           c.copy(cA).lerp(cB, fbm(x / 30, z / 30, seed + 5));
           c.lerp(cF, smoothstep(thr, thr + 0.08, forestMask(x, z, seed)) * 0.85);
           c.lerp(cR, smoothstep(0.6, 1.0, slope));
+          // trottoir (ville) : bande claire le long de la route, là où se posent lampadaires et mobilier
+          if (cT && roadDist[k] < 1e8) c.lerp(cT, 1 - smoothstep(roadW[k] + 3.6, roadW[k] + 4.8, roadDist[k]));
           if (roadDist[k] < 1e8) c.lerp(cS, 1 - smoothstep(roadW[k] + 0.5, roadW[k] + 1.5, roadDist[k]));
           col[k * 3] = c.r; col[k * 3 + 1] = c.g; col[k * 3 + 2] = c.b;
         }
@@ -121,6 +125,7 @@ export function buildTerrain(level: Level, track: TrackData, terrain: Terrain, p
 
 /** Anneau de reliefs lointains (sans brouillard, couleurs déjà « noyées » dans la brume) : montagnes ou mesas selon la palette. */
 export function buildMountains(track: TrackData, p: Palette, seed: number): THREE.Mesh {
+  if (p.reliefs.forme === 'ville') return buildSkyline(track, p, seed);
   const b = track.bounds;
   const cx = (b.minX + b.maxX) / 2, cz = (b.minZ + b.maxZ) / 2;
   const R = Math.max(b.maxX - b.minX, b.maxZ - b.minZ) / 2 + 700;
@@ -151,6 +156,50 @@ export function buildMountains(track: TrackData, p: Palette, seed: number): THRE
     }
     g.setAttribute('color', new THREE.BufferAttribute(col, 3));
     parts.push(g);
+  }
+  const mat = toonMaterial({ vertexColors: true });
+  mat.fog = false;
+  (mat as any).flatShading = true;
+  const mesh = new THREE.Mesh(mergeGeometries(parts)!, mat);
+  mesh.name = 'montagnes';
+  return mesh;
+}
+
+/** Silhouettes d'immeubles et de tours en anneau (fond de la ville, sans brouillard, couleurs noyées dans la brume) : deux rangs de blocs. */
+export function buildSkyline(track: TrackData, p: Palette, seed: number): THREE.Mesh {
+  const b = track.bounds;
+  const cx = (b.minX + b.maxX) / 2, cz = (b.minZ + b.maxZ) / 2;
+  const R = Math.max(b.maxX - b.minX, b.maxZ - b.minZ) / 2 + 520;
+  const lowest = track.samples.reduce((m, s) => Math.min(m, s.y), Infinity);
+  const rng = mulberry32(seed + 5);
+  const fog = new THREE.Color(p.fog);
+  const mur = new THREE.Color(p.reliefs.roche).lerp(fog, 0.5);
+  const clair = new THREE.Color(p.reliefs.cime).lerp(fog, 0.4);
+  const parts: THREE.BufferGeometry[] = [];
+  const bloc = (x: number, z: number, w: number, d: number, h: number, base: number, teinte: number): void => {
+    const g = new THREE.BoxGeometry(w, h, d).toNonIndexed();
+    g.deleteAttribute('uv');
+    g.translate(x, base + h / 2, z);
+    const pos = g.getAttribute('position'), nor = g.getAttribute('normal');
+    const col = new Float32Array(pos.count * 3);
+    const c = new THREE.Color();
+    for (let k = 0; k < pos.count; k++) {
+      // toit et bande haute plus clairs, faces alternées pour le relief
+      const haut = nor.getY(k) > 0.5 || pos.getY(k) > base + h - 4;
+      c.copy(haut ? clair : mur).multiplyScalar(teinte * (Math.abs(nor.getX(k)) > 0.5 ? 0.9 : 1));
+      col[k * 3] = c.r; col[k * 3 + 1] = c.g; col[k * 3 + 2] = c.b;
+    }
+    g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    parts.push(g);
+  };
+  const base = lowest - 30;
+  for (let i = 0; i < 44; i++) {
+    const a = (i / 44) * Math.PI * 2 + rng() * 0.08, r = R + rng() * 120;
+    bloc(cx + Math.sin(a) * r, cz + Math.cos(a) * r, 40 + rng() * 60, 40 + rng() * 60, 60 + rng() * 120, base, 0.92 + rng() * 0.1);
+  }
+  for (let i = 0; i < 52; i++) {
+    const a = ((i + 0.5) / 52) * Math.PI * 2 + rng() * 0.08, r = R + 260 + rng() * 200;
+    bloc(cx + Math.sin(a) * r, cz + Math.cos(a) * r, 60 + rng() * 90, 60 + rng() * 90, 110 + rng() * 210, base, 0.86 + rng() * 0.1);
   }
   const mat = toonMaterial({ vertexColors: true });
   mat.fog = false;

@@ -13,6 +13,7 @@ export function buildDecor(env: Environment, assets: Assets, q: QualityLevel, sh
   root.name = 'decor';
   const mat = toonMaterial({ vertexColors: true });
   const outline = outlineMaterial(0.05);
+  const outlineGros = outlineMaterial(0.13); // bâtiments : grandes façades, trait plus épais
   const groups = new Map<string, [EnvItem[], EnvItem[]]>();
   env.items.forEach((it, i) => {
     const far = !it.solid;
@@ -46,8 +47,8 @@ export function buildDecor(env: Environment, assets: Assets, q: QualityLevel, sh
       root.add(mesh);
       if (q === 'haute' || !far) {
         let og = outlines.get(key);
-        if (!og) { og = outlineGeometry(geo); outlines.set(key, og); }
-        const ol = new THREE.InstancedMesh(og, outline, list.length);
+        if (!og) { og = (geo.userData.contour as THREE.BufferGeometry | undefined) ?? outlineGeometry(geo); outlines.set(key, og); }
+        const ol = new THREE.InstancedMesh(og, geo.userData.contour ? outlineGros : outline, list.length);
         ol.instanceMatrix = mesh.instanceMatrix;
         ol.computeBoundingSphere();
         root.add(ol);

@@ -88,7 +88,7 @@ export class World {
     this.terrainGroup = buildTerrain(level, track, terrain, p, quality);
     this.scene.add(this.terrainGroup);
     this.scene.add(buildMountains(track, p, level.decor.graine));
-    this.decor = decorDuTheme(assets, level.environnement);
+    this.decor = decorDuTheme(assets, level.environnement, level.ambiance);
     this.scene.add(buildDecor(env, assets, quality, q.shadows, this.decor));
     const meteo = THEMES_VISUELS[level.environnement].meteo;
     if (meteo) {

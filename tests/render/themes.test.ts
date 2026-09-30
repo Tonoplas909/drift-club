@@ -5,6 +5,8 @@ import { THEMES, typesDuTheme } from '../../src/core/env/themes';
 import { VARIANTS } from '../../src/core/env/types';
 import { PALETTES_THEMES, PALETTES, paletteDe, epauleDe } from '../../src/render/palettes';
 import { THEMES_VISUELS, decorDuTheme, retoucher } from '../../src/render/themes';
+import { batimentGeometry } from '../../src/render/villeModeles';
+import { IMMEUBLES } from '../../src/core/env/ville';
 import { decorKey, DECOR_FILES, type Assets } from '../../src/render/assets';
 import { coloredBox, colorize } from '../../src/render/procedural';
 import { positionFlocon, NEIGE_LARGEUR, NEIGE_HAUTEUR } from '../../src/render/weather';
@@ -32,11 +34,11 @@ describe('palettes des thèmes', () => {
     for (const env of ENVIRONNEMENTS) {
       for (const amb of ['jour', 'coucher'] as const) {
         const p = paletteDe(env, amb);
-        expect(Object.keys(p).filter((k) => k !== 'epaule').sort()).toEqual(cles.filter((k) => k !== 'epaule'));
+        expect(Object.keys(p).filter((k) => k !== 'epaule' && k !== 'trottoir').sort()).toEqual(cles.filter((k) => k !== 'epaule' && k !== 'trottoir'));
         expect(p.brume).toBeGreaterThan(0.3);
         expect(p.brume).toBeLessThanOrEqual(1);
         expect(p.reliefs.ligne).toBeGreaterThan(0);
-        expect(['cones', 'mesas']).toContain(p.reliefs.forme);
+        expect(['cones', 'mesas', 'ville']).toContain(p.reliefs.forme);
         expect(epauleDe(p)).toBeInstanceOf(THREE.Color);
       }
     }
@@ -53,6 +55,64 @@ describe('palettes des thèmes', () => {
       const m = buildMountains(track, paletteDe(env, 'jour'), 3);
       expect(m.geometry.getAttribute('position').count).toBeGreaterThan(100);
     }
+  });
+});
+
+describe('ville : palettes et modèles', () => {
+  it('sol de béton, parcs verts, trottoir et silhouette d’immeubles au fond', () => {
+    for (const amb of ['jour', 'coucher'] as const) {
+      const p = paletteDe('ville', amb);
+      expect(p.reliefs.forme).toBe('ville');
+      expect(p.trottoir).toBeDefined();
+      expect(p.epaule).toBeDefined();
+      const v = new THREE.Color(p.forestFloor), g = new THREE.Color(p.grassA);
+      expect(v.g).toBeGreaterThan(v.r); // parc = vert
+      expect(Math.abs(g.r - g.b)).toBeLessThan(0.08); // béton = gris
+    }
+    expect(PALETTES_THEMES.montagne.jour.trottoir).toBeUndefined();
+  });
+  it('les silhouettes du fond sont des blocs (plus de sommets que les cônes ne suffisent, tous finis)', () => {
+    const track = buildTrack(straightLevel(200));
+    const m = buildMountains(track, paletteDe('ville', 'jour'), 3);
+    const pos = m.geometry.getAttribute('position');
+    expect(pos.count).toBe(96 * 36); // 96 blocs de 12 triangles
+    for (const x of pos.array as Float32Array) expect(Number.isFinite(x)).toBe(true);
+  });
+  it('un bâtiment a un contour sur le corps seul, des couleurs valides et des fenêtres', () => {
+    const b = IMMEUBLES[6];
+    const jour = batimentGeometry(b, 1, 'jour'), soir = batimentGeometry(b, 1, 'coucher');
+    const contour = jour.userData.contour as THREE.BufferGeometry;
+    expect(contour.getAttribute('position').count).toBeLessThan(jour.getAttribute('position').count / 2);
+    for (const g of [jour, soir]) {
+      for (const a of ['position', 'normal', 'color']) expect(g.getAttribute(a)).toBeDefined();
+      for (const x of g.getAttribute('color').array as Float32Array) expect(Number.isFinite(x)).toBe(true);
+    }
+    // au coucher, des fenêtres « allumées » dépassent 1 (elles brillent) ; le jour, aucune
+    const max = (g: THREE.BufferGeometry) => Math.max(...(g.getAttribute('color').array as Float32Array));
+    expect(max(soir)).toBeGreaterThan(1);
+    expect(max(jour)).toBeLessThanOrEqual(1);
+    // hauteur = étages × hauteur d'étage (+ toiture)
+    jour.computeBoundingBox();
+    expect(jour.boundingBox!.max.y).toBeGreaterThan(b.etages * 3);
+    expect(jour.boundingBox!.min.y).toBeLessThan(-1); // fondations enterrées
+  });
+  it('les modèles dépendent de l’ambiance (fenêtres allumées) et sont mis en cache par ambiance', () => {
+    const a = fakeAssets();
+    const j = decorDuTheme(a, 'ville', 'jour'), c = decorDuTheme(a, 'ville', 'coucher');
+    expect(j).not.toBe(c);
+    expect(decorDuTheme(a, 'ville', 'coucher')).toBe(c);
+    expect(decorDuTheme(a, 'ville')).toBe(j);
+    expect(j.immeuble0).not.toBe(c.immeuble0);
+    expect(j.panneau0).toBe(a.decor.panneau0);
+  });
+  it('le contour d’un bâtiment est utilisé par le rendu du décor', () => {
+    const a = fakeAssets();
+    const decor = decorDuTheme(a, 'ville');
+    const env = { items: [{ kind: 'immeuble' as const, variant: 0, x: 0, y: 0, z: 0, rot: 0, scale: 1, solid: true, manual: false }], circles: [], segments: [], barriers: [] };
+    const g = buildDecor(env, a, 'haute', false, decor);
+    const meshes = g.children as THREE.InstancedMesh[];
+    expect(meshes.length).toBe(2);
+    expect(meshes[1].geometry.getAttribute('position').count).toBe((decor.immeuble0.userData.contour as THREE.BufferGeometry).getAttribute('position').count);
   });
 });
 
@@ -131,6 +191,7 @@ describe('neige (météo)', () => {
     expect(b.y).toBeLessThan(a.y);
   });
   it('seule la neige a de la météo', () => {
+    expect(THEMES_VISUELS.ville.meteo).toBeUndefined();
     expect(THEMES_VISUELS.neige.meteo?.nombre).toBeGreaterThan(0);
     expect(THEMES_VISUELS.montagne.meteo).toBeUndefined();
     expect(THEMES_VISUELS.desert.meteo).toBeUndefined();
@@ -141,6 +202,7 @@ describe('aperçu ?theme= et ?ambiance=', () => {
   it('lit un thème et une ambiance valides, ignore le reste', () => {
     expect(decorDepuisUrl('?theme=desert&ambiance=coucher')).toEqual({ environnement: 'desert', ambiance: 'coucher' });
     expect(decorDepuisUrl('?debug&theme=neige')).toEqual({ environnement: 'neige' });
+    expect(decorDepuisUrl('?theme=ville&ambiance=coucher')).toEqual({ environnement: 'ville', ambiance: 'coucher' });
     expect(decorDepuisUrl('?theme=lune&ambiance=nuit')).toEqual({});
     expect(decorDepuisUrl('')).toEqual({});
   });
