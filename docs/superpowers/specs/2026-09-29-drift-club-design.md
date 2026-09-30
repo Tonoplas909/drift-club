@@ -157,7 +157,7 @@ Ajouter `?debug` à l'URL affiche un panneau avec des curseurs pour tous les par
 | `format` | entier ; 1 pour cette version. Les versions antérieures sont converties (migration) au chargement. |
 | `nom` | 1–40 caractères |
 | `auteur` | 0–30 caractères |
-| `environnement` | `"montagne"`, `"neige"`, `"desert"` ou `"automne"` : choisit tout le décor (§5.5). L'ordre de la liste est figé (le code de partage stocke l'indice, montagne = 0) ; un nouveau thème s'ajoute à la fin. |
+| `environnement` | `"montagne"`, `"neige"`, `"desert"`, `"automne"` ou `"ville"` : choisit tout le décor (§5.5). L'ordre de la liste est figé (le code de partage stocke l'indice, montagne = 0) ; un nouveau thème s'ajoute à la fin. |
 | `ambiance` | `"jour"` ou `"coucher"` |
 | `route` | 2–150 points ; `x`, `z` en mètres ; `y` (hauteur) ∈ [−50, 150] ; `l` (largeur) ∈ [6, 20] ; distance entre points consécutifs ∈ [5, 150] m. Départ = premier point, arrivée = dernier. |
 | `barrieres` | tronçons de `de` à `a` (indices de points, `de < a`), `cote` ∈ `gauche`, `droite`, `deux`, `ext` (extérieur du virage : suit le côté extérieur, change de côté aux inflexions). Ailleurs, le bord donne sur l'herbe. |
@@ -201,8 +201,11 @@ Chaque thème fixe : le mélange d'essences (poids en bas et en altitude, échel
 | `neige` | sapins et feuillus givrés (neige sur les faces tournées vers le haut), rochers gelés, congères et piquets rouge/blanc de déneigement | sol blanc-bleuté, brouillard dense (×0,65), flocons (Haute qualité uniquement) |
 | `desert` (Canyon) | cactus, buissons secs, arbres morts et acacias, rochers rouges, mesas, peu de végétation | sable ocre, ciel voilé chaud, reliefs lointains en mesas |
 | `automne` | feuillus roux/jaunes/rouges, mélèzes dorés, sapins sombres, souches et tas de feuilles | sol brun-olive, lumière dorée |
+| `ville` | immeubles (brique, beige, béton, pastels ; 2 à 8 étages, fenêtres en grille) en rangs le long de la route, tours vitrées (10 à 12 étages) plus loin, lampadaires, plots, blocs béton, poubelles, abribus, voitures garées, grillages, arbres en bac, parcs (feuillus) là où le masque de forêt est haut | béton gris, trottoir clair, bordure claire, brume urbaine, silhouettes d'immeubles au fond, terrain peu vallonné (`relief` 0,3) ; au coucher : fenêtres et lampadaires allumés |
 
-**Objets posés à la main** (`arbre`, `sapin`, `rocher`, `pneus`, `panneau` ; `barriere` est toujours la glissière) : `arbre` → feuillu, `sapin` → sapin, `rocher` → rocher, sauf dans le canyon où `arbre` → arbre sec et `sapin` → cactus. Ils sont recolorés selon le thème (rochers rouges, arbres enneigés ou roux). L'éditeur affiche le nom du décor courant (« Cactus » à la place de « Sapin »).
+**Objets posés à la main** (`arbre`, `sapin`, `rocher`, `pneus`, `panneau` ; `barriere` est toujours la glissière) : `arbre` → feuillu, `sapin` → sapin, `rocher` → rocher, sauf dans le canyon où `arbre` → arbre sec et `sapin` → cactus, et en ville où `arbre` → arbre en bac, `sapin` → lampadaire et `rocher` → bloc béton. Ils sont recolorés selon le thème (rochers rouges, arbres enneigés ou roux). L'éditeur affiche le nom du décor courant (« Cactus » à la place de « Sapin »).
+
+**Bâtiments (ville)** : posés par `generateEnvironment` en trois passes avec leur propre générateur aléatoire (graine + constante) : rang 1 (façades alignées sur la route, 2 à 8 étages), rang 2 (30 à 50 m, mélange d'immeubles et de tours), fond (tours et immeubles isolés de 45 à 320 m, visuels). Un bâtiment n'est posé que si aucun point de son pourtour n'est à moins de `largeur/2 + 8 m` de l'axe (couloir élargi pour laisser la place de dériver), s'il ne chevauche aucun autre bâtiment (marge 1 m), s'il n'est pas sur un parc (masque de forêt, seuil plancher 0,66) ni près d'un objet posé à la main. Chaque bâtiment est un modèle instancié à empreinte fixe (`IMMEUBLES`, `TOURS`) ; il est **solide** (4 segments de collision autour de l'empreinte) dès qu'il est à moins de 40 m de la route. Les objets à empreinte rectangulaire du mobilier (voiture garée, abribus, bloc béton, grillage) le sont de la même façon ; les autres objets solides sont des cercles. Les bâtiments s'enfoncent de 4 m sous le sol (posés à l'altitude la plus basse de leur emprise) : rien ne flotte sur une pente. Le terrain de la ville est aplati (`relief` : facteur sur la hauteur des reliefs, 1 par défaut).
 
 **Aperçu (développement)** : `?theme=<id>` et `?ambiance=<jour|coucher>` dans l'URL remplacent l'environnement / l'ambiance de tout niveau au chargement, sans modifier le niveau.
 
@@ -310,7 +313,7 @@ Touches lues par **position physique** (`KeyboardEvent.code`) : AZERTY et QWERTY
 - **Terrain** : couleurs par sommet (herbe claire/foncée par bruit, plus sombre sous la forêt, roche sur les pentes raides).
 - **Ciel** en dégradé + **brouillard** de même teinte.
 - **Ambiances** `jour` et `coucher` : palettes ciel/lumière/brouillard, propres à chaque environnement (§5.5).
-- Décor Kenney : ses matériaux sont remplacés par des matériaux toon de même couleur. Les thèmes recolorent ces modèles (feuillage, roche, neige par la normale) et ajoutent des modèles procéduraux au même style (aplats + contours). Voitures : profil latéral extrudé (caisse, habitacle vitré, passages de roues), détails en blocs (feux, pare-chocs, aileron), roues procédurales.
+- Décor Kenney : ses matériaux sont remplacés par des matériaux toon de même couleur. Les thèmes recolorent ces modèles (feuillage, roche, neige par la normale) et ajoutent des modèles procéduraux au même style (aplats + contours). Ville : immeubles et tours à fenêtres en quads colorés (un seul tampon fusionné par modèle, contour épais sur le corps seul, fenêtres et lampadaires « allumés » au coucher par des couleurs > 1), silhouettes d'immeubles en anneau à la place des montagnes ; les modèles dépendent de l'ambiance. Voitures : profil latéral extrudé (caisse, habitacle vitré, passages de roues), détails en blocs (feux, pare-chocs, aileron), roues procédurales.
 
 ### 9.2 Effets
 - Fumée de pneus : particules instanciées, pool fixe.
