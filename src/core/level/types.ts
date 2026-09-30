@@ -3,7 +3,7 @@ export type Ambiance = 'jour' | 'coucher';
  * Décors disponibles. L'ORDRE est figé : le code de partage stocke l'indice (encode.ts).
  * Ajouter un thème = l'ajouter À LA FIN ici, puis dans `THEMES` (core/env/themes.ts) et `THEMES_VISUELS` (render/themes.ts).
  */
-export const ENVIRONNEMENTS = ['montagne', 'neige', 'desert', 'automne', 'ville'] as const;
+export const ENVIRONNEMENTS = ['montagne', 'neige', 'desert', 'automne', 'ville', 'pirate', 'backrooms', 'espace', 'japon'] as const;
 export type Environnement = (typeof ENVIRONNEMENTS)[number];
 export type CoteBarriere = 'gauche' | 'droite' | 'deux' | 'ext';
 export type TypeObjet = 'arbre' | 'sapin' | 'rocher' | 'pneus' | 'barriere' | 'panneau';
