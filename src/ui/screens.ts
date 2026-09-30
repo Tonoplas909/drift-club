@@ -48,7 +48,7 @@ export interface NiveauCarte { nom: string; detail: string; record: RecordEntry 
 export class Screens {
   private progressEl: HTMLElement | null = null;
   private toastTimer = 0;
-  private ongletNiveaux: 'off' | 'perso' = 'off';
+  private ongletNiveaux: 'off' | 'perso' | 'ligne' = 'off';
   private ecranNiveaux: HTMLElement | null = null;
   private boutonCompte: HTMLElement | null = null;
 
@@ -108,7 +108,7 @@ export class Screens {
     if (this.boutonCompte && this.root.contains(this.boutonCompte)) this.boutonCompte.textContent = libelle;
   }
 
-  niveaux(o: { cartes: NiveauCarte[]; perso: NiveauCarte[]; mode: ModeId; voiture: CarId; onChoisir(i: number): void; onChoisirPerso(i: number): void; onClassement(perso: boolean, i: number): void; onImporter(): void; onEditeur(): void; onGarage(): void; onReglages(): void; onRetour(): void }): void {
+  niveaux(o: { cartes: NiveauCarte[]; perso: NiveauCarte[]; mode: ModeId; voiture: CarId; onChoisir(i: number): void; onChoisirPerso(i: number): void; onClassement(perso: boolean, i: number): void; onImporter(): void; /** contenu de l'onglet « En ligne » (créé au premier affichage) */ enLigne(): HTMLElement; onEditeur(): void; onGarage(): void; onReglages(): void; onRetour(): void }): void {
     const carte = (c: NiveauCarte, i: number, choisir: (i: number) => void, perso: boolean): HTMLElement =>
       h('div', { class: 'cardw' },
         h('button', { class: 'card' + (c.desactive ? ' off' : ''), title: c.desactive ?? '', onclick: () => (c.desactive ? this.toast(c.desactive) : choisir(i)) },
@@ -120,18 +120,23 @@ export class Screens {
         h('button', { class: 'btn sm sec', onclick: () => o.onClassement(perso, i) }, 'Classement'),
       );
     const render = (): void => {
-      const perso = this.ongletNiveaux === 'perso';
+      const onglet = this.ongletNiveaux;
+      const perso = onglet === 'perso';
+      const ligne = onglet === 'ligne';
       const ecran = h('div', { class: 'screen' }, h('div', { class: 'panel wide' },
         h('h2', {}, 'Choisis un niveau'),
         h('div', { class: 'tabs' },
-          h('button', { class: 'tab' + (perso ? '' : ' on'), onclick: () => { this.ongletNiveaux = 'off'; render(); } }, 'Officiels'),
+          h('button', { class: 'tab' + (onglet === 'off' ? ' on' : ''), onclick: () => { this.ongletNiveaux = 'off'; render(); } }, 'Officiels'),
           h('button', { class: 'tab' + (perso ? ' on' : ''), onclick: () => { this.ongletNiveaux = 'perso'; render(); } }, `Mes niveaux${o.perso.length ? ` (${o.perso.length})` : ''}`),
+          h('button', { class: 'tab' + (ligne ? ' on' : ''), onclick: () => { this.ongletNiveaux = 'ligne'; render(); } }, 'En ligne'),
           h('button', { class: 'tab', onclick: o.onImporter }, 'Importer'),
         ),
         h('p', { class: 'sub' }, 'Mode ', h('b', {}, MODE_NOMS[o.mode]), ' · Voiture ', h('b', {}, CARS[o.voiture].nom)),
-        perso && o.perso.length === 0
-          ? h('p', { class: 'sub' }, "Tu n'as pas encore créé de niveau. Ouvre l'éditeur pour dessiner ta première route !")
-          : h('div', { class: 'cards' }, ...(perso ? o.perso.map((c, i) => carte(c, i, o.onChoisirPerso, true)) : o.cartes.map((c, i) => carte(c, i, o.onChoisir, false)))),
+        ligne
+          ? o.enLigne()
+          : perso && o.perso.length === 0
+            ? h('p', { class: 'sub' }, "Tu n'as pas encore créé de niveau. Ouvre l'éditeur pour dessiner ta première route, ou importe-en un !")
+            : h('div', { class: 'cards' }, ...(perso ? o.perso.map((c, i) => carte(c, i, o.onChoisirPerso, true)) : o.cartes.map((c, i) => carte(c, i, o.onChoisir, false)))),
         h('div', { class: 'row' },
           h('button', { class: 'btn sec', onclick: o.onRetour }, 'Retour'),
           perso && h('button', { class: 'btn sec', onclick: o.onEditeur }, 'Éditeur'),
