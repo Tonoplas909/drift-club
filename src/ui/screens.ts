@@ -50,6 +50,7 @@ export class Screens {
   private toastTimer = 0;
   private ongletNiveaux: 'off' | 'perso' = 'off';
   private ecranNiveaux: HTMLElement | null = null;
+  private boutonCompte: HTMLElement | null = null;
 
   constructor(private readonly root: HTMLElement) {}
 
@@ -85,13 +86,16 @@ export class Screens {
     )));
   }
 
-  accueil(o: { onJouer(): void; onGarage(): void; onEditeur(): void; onReglages(): void; persistent: boolean }): void {
+  accueil(o: { onJouer(): void; onGarage(): void; onEditeur(): void; onCompte(): void; onReglages(): void; persistent: boolean; compte: string }): void {
+    const compte = h('button', { class: 'btn sec', onclick: o.onCompte }, o.compte);
+    this.boutonCompte = compte;
     this.show(h('div', { class: 'screen accueil' },
       h('h1', { class: 'logo big' }, 'Drift', h('span', {}, 'Club')),
       h('div', { class: 'menu' },
         h('button', { class: 'btn big', onclick: o.onJouer }, 'Jouer'),
         h('button', { class: 'btn sec', onclick: o.onGarage }, 'Garage'),
         h('button', { class: 'btn sec', onclick: o.onEditeur }, 'Éditeur'),
+        compte,
         h('button', { class: 'btn sec', onclick: o.onReglages }, 'Réglages'),
       ),
       h('p', { class: 'hint' }, 'Z/W ou ↑ accélérer · S ou ↓ freiner · Q/A, D ou ← → tourner · Espace frein à main · R replacer · C caméra · Échap pause'),
@@ -99,13 +103,21 @@ export class Screens {
     ));
   }
 
-  niveaux(o: { cartes: NiveauCarte[]; perso: NiveauCarte[]; mode: ModeId; voiture: CarId; onChoisir(i: number): void; onChoisirPerso(i: number): void; onEditeur(): void; onGarage(): void; onReglages(): void; onRetour(): void }): void {
-    const carte = (c: NiveauCarte, i: number, choisir: (i: number) => void): HTMLElement =>
-      h('button', { class: 'card' + (c.desactive ? ' off' : ''), title: c.desactive ?? '', onclick: () => (c.desactive ? this.toast(c.desactive) : choisir(i)) },
-        h('span', { class: 'num' }, String(i + 1)),
-        h('b', {}, c.nom),
-        h('small', {}, c.detail),
-        h('span', { class: 'rec' }, c.record ? `Record : ${formatScore(c.record.score)}` : 'Pas encore de record'),
+  /** Met à jour le libellé du bouton Compte de l'accueil (connexion ou pseudo changé). */
+  majCompte(libelle: string): void {
+    if (this.boutonCompte && this.root.contains(this.boutonCompte)) this.boutonCompte.textContent = libelle;
+  }
+
+  niveaux(o: { cartes: NiveauCarte[]; perso: NiveauCarte[]; mode: ModeId; voiture: CarId; onChoisir(i: number): void; onChoisirPerso(i: number): void; onClassement(perso: boolean, i: number): void; onEditeur(): void; onGarage(): void; onReglages(): void; onRetour(): void }): void {
+    const carte = (c: NiveauCarte, i: number, choisir: (i: number) => void, perso: boolean): HTMLElement =>
+      h('div', { class: 'cardw' },
+        h('button', { class: 'card' + (c.desactive ? ' off' : ''), title: c.desactive ?? '', onclick: () => (c.desactive ? this.toast(c.desactive) : choisir(i)) },
+          h('span', { class: 'num' }, String(i + 1)),
+          h('b', {}, c.nom),
+          h('small', {}, c.detail),
+          h('span', { class: 'rec' }, c.record ? `Record : ${formatScore(c.record.score)}` : 'Pas encore de record'),
+        ),
+        h('button', { class: 'btn sm sec', onclick: () => o.onClassement(perso, i) }, 'Classement'),
       );
     const render = (): void => {
       const perso = this.ongletNiveaux === 'perso';
@@ -119,7 +131,7 @@ export class Screens {
         h('p', { class: 'sub' }, 'Mode ', h('b', {}, MODE_NOMS[o.mode]), ' · Voiture ', h('b', {}, CARS[o.voiture].nom)),
         perso && o.perso.length === 0
           ? h('p', { class: 'sub' }, "Tu n'as pas encore créé de niveau. Ouvre l'éditeur pour dessiner ta première route !")
-          : h('div', { class: 'cards' }, ...(perso ? o.perso.map((c, i) => carte(c, i, o.onChoisirPerso)) : o.cartes.map((c, i) => carte(c, i, o.onChoisir)))),
+          : h('div', { class: 'cards' }, ...(perso ? o.perso.map((c, i) => carte(c, i, o.onChoisirPerso, true)) : o.cartes.map((c, i) => carte(c, i, o.onChoisir, false)))),
         h('div', { class: 'row' },
           h('button', { class: 'btn sec', onclick: o.onRetour }, 'Retour'),
           perso && h('button', { class: 'btn sec', onclick: o.onEditeur }, 'Éditeur'),
@@ -191,7 +203,7 @@ export class Screens {
     )));
   }
 
-  resultats(o: { result: RaceResult; record: boolean; persistent: boolean; onRecommencer(): void; onSuivant: (() => void) | null; onMenu(): void; menuLabel?: string }): void {
+  resultats(o: { result: RaceResult; record: boolean; persistent: boolean; onRecommencer(): void; onSuivant: (() => void) | null; onMenu(): void; menuLabel?: string; /** bloc classement en ligne, rempli après l'envoi du score */ enLigne?: HTMLElement | null }): void {
     const r = o.result;
     const ecart = r.time - r.targetTime;
     this.show(h('div', { class: 'screen dim' }, h('div', { class: 'panel' },
@@ -204,6 +216,7 @@ export class Screens {
         h('tr', {}, h('td', {}, 'Temps'), h('td', {}, `${formatTime(r.time)} (${ecart <= 0 ? '−' : '+'}${formatTime(Math.abs(ecart))} / cible)`)),
         h('tr', {}, h('td', {}, 'Meilleur drift'), h('td', {}, formatScore(r.bestDrift))),
       ),
+      o.enLigne,
       h('div', { class: 'row' },
         h('button', { class: 'btn', onclick: o.onRecommencer }, 'Recommencer'),
         o.onSuivant && h('button', { class: 'btn', onclick: o.onSuivant }, 'Niveau suivant'),
