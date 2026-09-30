@@ -2,7 +2,7 @@
   "format": 1,
   "nom": "Circuit du Lac",
   "auteur": "Drift Club",
-  "environnement": "automne",
+  "environnement": "ville",
   "ambiance": "jour",
   "route": [
     { "x": 0, "z": 0, "y": 5.5, "l": 14 },

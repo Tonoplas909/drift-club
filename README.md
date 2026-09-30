@@ -36,7 +36,7 @@ Chaque livrée a une **rareté** : Commune (bleu, 79,9 %), Rare (violet, 16 %), 
 
 Dix niveaux : **Premiers virages**, **Forêt des Pins**, **Col du Loup**, **Lacets du Belvédère** (montée en épingles), **Vallée des Crêtes** (descente rapide au coucher du soleil), **Circuit du Lac** (grand fer à cheval de longs virages, le plus facile), **Épingles du Diable** (huit épingles empilées sur une face raide, le plus dur), **Route des Crêtes Nord** (longue crête rapide avec trois épingles), **Descente du Moulin** (descente technique en chicanes au coucher du soleil) et **Grand Huit** (un serpent de dix virages alternés).
 
-Quatre décors : montagne (Premiers virages, Col du Loup, Épingles du Diable), montagne enneigée (Lacets du Belvédère, Route des Crêtes Nord), canyon (Vallée des Crêtes, Grand Huit) et forêt d'automne (Forêt des Pins, Circuit du Lac, Descente du Moulin).
+Cinq décors, deux niveaux chacun : ville (Circuit du Lac, Grand Huit), montagne (Col du Loup, Épingles du Diable), montagne enneigée (Lacets du Belvédère, Route des Crêtes Nord), canyon (Vallée des Crêtes, Descente du Moulin) et forêt d'automne (Forêt des Pins, Premiers virages).
 
 ## Commandes
 

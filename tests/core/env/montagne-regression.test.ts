@@ -26,7 +26,8 @@ describe('montagne : le décor des niveaux officiels ne change pas', () => {
   for (const id of ['premiers-virages', 'col-du-loup']) {
     it(id, () => {
       const n = NIVEAUX_OFFICIELS.find((x) => x.id === id)!;
-      const r = loadLevel(n.data);
+      // le niveau peut avoir changé de thème depuis : on vérifie les règles de montagne sur sa route
+      const r = loadLevel({ ...(n.data as object), environnement: 'montagne' });
       if (!r.ok) throw new Error(r.erreurs.join('\n'));
       const env = generateEnvironment(r.level, r.track, new Terrain(r.track, r.level.decor.graine));
       expect({ items: env.items.length, hash: empreinteDecor(env) }).toEqual(ATTENDU[id]);

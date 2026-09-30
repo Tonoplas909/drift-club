@@ -2,7 +2,7 @@
   "format": 1,
   "nom": "Grand Huit",
   "auteur": "Drift Club",
-  "environnement": "desert",
+  "environnement": "ville",
   "ambiance": "jour",
   "route": [
     { "x": 0, "z": 0, "y": -8.2, "l": 12 },
