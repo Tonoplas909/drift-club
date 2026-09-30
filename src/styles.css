@@ -303,3 +303,153 @@ input[type=text], input[type=email], input[type=password] { user-select: text; -
   .accueil .btn.big { font-size: 22px; padding: 7px; }
   .accueil .hint { display: none; }
 }
+
+/* ===================================================================================================
+   Livrées, clés et caisses — bloc isolé (Garage, résultats, écran des caisses). Ne touche pas aux
+   règles ci-dessus : à garder groupé à la fin du fichier pour faciliter les fusions.
+   =================================================================================================== */
+.menu .duo { display: flex; gap: 12px; }
+.menu .duo .btn { flex: 1; }
+.ico-cle, .ico-cadenas { display: inline-block; width: 1.15em; height: 1.15em; flex: none; vertical-align: -0.2em; }
+.ico-cle svg, .ico-cadenas svg { display: block; width: 100%; height: 100%; }
+.btn .ico-cle { margin-right: 6px; vertical-align: -0.25em; }
+
+/* Garage : pastilles de livrée (bordure = rareté, cadenas = verrouillée) */
+.skins .chip { border-color: var(--rc, var(--ink)); font-size: 14px; padding: 3px 10px 3px 5px; }
+.skins .chip.lock { background: #e6e2d8; color: #4a4655; }
+.skins .chip.lock i { filter: grayscale(.6); }
+.skins .chip .ico-cadenas { width: 1em; height: 1em; margin-left: -2px; }
+.skins .chip.apercu { background: #fff; outline: 3px dashed var(--rc); outline-offset: 2px; }
+.swatches.figees .swatch { opacity: .3; cursor: not-allowed; }
+.cs-rarete { display: inline-block; align-self: flex-start; padding: 0 12px; border: 3px solid var(--ink); border-radius: 999px; background: var(--rc, var(--blue)); color: #fff; -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; font-size: 14px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; line-height: 1.45; }
+.skin-info { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; min-height: 2.9em; }
+.skin-info b { font-size: 18px; }
+.skin-info .verrou { flex-basis: 100%; color: #a3231a; font-weight: 800; font-size: 14px; }
+.skin-info .petit { flex-basis: 100%; }
+.panel.side { overflow: hidden; width: min(400px, 94vw); }
+.garage-corps { display: flex; flex-direction: column; gap: 12px; flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 0 6px 4px 2px; margin-right: -6px; }
+.panel.side .row { align-items: center; flex: none; }
+.panel.side .row .btn { font-size: 17px; padding: 8px 16px; }
+
+/* Résultats : clés gagnées */
+.gains { display: flex; align-items: center; gap: 10px; background: #fff; border: 3px solid var(--ink); border-radius: 14px; padding: 6px 12px; }
+.gains .ico-cle { font-size: 30px; }
+.gains > div { display: flex; flex-direction: column; flex: 1; line-height: 1.15; }
+.gains b { font-size: 20px; font-weight: 800; }
+.gains .record { color: #a35f00; }
+.gains small { opacity: .7; font-size: 13px; font-weight: 700; }
+
+.panel.resultats .res-g, .panel.resultats .res-d { display: contents; }
+
+/* Écran des caisses */
+.screen.caisses { --cw: 132px; --ch: 132px; --gap: 10px; gap: 0; padding: 10px 12px; }
+.cs { width: min(1000px, 100%); display: flex; flex-direction: column; gap: 12px; }
+.cs-tete { display: flex; align-items: center; gap: 12px; }
+.cs-tete h2 { margin: 0 auto 0 0; font-size: 36px; font-weight: 800; color: var(--yellow); -webkit-text-stroke: 4px var(--ink); paint-order: stroke fill; line-height: 1; }
+.cs-cles { display: flex; align-items: center; gap: 6px; background: var(--cream); color: var(--ink); border: 3px solid var(--ink); border-radius: 999px; padding: 1px 14px 1px 8px; font-size: 20px; box-shadow: 0 3px 0 var(--ink); }
+.cs-cles .ico-cle { font-size: 26px; }
+.cs-reel { position: relative; overflow: hidden; padding: 12px 0; background: linear-gradient(#1b1a26, #100f17); border: 4px solid var(--ink); border-radius: 18px; box-shadow: 0 6px 0 var(--ink); contain: layout paint; }
+.cs-reel::before, .cs-reel::after { content: ''; position: absolute; top: 0; bottom: 0; width: 14%; z-index: 2; pointer-events: none; }
+.cs-reel::before { left: 0; background: linear-gradient(90deg, rgba(16, 15, 23, .95), transparent); }
+.cs-reel::after { right: 0; background: linear-gradient(270deg, rgba(16, 15, 23, .95), transparent); }
+.cs-piste { position: relative; display: flex; gap: var(--gap); width: max-content; will-change: transform; }
+.cs-repere { position: absolute; left: 50%; top: 0; bottom: 0; width: 4px; margin-left: -2px; z-index: 3; background: var(--yellow); box-shadow: 0 0 10px 2px rgba(255, 210, 63, .75); pointer-events: none; }
+.cs-repere::before, .cs-repere::after { content: ''; position: absolute; left: -9px; border: 11px solid transparent; }
+.cs-repere::before { top: 0; border-top-color: var(--yellow); }
+.cs-repere::after { bottom: 0; border-bottom-color: var(--yellow); }
+.cs-carte { position: relative; flex: none; width: var(--cw); height: var(--ch); overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 6px 6px 15px; background: #fff; color: var(--ink); border: 3px solid var(--ink); border-radius: 14px; text-align: center; }
+.cs-carte::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 50% 30%, var(--rc) -10%, transparent 72%); opacity: .3; }
+.cs-carte > * { position: relative; }
+.cs-carte .ico-voiture { display: block; width: 86%; height: 42%; }
+.cs-voit { font-size: 12px; font-weight: 700; opacity: .65; line-height: 1; }
+.cs-nom { font-size: 15px; line-height: 1.05; }
+.cs-barre { position: absolute; left: 0; right: 0; bottom: 0; height: 10px; background: var(--rc); border-top: 3px solid var(--ink); }
+.cs-carte.sous { outline: 3px solid var(--rc); outline-offset: -3px; }
+.cs-carte.gagnante { z-index: 1; box-shadow: 0 0 0 3px var(--rc), 0 0 22px 6px var(--rc); animation: cs-gagne .7s ease-in-out infinite alternate; }
+.cs-actions { display: flex; align-items: center; justify-content: center; gap: 18px; min-height: 84px; }
+.ico-caisse { display: block; width: 76px; height: 66px; flex: none; }
+.ico-caisse.secoue { animation: cs-secoue .3s linear infinite; }
+.cs-ouvrir { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.cs-raison { margin: 0; max-width: 380px; font-size: 13px; font-weight: 700; color: #ffd0cb; }
+.cs-chances { margin: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 14px; font-size: 13px; opacity: .92; }
+.cs-chance i { display: inline-block; width: 10px; height: 10px; margin-right: 5px; border-radius: 50%; background: var(--rc); border: 2px solid rgba(0, 0, 0, .45); vertical-align: -1px; }
+.screen.caisses .btn.big { font-size: 26px; padding: 10px 28px; }
+
+/* Révélation : la livrée gagnée s'affiche en 3D (showroom) derrière la fiche */
+.screen.caisses.revele { background: linear-gradient(90deg, rgba(21, 19, 28, .92) 0%, rgba(21, 19, 28, .72) 36%, rgba(21, 19, 28, 0) 64%); }
+.screen.caisses.revele .cs { display: none; }
+.cs-revele { position: absolute; inset: 0; display: flex; align-items: center; justify-content: flex-start; padding: 12px max(4vw, 16px); pointer-events: none; overflow: hidden; }
+.cs-lueur { display: none; position: absolute; left: calc(max(4vw, 16px) + 190px); top: 50%; width: 120vmin; height: 120vmin; margin: -60vmin 0 0 -60vmin; background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--rc) 45%, transparent) 0 5deg, transparent 5deg 20deg); -webkit-mask-image: radial-gradient(circle, #000 0%, transparent 62%); mask-image: radial-gradient(circle, #000 0%, transparent 62%); animation: cs-tourne 30s linear infinite; }
+.r-epique .cs-lueur, .r-legendaire .cs-lueur, .r-exotique .cs-lueur { display: block; }
+.cs-fiche { position: relative; pointer-events: auto; width: min(410px, 92vw); display: flex; flex-direction: column; gap: 8px; padding: 16px 20px; background: var(--cream); color: var(--ink); text-align: left; border: 4px solid var(--rc); border-radius: 22px; box-shadow: 0 0 0 4px var(--ink), 0 0 34px 6px var(--rc); animation: cs-entre .45s cubic-bezier(.2, 1.4, .4, 1) both; }
+.cs-fiche h2 { margin: 0; font-size: 32px; font-weight: 800; line-height: 1.05; }
+.cs-fiche p { margin: 0; }
+.cs-obj { font-size: 19px; }
+.cs-total { display: flex; align-items: center; gap: 6px; font-weight: 800; }
+.cs-fiche .row { margin-top: 4px; }
+.cs-fiche .btn { font-size: 16px; padding: 6px 14px; }
+@keyframes cs-gagne { from { transform: scale(1); } to { transform: scale(1.05); } }
+@keyframes cs-secoue { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg) translateY(-2px); } }
+@keyframes cs-entre { from { transform: translateX(-30px) scale(.86); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes cs-tourne { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .cs-fiche, .cs-lueur, .cs-carte.gagnante, .ico-caisse.secoue { animation: none; }
+}
+@media (max-width: 640px) {
+  .cs-revele { justify-content: center; }
+  .screen.caisses.revele { background: rgba(21, 19, 28, .78); }
+}
+/* téléphone en paysage (844 × 390) : cartes et marges resserrées pour tout garder à l'écran */
+@media (max-height: 480px) {
+  .screen.caisses { --cw: 106px; --ch: 108px; --gap: 8px; padding: 6px 10px; }
+  .cs { gap: 6px; }
+  .cs-tete h2 { font-size: 26px; -webkit-text-stroke-width: 3px; }
+  .cs-cles { font-size: 17px; }
+  .cs-reel { padding: 8px 0; border-width: 3px; box-shadow: 0 4px 0 var(--ink); }
+  .cs-carte { padding: 4px 4px 13px; gap: 2px; }
+  .cs-voit { font-size: 11px; }
+  .cs-nom { font-size: 13px; }
+  .cs-actions { min-height: 56px; gap: 12px; }
+  .ico-caisse { width: 54px; height: 47px; }
+  .screen.caisses .btn.big { font-size: 20px; padding: 6px 22px; }
+  .cs-raison { font-size: 11.5px; }
+  .cs-chances { font-size: 11px; gap: 0 10px; }
+  .cs-fiche { padding: 10px 16px; gap: 5px; }
+  .cs-fiche h2 { font-size: 24px; }
+  .cs-obj { font-size: 16px; }
+  .cs-fiche .btn { font-size: 15px; padding: 5px 12px; }
+  .cs-fiche { width: min(390px, 92vw); }
+  .skin-info { min-height: 0; }
+  .panel.side .row .btn { font-size: 15px; padding: 5px 12px; }
+}
+
+/* Garage compact (écrans de moins de 800 px de haut) : voitures en une rangée sans description, pastilles plus petites */
+@media (max-height: 800px) {
+  .panel.side { width: min(420px, 94vw); max-height: calc(100vh - 16px); padding: 8px 14px; gap: 6px; }
+  .panel.side h2 { font-size: 24px; }
+  .garage-corps { gap: 6px; }
+  .panel.side .choices { flex-direction: row; gap: 6px; }
+  .panel.side .choice { flex: 1; padding: 3px 6px; border-radius: 12px; }
+  .panel.side .choice b { font-size: 14px; }
+  .panel.side .choice small { display: none; }
+  .panel.side .swatch { width: 28px; height: 28px; }
+  .panel.side .swatches { gap: 6px; }
+  .panel.side h3 { margin: 0; font-size: 13px; }
+  .skins { gap: 5px; }
+  .skins .chip { font-size: 12.5px; padding: 1px 8px 1px 4px; border-width: 2px; }
+  .skins .chip i { width: 16px; height: 16px; }
+  .skin-info b { font-size: 15px; }
+}
+.skin-info { flex: none; }
+
+/* Résultats sur téléphone en paysage : score à gauche, clés et boutons à droite pour tout garder à l'écran */
+@media (max-height: 480px) {
+  .panel.resultats { flex-direction: row; align-items: flex-start; width: min(760px, 94vw); gap: 20px; padding: 12px 18px; }
+  .panel.resultats .res-g, .panel.resultats .res-d { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+  .panel.resultats h2 { font-size: 26px; }
+  .panel.resultats .score { font-size: 40px; }
+  .panel.resultats .detail { font-size: 14px; }
+  .panel.resultats .row .btn { font-size: 15px; padding: 5px 14px; }
+  .gains { padding: 4px 10px; }
+  .gains b { font-size: 17px; }
+}

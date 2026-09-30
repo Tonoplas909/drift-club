@@ -13,7 +13,9 @@ import { prepareLevel, type PreparedLevel } from './game/prepare';
 import { NIVEAUX_OFFICIELS, cleNiveauOfficiel } from './levels';
 import { Screens, levelSummary, type NiveauCarte } from './ui/screens';
 import { formatDistance } from './ui/format';
-import { skinChoisie } from './core/skins';
+import { skinChoisie, choisirSkin } from './core/skins';
+import { gagnerCourse, ouvrirCaisse, skinsAutorises, type Progression } from './core/economie';
+import type { Objet } from './core/caisses';
 import type { RaceResult } from './core/race/race';
 import type { Level } from './core/level/types';
 import { empreinteNiveau } from './core/level/fingerprint';
@@ -31,6 +33,7 @@ import { ouvrirPartage, ouvrirImport, carteNiveauPartage } from './ui/partage';
 import { panneauEnLigne } from './ui/enligne';
 import { ecranCompte } from './ui/compte';
 import { ecranClassement, zoneEnLigne, textePlace } from './ui/classement';
+import { ecranCaisses } from './ui/caisses';
 
 /** D'où vient la course : `index` ≥ 0 pour un niveau officiel, `retour` ramène à l'écran d'origine. */
 interface Contexte { index: number; retour: () => void; menuLabel: string }
@@ -42,6 +45,7 @@ export class App {
   private store!: Store;
   private persistent = true;
   private reglages!: Reglages;
+  private progression!: Progression;
   private assets: Assets | null = null;
   private readonly screens = new Screens($('ui'));
   private readonly hud = new Hud($('hud'));
@@ -73,6 +77,10 @@ export class App {
     this.store = new Store(s.kv);
     this.persistent = s.persistent;
     this.reglages = this.store.loadReglages(this.touch);
+    // clés et livrées gagnées ; une livrée choisie mais verrouillée (données modifiées à la main) retombe sur « unie »
+    this.progression = this.store.loadProgression(this.reglages.skins);
+    const autorisees = skinsAutorises(this.reglages.skins, this.progression);
+    if (JSON.stringify(autorisees) !== JSON.stringify(this.reglages.skins)) { this.reglages.skins = autorisees; this.save(); }
     this.audio.setVolume(this.reglages.volume);
     this.audio.setMuted(this.reglages.muet);
     this.keyboard.attach(window);
@@ -146,6 +154,7 @@ export class App {
       onCompte: () => this.ecranCompte(() => this.accueil()),
       onJouer: () => this.niveaux(),
       onGarage: () => this.garage(() => this.accueil()),
+      onCaisses: () => this.caisses(() => this.accueil()),
       onEditeur: () => this.hubEditeur(),
       onReglages: () => this.reglagesEcran(() => this.accueil()),
     });
@@ -250,15 +259,50 @@ export class App {
       voiture: this.reglages.voiture,
       couleur: this.reglages.couleur,
       skins: this.reglages.skins,
+      progression: this.progression,
       onChange: (voiture, couleur, skins) => {
         this.reglages.voiture = voiture;
         this.reglages.couleur = couleur;
-        this.reglages.skins = skins;
+        this.reglages.skins = skinsAutorises(skins, this.progression);
         this.save();
-        this.showroom?.setCar(voiture, couleur, skinChoisie(skins, voiture));
+        this.showroom?.setCar(voiture, couleur, skinChoisie(this.reglages.skins, voiture));
       },
+      // aperçu d'une livrée verrouillée : seulement le showroom, rien n'est enregistré
+      onApercu: (voiture, couleur, skin) => this.showroom?.setCar(voiture, couleur, skin),
+      onCaisses: () => this.caisses(() => this.garage(retour)),
       onRetour: () => { this.showroom?.stop(); retour(); },
     });
+  }
+
+  /** Écran des caisses : la progression est modifiée et enregistrée à l'ouverture (fermer l'onglet en pleine roulette ne perd rien). */
+  private caisses(retour: () => void): void {
+    this.showroom?.stop();
+    this.screens.monter(ecranCaisses({
+      progression: () => this.progression,
+      ouvrir: (rng) => {
+        const r = ouvrirCaisse(this.progression, rng);
+        if (r) { this.progression = r.progression; this.store.saveProgression(this.progression); }
+        return r;
+      },
+      audio: { tick: (k) => this.audio.playTick(k), ouvrir: () => this.audio.playOuvrirCaisse(), reveal: (r) => this.audio.playReveal(r) },
+      couleur: () => this.reglages.couleur,
+      onApercu: (x) => this.apercuCaisse(x),
+      onEquiper: (x) => {
+        this.reglages.voiture = x.car;
+        this.reglages.skins = choisirSkin(this.reglages.skins, x.car, x.skin);
+        this.save();
+        this.garage(retour);
+      },
+      onRetour: retour,
+    }));
+  }
+
+  /** Montre la livrée gagnée dans le showroom, derrière la fiche de révélation ; `null` l'arrête. */
+  private apercuCaisse(x: Objet | null): void {
+    if (!this.showroom) return;
+    if (!x) { this.showroom.stop(); return; }
+    this.showroom.setCar(x.car, this.reglages.couleur, x.skin);
+    this.showroom.start();
   }
 
   private reglagesEcran(retour: () => void): void {
@@ -435,14 +479,22 @@ export class App {
       score: r.score, temps: r.time, voiture: this.reglages.voiture, meilleurDrift: r.bestDrift, date: new Date().toISOString().slice(0, 10),
     });
     const next = cur.index >= 0 && cur.index + 1 < NIVEAUX_OFFICIELS.length ? cur.index + 1 : -1;
-    this.screens.resultats({
+    // clés : 1 par arrivée, +1 si nouveau record local (une seule fois par arrivée, pas à chaque retour d'écran)
+    const g = gagnerCourse(this.progression, record);
+    this.progression = g.progression;
+    this.store.saveProgression(this.progression);
+    const enLigne = this.envoyerScore(cur.prepared.key, r);
+    const montrer = (): void => this.screens.resultats({
       result: r, record, persistent: this.persistent,
+      cles: { ...g.gain, total: this.progression.cles },
+      onCaisses: () => this.caisses(montrer),
       onRecommencer: () => { this.screens.clear(); this.touchControls.show(this.touch || this.input.touchActive); this.session?.restart(); },
       onSuivant: next >= 0 ? () => void this.lancer(next) : null,
       onMenu: () => this.quitterCourse(),
       menuLabel: cur.contexte.menuLabel,
-      enLigne: this.envoyerScore(cur.prepared.key, r),
+      enLigne,
     });
+    montrer();
   }
 
   /** Bloc « classement en ligne » des résultats : envoi en tâche de fond, l'écran n'attend jamais le réseau. */
