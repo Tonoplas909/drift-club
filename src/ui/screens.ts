@@ -255,6 +255,8 @@ export class Screens {
           h('button', { class: 'tab' + (q === r.qualite ? ' on' : ''), onclick: () => { r.qualite = q; change(); } }, label))),
         h('h3', {}, 'Conduite'),
         h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.cameraLoin, onchange: (e: Event) => { r.cameraLoin = (e.target as HTMLInputElement).checked; change(); } }), 'Caméra éloignée (touche C)'),
+        h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.detailPoints, onchange: (e: Event) => { r.detailPoints = (e.target as HTMLInputElement).checked; change(); } }), 'Détail des points de drift (vitesse, durée, angle)'),
+        h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.indicateurAngle, onchange: (e: Event) => { r.indicateurAngle = (e.target as HTMLInputElement).checked; change(); } }), 'Indicateur d\'angle sous la voiture'),
         o.touch && h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.accelAuto, onchange: (e: Event) => { r.accelAuto = (e.target as HTMLInputElement).checked; change(); } }), 'Accélération automatique (tactile)'),
         h('button', { class: 'btn', onclick: o.onRetour }, 'Retour'),
       )));

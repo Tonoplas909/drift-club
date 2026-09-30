@@ -23,6 +23,12 @@ export class Hud {
     root.querySelectorAll<HTMLElement>('[data-k]').forEach((e) => { this.el[e.dataset.k!] = e; });
   }
 
+  /** Éléments du HUD activables dans les Réglages. */
+  options(o: { detailPoints: boolean; indicateurAngle: boolean }): void {
+    this.root.classList.toggle('sans-detail', !o.detailPoints);
+    this.root.classList.toggle('sans-angle', !o.indicateurAngle);
+  }
+
   show(v: boolean): void {
     this.root.classList.toggle('on', v);
   }

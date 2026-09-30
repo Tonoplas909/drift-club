@@ -93,6 +93,7 @@ export class App {
     this.store = new Store(s.kv);
     this.persistent = s.persistent;
     this.reglages = this.store.loadReglages(this.touch);
+    this.hud.options(this.reglages);
     // clés et livrées gagnées ; une livrée choisie mais verrouillée (données modifiées à la main) retombe sur « unie »
     this.progression = this.store.loadProgression(this.reglages.skins);
     // si une progression de compte est gardée sur l'appareil, le joueur est peut-être reconnecté dans un instant : on attend de savoir laquelle fait foi
@@ -433,6 +434,7 @@ export class App {
       touch: this.touch,
       onChange: (r) => {
         this.reglages = r;
+        this.hud.options(r);
         this.audio.setVolume(r.volume);
         this.audio.setMuted(r.muet);
         this.save();

@@ -13,6 +13,14 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.3.10',
+    date: '30/09/2026',
+    titre: 'Affichage à la carte',
+    notes: [
+      'Dans les Réglages, tu peux désactiver le détail des points de drift et l\'indicateur d\'angle sous la voiture (activés par défaut).',
+    ],
+  },
+  {
     version: '0.3.9',
     date: '30/09/2026',
     titre: 'Le détail de tes points de drift',
