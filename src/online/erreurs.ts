@@ -19,6 +19,8 @@ export function messageErreur(err: unknown): string {
   if (code === 'email_address_invalid' || bas.includes('invalid email') || (bas.includes('email address') && bas.includes('invalid'))) return "Cette adresse email n'est pas acceptée.";
   if (code === 'signup_disabled') return 'Les inscriptions sont fermées pour le moment.';
   if (code.startsWith('over_') || code === 'too_many_requests' || bas.includes('rate limit') || e.status === 429) return 'Trop de tentatives ou d\'emails envoyés. Réessaie dans quelques minutes.';
+  // serveur pas encore mis à jour pour une nouvelle voiture (migration 0007) : le score reste local
+  if (bas.includes('voiture invalide') || (code === '23514' && bas.includes('scores_voiture_valide'))) return "Cette voiture n'est pas encore acceptée au classement en ligne : ton score n'a pas été envoyé.";
   if (code === '23505') return 'Ce pseudo est déjà pris.';
   if (code === '23514') return 'Pseudo invalide.';
   // tables ou fonctions absentes : le SQL de supabase/ n'a pas encore été appliqué
