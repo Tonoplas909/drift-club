@@ -119,6 +119,7 @@ export function ecranCaisses(o: OptionsCaisses): HTMLElement {
         h('span', { class: 'cs-rarete' }, r.nom),
         h('h2', {}, ou.tirage.doublon ? `Doublon : +${ou.remboursement} clé${ou.remboursement > 1 ? 's' : ''}` : 'Nouvelle livrée !'),
         h('p', { class: 'cs-obj' }, h('b', {}, def.nom), ` · ${CARS[x.car].nom}`),
+        h('p', { class: 'cs-desc petit' }, def.description),
         h('p', { class: 'petit' }, ou.tirage.doublon ? 'Tu avais déjà cette livrée : une clé te revient.' : 'Elle est débloquée pour ton Garage.'),
         def.couleurForcee && h('p', { class: 'petit' }, 'Couleur imposée par la livrée.'),
         h('p', { class: 'cs-total' }, iconeCle(), `Tu as ${cle(p.cles)}`),
