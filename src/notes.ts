@@ -13,6 +13,14 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.3.13',
+    date: '30/09/2026',
+    titre: 'Détail des points en haut de l\'écran',
+    notes: [
+      'Le détail des points du drift (base × vitesse moyenne × durée × angle moyen × combo) s\'affiche maintenant en haut au centre de l\'écran, entre le score et le temps.',
+    ],
+  },
+  {
     version: '0.3.12',
     date: '30/09/2026',
     titre: 'Dix nouveaux niveaux',
