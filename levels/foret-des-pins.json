@@ -2,7 +2,7 @@
   "format": 1,
   "nom": "Forêt des Pins",
   "auteur": "Drift Club",
-  "environnement": "montagne",
+  "environnement": "automne",
   "ambiance": "jour",
   "route": [
     { "x": 0, "z": 0, "y": 0, "l": 10 },

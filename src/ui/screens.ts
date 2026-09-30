@@ -1,4 +1,5 @@
 import type { CarId, ModeId } from '../core/physics/types';
+import { THEMES } from '../core/env/themes';
 import { CARS, CAR_IDS } from '../core/physics/cars';
 import { MODE_IDS, MODE_NOMS } from '../core/physics/assists';
 import type { RaceResult } from '../core/race/race';
@@ -11,13 +12,13 @@ import { ECONOMIE, livreeDebloquee, type GainCourse, type Progression } from '..
 import { iconeCadenas, iconeCle } from './svg';
 import { formatScore, formatTime } from './format';
 
-export function levelSummary(data: unknown): { nom: string; longueur: number; ambiance: 'jour' | 'coucher' } | null {
+export function levelSummary(data: unknown): { nom: string; longueur: number; ambiance: 'jour' | 'coucher'; theme: string } | null {
   const v = validateLevel(data);
   if (!v.ok) return null;
   let l = 0;
   const r = v.level.route;
   for (let i = 1; i < r.length; i++) l += Math.hypot(r[i].x - r[i - 1].x, r[i].y - r[i - 1].y, r[i].z - r[i - 1].z);
-  return { nom: v.level.nom, longueur: l, ambiance: v.level.ambiance };
+  return { nom: v.level.nom, longueur: l, ambiance: v.level.ambiance, theme: THEMES[v.level.environnement].nom };
 }
 
 type Child = Node | string | null | undefined | false;

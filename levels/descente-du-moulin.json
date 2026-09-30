@@ -2,7 +2,7 @@
   "format": 1,
   "nom": "Descente du Moulin",
   "auteur": "Drift Club",
-  "environnement": "montagne",
+  "environnement": "automne",
   "ambiance": "coucher",
   "route": [
     { "x": 0, "z": 0, "y": 100, "l": 10 },

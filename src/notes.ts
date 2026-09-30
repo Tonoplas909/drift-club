@@ -13,6 +13,18 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.3.3',
+    date: '30/09/2026',
+    titre: 'Des décors variés sur les niveaux officiels',
+    notes: [
+      'Montagne enneigée : Lacets du Belvédère et Route des Crêtes Nord.',
+      'Canyon : Vallée des Crêtes et Grand Huit.',
+      'Forêt d\'automne : Forêt des Pins, Circuit du Lac et Descente du Moulin.',
+      'Premiers virages, Col du Loup et Épingles du Diable restent en montagne.',
+      'Le thème est indiqué sous chaque niveau. Tes records et le classement en ligne sont conservés.',
+    ],
+  },
+  {
     version: '0.3.2',
     date: '30/09/2026',
     titre: 'Thèmes de décor',

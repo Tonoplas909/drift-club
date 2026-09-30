@@ -2,7 +2,7 @@
   "format": 1,
   "nom": "Vallée des Crêtes",
   "auteur": "Drift Club",
-  "environnement": "montagne",
+  "environnement": "desert",
   "ambiance": "coucher",
   "route": [
     { "x": 0, "z": 0, "y": 90, "l": 13 },
