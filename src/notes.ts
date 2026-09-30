@@ -13,6 +13,16 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.3.2',
+    date: '30/09/2026',
+    titre: 'Thèmes de décor',
+    notes: [
+      'Trois nouveaux décors en plus de la montagne : Montagne enneigée (sapins enneigés, flocons, jalons rouge et blanc), Canyon (cactus, falaises rouges, mesas) et Forêt d\'automne (feuillages orange, jaunes et rouges).',
+      'Chaque thème existe de jour et au coucher du soleil.',
+      'Dans l\'éditeur, l\'outil Décor permet maintenant de choisir le thème de ton niveau ; il est conservé dans les liens, les .json et les niveaux publiés en ligne.',
+    ],
+  },
+  {
     version: '0.3.1',
     date: '30/09/2026',
     titre: 'Cinq nouveaux niveaux',
