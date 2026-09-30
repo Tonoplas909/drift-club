@@ -1,4 +1,5 @@
 import { clamp, smoothstep } from '../core/math/vec';
+import type { Rarete } from '../core/raretes';
 
 /** Frequence de base du moteur (4 cylindres : 2 explosions par tour). */
 export function engineFrequency(rpm: number): number {
@@ -131,5 +132,33 @@ export class AudioEngine {
   playCountdown(n: number): void {
     if (n > 0) this.blip(440, 0.15, 'triangle', 0.25);
     else this.blip(880, 0.4, 'triangle', 0.3);
+  }
+
+  /** Tic de la roulette quand une carte passe sous le repère ; `k` ∈ [0, 1] fait varier légèrement la hauteur. */
+  playTick(k = 0.5): void {
+    this.blip(1250 + k * 350, 0.035, 'square', 0.07);
+  }
+
+  /** Coup sourd de l'ouverture de la caisse. */
+  playOuvrirCaisse(): void {
+    this.blip(140, 0.22, 'sawtooth', 0.16, 60);
+    this.blip(320, 0.12, 'triangle', 0.1, 180, 0.02);
+  }
+
+  /** Révélation : plus la rareté est haute, plus la fanfare est longue et aiguë. */
+  playReveal(r: Rarete): void {
+    const notes: Record<Rarete, number[]> = {
+      commune: [523, 659],
+      rare: [523, 659, 784],
+      epique: [523, 659, 784, 1047],
+      legendaire: [392, 523, 659, 784, 1047],
+      exotique: [392, 523, 659, 784, 1047, 1319],
+    };
+    notes[r].forEach((f, i) => this.blip(f, r === 'commune' ? 0.2 : 0.28, 'triangle', 0.2, undefined, i * 0.09));
+    if (r === 'legendaire' || r === 'exotique') {
+      const fin = notes[r].length * 0.09;
+      this.blip(1568, 0.6, 'sine', 0.14, 2093, fin);
+      this.blip(784, 0.6, 'sawtooth', 0.05, undefined, fin);
+    }
   }
 }
