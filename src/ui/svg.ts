@@ -33,6 +33,8 @@ const SILHOUETTES: Record<CarId, { corps: string; vitre: string; roues: [number,
   // muscle : capot interminable, arrière en pente douce, pare-chocs chromés
   muscle: { corps: 'M2 21 L3 13.5 L11 12 L22 5.5 L36 5.5 L44 11.5 L62 13 L63 21 Z', vitre: 'M24 7.5 L35 7.5 L40.5 11.5 L19 11.5 Z', roues: [14, 51],
     detail: '<rect x="58" y="16" width="6" height="2.6" rx="1" fill="#c9ced8" stroke="#15131c" stroke-width="1"/><rect x="1" y="16" width="5" height="2.6" rx="1" fill="#c9ced8" stroke="#15131c" stroke-width="1"/>' },
+  // break : toit long, hayon droit
+  break: { corps: 'M3 21 L3.5 12.5 L8 11.5 L10 5 L42 5 L49 11.5 L61 13.5 L62 21 Z', vitre: 'M12 7 L41 7 L46 11.5 L9 11.5 Z', roues: [16, 49] },
   // rotative : coin bas, phares escamotables sortis
   rotative: { corps: 'M3 21 L4 14.5 L21 12.5 L29 7.5 L42 7.5 L49 12.5 L62 15.5 L62 21 Z', vitre: 'M30.5 9 L41 9 L45.5 12.5 L26.5 12.5 Z', roues: [16, 48],
     detail: '<rect x="53" y="11.4" width="4.6" height="3.4" rx="0.8" fill="#dfe3ea" stroke="#15131c" stroke-width="1.2"/>' },

@@ -42,6 +42,7 @@ const DESCRIPTIONS_VOITURES: Record<CarId, string> = {
   turbo: 'Grosse GT turbo, puissante : décroche au moindre coup de gaz.',
   kei: 'Toute petite et très légère : pétillante, elle vire sur un mouchoir, mais manque de pointe.',
   muscle: 'Gros coupé à moteur avant, un couple monstre : grosses glissades, direction paresseuse.',
+  break: 'Long break familial : stable et prévisible, mais un drift en break, ça n\'a pas de prix.',
   rotative: 'Coupé rotatif, phares escamotables : équilibrée et vive, le rêve du puriste du drift.',
 };
 

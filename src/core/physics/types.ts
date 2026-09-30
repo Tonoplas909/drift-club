@@ -1,6 +1,6 @@
 import type { Ground } from '../track/terrain';
 
-export type CarId = 'equilibree' | 'legere' | 'turbo' | 'kei' | 'muscle' | 'rotative';
+export type CarId = 'equilibree' | 'legere' | 'turbo' | 'kei' | 'muscle' | 'rotative' | 'break';
 export type ModeId = 'arcade' | 'semi' | 'exigeant';
 
 export interface CarParams {

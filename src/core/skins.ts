@@ -236,6 +236,8 @@ const BASE: Record<CarId, SkinDef[]> = {
     sk('konbini', 'Supérette', 'commune', 'Vert, blanc, orange : ouverte toute la nuit, comme les cols de montagne.', [
       { type: 'bandesMulti', teintes: ['#2fa84f', CRAIE, '#ff8a1f'], largeur: 0.07, ecart: 0 },
       { type: 'laterale', teinte: '#2fa84f', bas: 0.06, haut: 0.1 },
+      { type: 'laterale', teinte: CRAIE, bas: 0.1, haut: 0.14 },
+      { type: 'laterale', teinte: '#ff8a1f', bas: 0.14, haut: 0.18 },
     ]),
     sk('minipois', 'Mini pois', 'commune', 'De tout petits pois pour une toute petite voiture.', [{ type: 'pois', teinte: 'contraste', rayon: 0.035, pas: 0.15 }, { type: 'basDeCaisse', teinte: 'sombre', hauteur: 0.06 }]),
     sk('course', 'Course n°66', 'rare', 'Le 66, comme les six cent soixante centimètres cubes : petit moteur, grosses ambitions.', [
@@ -366,6 +368,52 @@ const BASE: Record<CarId, SkinDef[]> = {
       { type: 'basDeCaisse', teinte: '#4a5568', hauteur: 0.1 },
       { type: 'bandes', teinte: '#eef4ff', largeur: 0.05, ecart: 0.1, zones: ['capot', 'toit'] },
     ], '#cfd6e0'),
+  ],
+  break: [
+    UNIE,
+    sk('rayures', 'Filets de famille', 'commune', 'Deux filets sur le toit et une galerie pour les valises : on part en vacances.', [{ type: 'bandes', teinte: 'contraste', largeur: 0.12, ecart: 0.08 }]),
+    sk('bicolore', 'Toit clair', 'commune', 'Un toit contrasté et un bas de caisse sombre : le break du dimanche.', [{ type: 'toit', teinte: 'contraste' }, { type: 'basDeCaisse', teinte: 'sombre', hauteur: 0.11 }]),
+    sk('filet', 'Liseré', 'commune', 'Un liseré sur toute la longueur : il y en a, de la longueur.', [{ type: 'laterale', teinte: 'contraste', bas: 0.06, haut: 0.1 }, { type: 'basDeCaisse', teinte: 'sombre', hauteur: 0.05 }]),
+    sk('vacances', 'Départ en vacances', 'commune', 'Ciel, sable et mer en trois bandes : le coffre est plein, la glacière aussi.', [
+      { type: 'laterale', teinte: '#4aa8e8', bas: 0.06, haut: 0.11 },
+      { type: 'laterale', teinte: '#f0d9a0', bas: 0.11, haut: 0.16 },
+      { type: 'laterale', teinte: '#ff8a1f', bas: 0.16, haut: 0.21 },
+    ]),
+    sk('portieres', 'Portières claires', 'commune', 'Des portières d\'une autre couleur : le break d\'occasion, fièrement.', [{ type: 'portieres', teinte: 'contraste', bas: 0.1, haut: 0.12 }]),
+    sk('boiseries', 'Boiseries', 'rare', 'Des panneaux en faux bois sur les flancs : la classe des années 70, le vernis en moins.', [
+      { type: 'bloc', teinte: '#8a5a2b', de: 0.05, a: 0.95, bas: 0.12, haut: 0.18 },
+      { type: 'barres', teintes: ['#5a3a1a', '#5a3a1a', '#5a3a1a'], hauteur: 0.018, ecart: 0.05, bas: 0.2 },
+    ], '#3b6a9a'),
+    sk('courrier', 'Courrier', 'rare', 'Jaune vif, numéro 12, aucune adresse : le courrier arrive toujours à l\'heure. Il glisse un peu.', [
+      { type: 'numero', chiffres: '12', fond: CRAIE, encre: NOIR, forme: 'carre' },
+      { type: 'laterale', teinte: '#2f5fc9', bas: 0.06, haut: 0.1 },
+    ], '#f2c31b'),
+    sk('dalmatiens', 'Cent un dalmatiens', 'rare', 'Une portée de taches noires sur fond blanc : ça aboie dans les épingles.', [
+      { type: 'taches', teinte: NOIR, taille: 0.06, pas: 0.22, graine: 101 },
+    ], '#f4f4f0'),
+    sk('taxi', 'Taxi', 'rare', 'Jaune à damier, galerie de valises : c\'est libre, monsieur ?', [
+      { type: 'damier', teinte: NOIR, zone: 'flanc', taille: 0.09 },
+      { type: 'basDeCaisse', teinte: NOIR, hauteur: 0.06 },
+    ], '#ffc61a'),
+    sk('touge', 'Touge en famille', 'epique', 'Chevrons, numéro 4 et quatre places : la descente de minuit avec les enfants à l\'arrière.', [
+      { type: 'toit', teinte: 'sombre' },
+      { type: 'laterale', teinte: 'contraste', bas: 0.07, haut: 0.12 },
+      { type: 'chevrons', teinte: 'contraste', nombre: 4, zone: [0, 0.4] },
+      { type: 'numero', chiffres: '4', fond: CRAIE, encre: NOIR, pos: 0.7 },
+    ]),
+    sk('safari', 'Safari', 'epique', 'Beige sable, rayures de zèbre : le break a passé la frontière des parcs nationaux.', [
+      { type: 'zebrures', teinte: '#5a3a1a', pas: 0.26, largeur: 0.08, pente: 3 },
+      { type: 'toit', teinte: '#5a3a1a' },
+    ], '#d9b57a'),
+    sk('flammes', 'Flammes de papa', 'legendaire', 'Des flammes sur un break : il a toujours voulu, il n\'a jamais osé.', [
+      { type: 'flammes', teinte: 'contraste', coeur: '#ff8a1f', nombre: 4 },
+      { type: 'basDeCaisse', teinte: 'sombre', hauteur: 0.06 },
+    ]),
+    sk('or', 'Break de luxe', 'exotique', 'Plaqué or jusqu\'à la galerie : les valises voyagent en première classe.', [
+      { type: 'laterale', teinte: 'clair', bas: 0.07, haut: 0.11 },
+      { type: 'toit', teinte: 'clair' },
+      { type: 'basDeCaisse', teinte: 'sombre', hauteur: 0.09 },
+    ], '#e3b02b'),
   ],
 };
 
@@ -561,7 +609,7 @@ const BIBLIO: Record<string, SkinDef> = {
     { type: 'basDeCaisse', teinte: '#4a2a12', hauteur: 0.1 },
   ], '#b8763a'),
   levant: sk('levant', 'Soleil levant', 'epique', 'Blanche, un grand disque rouge : la première voiture à voir le jour se lever sur le col.', [
-    { type: 'formes', forme: 'rond', teinte: '#d6262b', taille: 0.3, nombre: 1, graine: 2 },
+    { type: 'formes', forme: 'rond', teinte: '#d6262b', taille: 0.18, nombre: 1, graine: 2 },
     { type: 'bandes', teinte: '#d6262b', largeur: 0.14, ecart: 0, zones: ['capot'] },
     { type: 'basDeCaisse', teinte: '#d6262b', hauteur: 0.04 },
   ], '#f4f1e8'),
@@ -631,6 +679,9 @@ const NOUVELLES: Record<CarId, string[]> = {
   rotative: ['neonbas', 'zebre', 'huitbits', 'sakura', 'flammettes', 'n1',
     '24h', 'dejavu', 'cartemere', 'tofu', 'nyan',
     'levant', 'eurobeat', 'codevert', 'grilleneon', 'voielactee', 'maitredrift'],
+  break: ['riviera', 'polka', 'peinture', 'zebre', 'n1', 'sakura',
+    'mystere', 'fantomes', 'tofu', 'urgences', 'n42',
+    'rouille', 'toutvabien', 'eurobeat', 'codevert', 'delorean', 'voielactee', 'famille'],
 };
 
 const RANG = (r: Rarete): number => RARETE_IDS.indexOf(r);

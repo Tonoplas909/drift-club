@@ -77,6 +77,12 @@ export const CAR_SHAPES: Record<CarId, CarShape> = {
     roofFrontZ: 0.1, roofRearZ: -0.75, roofY: 1.15, aileron: 'petit', phares: 'relevees', wheelW: 0.25,
     extras: ['echappements'],
   },
+  // break : toit long jusqu'à l'arrière, hayon presque vertical, barres de toit
+  break: {
+    length: 4.7, width: 1.78, groundClear: 0.25, wheelR: 0.32, frontAxle: 1.3, rearAxle: -1.4,
+    noseY: 0.44, hoodFrontY: 0.64, cowlZ: 0.85, cowlY: 0.86, deckZ: -2.15, deckY: 0.95, tailY: 0.93,
+    roofFrontZ: 0.15, roofRearZ: -2.0, roofY: 1.34, aileron: 'aucun', phares: 'fixes', extras: ['galerie'],
+  },
 };
 
 export function arch(cz: number, y0: number, r: number, n = 6): [number, number][] {

@@ -72,7 +72,9 @@ export const CAR_SOUND: Record<CarId, CarSound> = {
   // gros V8 : grave, sourd, avec un battement lent entre les deux dents de scie ; rupteur bas
   muscle: { pitch: 0.62, detune: 26, saw: 0.5, sub: 0.95, upper: 0.14, cutBase: 260, cutRpm: 0.14, cutThrottle: 500, q: 1.6, drive: 2.3, noise: 0.1, level: 0.96, turbo: false, rpmMax: 6200 },
   // rotatif : timbre clair et lisse, très haut dans les tours, souffle de combustion marqué (le « brap »)
-  rotative: { pitch: 1.05, detune: 4, saw: 0.45, sub: 0.2, upper: 0.62, cutBase: 520, cutRpm: 0.26, cutThrottle: 850, q: 3, drive: 1.6, noise: 0.11, level: 1.02, turbo: false, rpmMax: 9000 },
+  rotative: { pitch: 1.25, detune: 4, saw: 0.45, sub: 0.2, upper: 0.62, cutBase: 520, cutRpm: 0.26, cutThrottle: 850, q: 3, drive: 1.6, noise: 0.11, level: 1.02, turbo: false, rpmMax: 9000 },
+  // break : quatre cylindres placide, plutôt grave et rond
+  break: { pitch: 0.94, detune: 7, saw: 0.5, sub: 0.6, upper: 0.2, cutBase: 340, cutRpm: 0.17, cutThrottle: 560, q: 2, drive: 1.5, noise: 0.06, level: 0.98, turbo: false, rpmMax: 6800 },
 };
 
 export interface EngineTargets {
