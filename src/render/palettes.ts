@@ -9,8 +9,8 @@ export interface Reliefs {
   cime: number;
   /** fraction de la hauteur à partir de laquelle commence la cime (> 1 : jamais) */
   ligne: number;
-  /** cônes pointus (montagnes) ou troncs de cône à sommet plat (mesas) */
-  forme: 'cones' | 'mesas';
+  /** cônes pointus (montagnes), troncs de cône à sommet plat (mesas) ou blocs d'immeubles (ville) */
+  forme: 'cones' | 'mesas' | 'ville';
 }
 
 export interface Palette {
@@ -21,6 +21,8 @@ export interface Palette {
   asphalt: number; line: number;
   /** bord de la route (accotement et transition avec le sol) ; absent : asphalte assombri */
   epaule?: number;
+  /** trottoir : bande claire au sol le long de la route (ville) ; absent : rien */
+  trottoir?: number;
   /** couleur de la fumée des dérapages (poussière, poudreuse…) */
   fumee: number;
   /** multiplicateur de la distance de brouillard (< 1 : plus dense) */
@@ -114,6 +116,27 @@ export const PALETTES_THEMES: Record<Environnement, Record<Ambiance, Palette>> =
       asphalt: 0x4d4750, line: 0xf7e9d8, epaule: 0x6e4630,
       fumee: 0xe9cfa8, brume: 0.9,
       reliefs: { roche: 0x8a5a48, cime: 0xd98a4a, ligne: 9, forme: 'cones' },
+    },
+  },
+  ville: {
+    // sol = béton gris ; « forêt » = parcs ; accotement = bordure claire ; reliefs = silhouettes d'immeubles
+    jour: {
+      skyTop: 0x6f9fd0, skyBottom: 0xd9dfe4, fog: 0xcfd6dc,
+      sun: 0xfff1dc, sunIntensity: 2.1, sunDir: [0.5, 0.8, 0.3],
+      hemiSky: 0xc9d8e8, hemiGround: 0x8c8a86, hemiIntensity: 1.15,
+      grassA: 0xa5a39d, grassB: 0x93908a, forestFloor: 0x76a85a, rock: 0x76757a,
+      asphalt: 0x393b42, line: 0xf4f1e8, epaule: 0xc4c1ba, trottoir: 0xb1aea6,
+      fumee: 0xdad7d2, brume: 0.85,
+      reliefs: { roche: 0x8b96a4, cime: 0xb3bcc8, ligne: 0.8, forme: 'ville' },
+    },
+    coucher: {
+      skyTop: 0x46508a, skyBottom: 0xffa574, fog: 0xe2a184,
+      sun: 0xffb98a, sunIntensity: 1.9, sunDir: [-0.6, 0.35, 0.5],
+      hemiSky: 0xffc7a5, hemiGround: 0x5a4d66, hemiIntensity: 0.95,
+      grassA: 0x9b8f8a, grassB: 0x8a7e7c, forestFloor: 0x6a8a4e, rock: 0x6a5f68,
+      asphalt: 0x3f3d48, line: 0xf7e9d8, epaule: 0xb4a7a3, trottoir: 0xa39590,
+      fumee: 0xe3cbbd, brume: 0.85,
+      reliefs: { roche: 0x6a5f7a, cime: 0xd9907a, ligne: 0.8, forme: 'ville' },
     },
   },
 };

@@ -1,10 +1,11 @@
 import * as THREE from 'three';
-import type { Environnement } from '../core/level/types';
+import type { Ambiance, Environnement } from '../core/level/types';
 import { smoothstep } from '../core/math/vec';
 import { decorKey, type Assets } from './assets';
 import {
   arbreSecGeometry, buissonGeometry, cactusGeometry, mesaGeometry, piquetGeometry, soucheGeometry, tasNeigeGeometry,
 } from './proceduralDecor';
+import { decorVille } from './villeModeles';
 
 type Decor = Record<string, THREE.BufferGeometry>;
 
@@ -46,7 +47,7 @@ export interface Meteo { type: 'neige'; nombre: number }
 
 export interface ThemeVisuel {
   /** modèles propres au thème, par clé `kind + variante` ; le reste vient des modèles de base */
-  decor: (base: Decor) => Decor;
+  decor: (base: Decor, ambiance: Ambiance) => Decor;
   meteo?: Meteo;
 }
 
@@ -91,23 +92,32 @@ export const THEMES_VISUELS: Record<Environnement, ThemeVisuel> = {
       souche0: soucheGeometry(),
     }),
   },
+  ville: {
+    decor: (b, ambiance) => ({
+      // arbres des parcs : feuillus d'un vert franc ; le reste est procédural (immeubles, mobilier…)
+      ...par3('feuillu', (i) => retoucher(b[decorKey('feuillu', i)], { vert: [0x62b04e, 0x55a247, 0x6dbb55][i] })),
+      ...decorVille(ambiance),
+    }),
+  },
 };
 
-const cache = new WeakMap<Decor, Map<Environnement, Decor>>();
+const cache = new WeakMap<Decor, Map<string, Decor>>();
 
 /**
  * Modèles de décor à utiliser pour un thème : les modèles de base, avec les variantes du thème par-dessus.
  * Construits une fois par thème puis partagés entre les niveaux (ne pas les libérer).
  */
-export function decorDuTheme(assets: Assets, env: Environnement): Decor {
+export function decorDuTheme(assets: Assets, env: Environnement, ambiance: Ambiance = 'jour'): Decor {
   if (env === 'montagne') return assets.decor;
   let m = cache.get(assets.decor);
   if (!m) { m = new Map(); cache.set(assets.decor, m); }
-  let d = m.get(env);
+  // l'ambiance compte pour les fenêtres et lampadaires allumés (ville) ; les autres thèmes s'en moquent
+  const cle = env === 'ville' ? `${env}:${ambiance}` : env;
+  let d = m.get(cle);
   if (!d) {
-    d = { ...assets.decor, ...THEMES_VISUELS[env].decor(assets.decor) };
+    d = { ...assets.decor, ...THEMES_VISUELS[env].decor(assets.decor, ambiance) };
     for (const g of Object.values(d)) if (!g.boundingSphere) g.computeBoundingSphere();
-    m.set(env, d);
+    m.set(cle, d);
   }
   return d;
 }
