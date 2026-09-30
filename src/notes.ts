@@ -13,6 +13,16 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.3.12',
+    date: '30/09/2026',
+    titre: 'Dix nouveaux niveaux',
+    notes: [
+      'Vingt niveaux au total ! Serpentin des Aigles, Angles Droits, Spirale du Belvédère, Trois Épingles, Chicanes du Port, Grande Descente, Virages en Cascade, Route des Vignes, Touge de Minuit et Tire-Bouchon.',
+      'Au programme : une montée à épingles, des angles droits en ville, une double spirale, trois épingles géantes, des chicanes serrées, 2 km de descente, des virages qui se resserrent, une route facile dans les vignes, un touge nocturne et un grand tire-bouchon.',
+      'La liste des niveaux défile maintenant seule : titre, onglets et boutons restent visibles, aussi sur téléphone.',
+    ],
+  },
+  {
     version: '0.3.11',
     date: '30/09/2026',
     titre: 'Décors corrigés et un vrai lac',
