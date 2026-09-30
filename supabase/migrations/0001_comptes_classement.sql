@@ -37,8 +37,13 @@ create policy "profils_modification" on public.profils
   for update to authenticated using (auth.uid() = id) with check (auth.uid() = id);
 
 -- Pas de suppression directe : le profil disparaît avec le compte (on delete cascade).
+-- Supabase accorde par défaut tous les droits aux rôles anon/authenticated : on repart de zéro
+-- et on n'autorise que la colonne utile (le pseudo) en écriture.
+revoke all on public.profils from anon, authenticated;
 grant select on public.profils to anon, authenticated;
-grant insert, update on public.profils to authenticated;
+grant insert (id, pseudo) on public.profils to authenticated;
+-- id inclus car l'upsert de PostgREST le réécrit (la policy impose de toute façon id = auth.uid()).
+grant update (id, pseudo) on public.profils to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- 2. Scores : UNE ligne par joueur / niveau / mode, qui garde le meilleur score
@@ -73,8 +78,8 @@ create policy "scores_lecture" on public.scores
   for select to anon, authenticated using (true);
 
 -- Volontairement AUCUNE policy insert/update/delete : seules les fonctions ci-dessous écrivent.
+revoke all on public.scores from anon, authenticated;
 grant select on public.scores to anon, authenticated;
-revoke insert, update, delete on public.scores from anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- 3. soumettre_score : enregistre le score s'il bat le meilleur du joueur
