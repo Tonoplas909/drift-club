@@ -1,5 +1,6 @@
-import type { Level, TypeObjet } from '../core/level/types';
-import { LIMITES } from '../core/level/types';
+import type { Environnement, Level, TypeObjet } from '../core/level/types';
+import { LIMITES, ENVIRONNEMENTS } from '../core/level/types';
+import { THEMES } from '../core/env/themes';
 import { validateLevel } from '../core/level/validate';
 import { EditorDoc } from '../core/editor/history';
 import { analyseLevel, type AnalyseNiveau } from '../core/editor/analyse';
@@ -44,7 +45,9 @@ const TYPES_OBJETS: { id: TypeObjet; nom: string }[] = [
   { id: 'arbre', nom: 'Arbre' }, { id: 'sapin', nom: 'Sapin' }, { id: 'rocher', nom: 'Rocher' },
   { id: 'pneus', nom: 'Pneus' }, { id: 'barriere', nom: 'Barrière' }, { id: 'panneau', nom: 'Panneau' },
 ];
-const NOM_OBJET = Object.fromEntries(TYPES_OBJETS.map((t) => [t.id, t.nom])) as Record<TypeObjet, string>;
+/** Nom d'un type d'objet dans le décor courant (« Sapin » devient « Cactus » dans le canyon…). */
+const nomObjet = (env: Environnement, type: TypeObjet): string =>
+  THEMES[env].nomsObjets[type] ?? TYPES_OBJETS.find((t) => t.id === type)!.nom;
 
 const COTES: { id: CoteEdit; nom: string }[] = [{ id: 'gauche', nom: 'Gauche' }, { id: 'droite', nom: 'Droite' }, { id: 'ext', nom: 'Extérieur' }];
 
@@ -738,7 +741,7 @@ export class Editeur {
       case 'objets': {
         const palette = h('div', { class: 'ed-palette' }, ...TYPES_OBJETS.map((t) => {
           const b = h('button', { class: 'ed-obj', onclick: () => { this.typeObjet = t.id; for (const f of this.majPanneau) f(); } },
-            h('i', { style: `background:${OBJETS[t.id].fill}` }), t.nom);
+            h('i', { style: `background:${OBJETS[t.id].fill}` }), nomObjet(this.doc.level.environnement, t.id));
           this.majPanneau.push(() => b.classList.toggle('on', this.typeObjet === t.id));
           return b;
         }));
@@ -748,7 +751,7 @@ export class Editeur {
           const rot = h('span', {}, '');
           this.majPanneau.push(() => {
             const o = this.doc.level.objets[this.selection?.i ?? -1];
-            nom.textContent = o ? NOM_OBJET[o.type] : '';
+            nom.textContent = o ? nomObjet(this.doc.level.environnement, o.type) : '';
             rot.textContent = o ? `${Math.round(o.rot)}°` : '';
           });
           const tourner = (d: number) => { if (this.selection?.kind === 'objet') { const i = this.selection.i; this.doc.apply((l) => rotateObjet(l, i, d)); } };
@@ -763,7 +766,9 @@ export class Editeur {
         }
         return out;
       }
-      case 'decor':
+      case 'decor': {
+        const descTheme = aide('');
+        this.majPanneau.push(() => { descTheme.textContent = THEMES[this.doc.level.environnement].description; });
         return [
           titre('Décor'),
           h('div', { class: 'ed-f' }, h('span', {}, 'Ambiance'),
@@ -774,9 +779,13 @@ export class Editeur {
             ecrire: (l, v) => { l.decor.densite = Math.round(v * 100) / 100; }, format: (v) => `${Math.round(v * 100)} %`,
           }),
           h('button', { class: 'btn sec sm', onclick: () => this.doc.apply((l) => { l.decor.graine = Math.floor(Math.random() * 2147483647); }) }, 'Autre décor'),
-          h('div', { class: 'ed-f' }, h('span', {}, 'Environnement'), h('div', { class: 'seg' }, h('button', { class: 'tab on', disabled: true }, 'Montagne'))),
-          aide('Les arbres, rochers et bornes du bord de route sont générés à partir de la graine et de la densité.'),
+          h('div', { class: 'ed-f' }, h('span', {}, 'Environnement'),
+            this.segments(ENVIRONNEMENTS.map((id) => ({ id, nom: THEMES[id].nom })), () => this.doc.level.environnement,
+              (id) => this.doc.apply((l) => { l.environnement = id as Environnement; }))),
+          descTheme,
+          aide('Les arbres, rochers et bornes du bord de route sont générés à partir de la graine et de la densité. Les objets posés à la main s’adaptent au décor.'),
         ];
+      }
       case 'infos':
         return [
           titre('Infos'),
