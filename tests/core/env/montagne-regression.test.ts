@@ -16,10 +16,17 @@ export function empreinteDecor(env: Environment): string {
   return h.toString(16);
 }
 
-/** Valeurs mesurées AVANT l'introduction des thèmes (règles de montagne inchangées). */
+/**
+ * Valeurs de référence du décor de montagne. Les règles de placement n'ont pas changé depuis l'introduction des thèmes,
+ * MAIS la génération a changé volontairement avec la refonte du relief (terrain continu entre les branches de route,
+ * talus bornés, plus d'arbres sur les pentes > 1,1, arbres et rochers enterrés sur les pentes, couloir testé sur tous
+ * les tronçons proches) : les hauteurs de sol, donc le décor, ne sont plus ceux d'avant.
+ *   avant : premiers-virages 4581 objets (d618c241), col-du-loup 5996 objets (9f3f5814)
+ *   après : premiers-virages 4388 objets, col-du-loup 5488 objets (ci-dessous)
+ */
 const ATTENDU: Record<string, { items: number; hash: string }> = {
-  'premiers-virages': { items: 4581, hash: 'd618c241' },
-  'col-du-loup': { items: 5996, hash: '9f3f5814' },
+  'premiers-virages': { items: 4388, hash: 'e1c8f726' },
+  'col-du-loup': { items: 5488, hash: 'e09d9d5c' },
 };
 
 describe('montagne : le décor des niveaux officiels ne change pas', () => {

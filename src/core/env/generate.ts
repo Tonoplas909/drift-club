@@ -80,6 +80,12 @@ function pickEssence(essences: readonly Essence[], r: number, t: number): Essenc
   return essences[essences.length - 1];
 }
 
+/** Pente (dénivelé / m) au-delà de laquelle on ne plante pas d'arbre, et dénivelé maximal (m) sous l'emprise d'un bâtiment. */
+const MAX_PENTE_ARBRE = 1.1;
+const MAX_DENIVELE_BATIMENT = 3.5;
+/** Aucun bâtiment à moins de 45 m d'un lac : le front de lac reste dégagé. */
+const MARGE_BATIMENT_LAC = 45;
+
 export function generateEnvironment(level: Level, track: TrackData, terrain: Terrain): Environment {
   const env: Environment = { items: [], circles: [], segments: [], barriers: [] };
   const { graine, densite } = level.decor;
@@ -91,10 +97,23 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Ter
 
   const nearManual = (x: number, z: number, r: number): boolean =>
     manual.some((o) => (o.x - x) * (o.x - x) + (o.z - z) * (o.z - z) < r * r);
+  // couloir libre : on teste TOUS les tronçons proches (deux branches de route peuvent être voisines, de largeurs différentes)
+  const voisins: number[] = [];
   const inCorridor = (x: number, z: number, margin: number, d: number): boolean => {
     if (d > 25) return false;
-    const ns = nearestSampleWithin(track, x, z, 25);
-    return ns !== null && ns.dist < S[ns.index].w + margin;
+    track.grid.query(x, z, 20 + margin, voisins);
+    for (const i of voisins) {
+      const sp = S[i], r = sp.w + margin;
+      if ((sp.x - x) * (sp.x - x) + (sp.z - z) * (sp.z - z) < r * r) return true;
+    }
+    return false;
+  };
+  /** Trop près d'un lac (m de rive) : rien n'y est posé. */
+  const surEau = (x: number, z: number, marge: number): boolean => terrain.distanceEau(x, z) > -marge;
+  /** Pente du terrain en (x, z) (dénivelé / mètre). */
+  const pente = (x: number, z: number): number => {
+    const g = terrain.gradientAt(x, z);
+    return Math.hypot(g.gx, g.gz);
   };
   const posés: { x: number; z: number; r: number }[] = [];
   const add = (item: EnvItem): void => {
@@ -203,7 +222,7 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Ter
         const sp = S[i];
         const off = sp.w + ex.decalage;
         const x = sp.x + sp.nx * side * off, z = sp.z + sp.nz * side * off;
-        if (nearManual(x, z, 3) || inCorridor(x, z, 3, terrain.distanceToRoad(x, z))) continue;
+        if (nearManual(x, z, 3) || inCorridor(x, z, 3, terrain.distanceToRoad(x, z)) || surEau(x, z, 3)) continue;
         const variant = Math.min(VARIANTS[ex.kind] - 1, Math.floor(variantR * VARIANTS[ex.kind]));
         const [eMin, eAmp] = ex.echelle ?? [0.8, 0.5];
         const scale = eMin + eAmp * scaleR;
@@ -245,14 +264,19 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Ter
       const e = empriseDe(x, z, rot, b.w, b.d);
       if (nearManual(x, z, e.r + 2)) return false;
       const pts = [...pourtour(e, 3.5), [x, z] as [number, number]];
-      let dMin = Infinity, yMin = Infinity;
+      let dMin = Infinity, yMin = Infinity, yMax = -Infinity;
       for (const [px, pz] of pts) {
         if (forestMask(px, pz, graine) > thr) return false; // parc
         const ns = nearestSampleWithin(track, px, pz, 10 + bat.recul + 0.5);
         if (ns && ns.dist < S[ns.index].w + bat.recul) return false;
+        if (inCorridor(px, pz, bat.recul, 0)) return false;
+        if (surEau(px, pz, MARGE_BATIMENT_LAC)) return false; // front de lac dégagé : on voit l'eau depuis la route
         dMin = Math.min(dMin, terrain.distanceToRoad(px, pz));
-        yMin = Math.min(yMin, terrain.heightAt(px, pz));
+        const hy = terrain.heightAt(px, pz);
+        yMin = Math.min(yMin, hy);
+        yMax = Math.max(yMax, hy);
       }
+      if (yMax - yMin > MAX_DENIVELE_BATIMENT) return false; // trop pentu : le bâtiment flotterait sur un versant
       const cases = casesDe(e, 1);
       for (const c of cases) {
         for (const o of grille.get(c) ?? []) {
@@ -306,11 +330,13 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Ter
         const pick = rng(), kindR = rng(), variantR = rng(), rotR = rng(), scaleR = rng();
         const d = terrain.distanceToRoad(x, z);
         if (d < dMin || d >= dMax) continue;
-        if (inCorridor(x, z, 3, d) || nearManual(x, z, 4) || enBatiment(x, z, 2.5)) continue;
+        if (inCorridor(x, z, 3, d) || nearManual(x, z, 4) || enBatiment(x, z, 2.5) || surEau(x, z, 6)) continue;
         let p = forestMask(x, z, graine) > thr ? arbres.pForet : arbres.pHors * (0.5 + densite);
         if (d < 12) p *= 0.5;
         if (pick >= p) continue;
-        const y = terrain.heightAt(x, z);
+        const pt = pente(x, z);
+        if (pt > MAX_PENTE_ARBRE) continue; // falaise ou talus raide : pas d'arbre
+        const y = terrain.heightAt(x, z) - Math.min(0.8, 0.45 * pt); // sur une pente, le pied s'enfonce côté amont
         const ess = pickEssence(arbres.essences, kindR, smoothstep(0, 60, y - lowest));
         const [sMin, sAmp] = ess.echelle ?? [0.8, 0.5];
         const nv = VARIANTS[ess.kind];
@@ -329,7 +355,7 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Ter
       const pick = rng(), kindR = rng(), variantR = rng(), rotR = rng(), scaleR = rng();
       const d = terrain.distanceToRoad(x, z);
       if (d >= 200) continue;
-      if (inCorridor(x, z, 4, d) || nearManual(x, z, 4)) continue;
+      if (inCorridor(x, z, 4, d) || nearManual(x, z, 4) || surEau(x, z, 6)) continue;
       const g = terrain.gradientAt(x, z);
       const slope = Math.hypot(g.gx, g.gz);
       const p = (roc.base + roc.pente * smoothstep(0.25, 0.8, slope)) * (0.5 + densite / 2);
@@ -338,7 +364,7 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Ter
       const nv = VARIANTS[kind];
       add({
         kind, variant: Math.min(nv - 1, Math.floor(variantR * nv)),
-        x, y: terrain.heightAt(x, z) - 0.3, z, rot: rotR * Math.PI * 2, scale: roc.echelle[0] + roc.echelle[1] * scaleR,
+        x, y: terrain.heightAt(x, z) - 0.3 - 0.4 * Math.min(slope, 1.5), z, rot: rotR * Math.PI * 2, scale: roc.echelle[0] + roc.echelle[1] * scaleR,
         solid: d < SOLID_DISTANCE, manual: false,
       });
     }
