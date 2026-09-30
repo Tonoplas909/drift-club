@@ -27,6 +27,7 @@ import { NiveauxEnLigneService } from './online/niveaux';
 import { decoderNiveau } from './core/level/encode';
 import { lireFragment } from './share/lien';
 import { ouvrirPartage, ouvrirImport, carteNiveauPartage } from './ui/partage';
+import { panneauEnLigne } from './ui/enligne';
 import { ecranCompte } from './ui/compte';
 import { ecranClassement, zoneEnLigne } from './ui/classement';
 
@@ -172,7 +173,34 @@ export class App {
       if (this.niveauxAffiches === mesNiveaux && this.screens.niveauxVisible()) this.afficherNiveaux(cartes, perso, mesNiveaux);
     });
     this.niveauxAffiches = mesNiveaux;
+    this.panneauEnLigne = null; // liste en ligne rechargée à chaque arrivée sur l'écran
     this.afficherNiveaux(cartes, perso, mesNiveaux);
+  }
+
+  private panneauEnLigne: HTMLElement | null = null;
+
+  /** Onglet « En ligne » du choix de niveau ; conservé tant qu'on reste sur l'écran (les rafraîchissements ne le rechargent pas). */
+  private panneauLigne(): HTMLElement {
+    return (this.panneauEnLigne ??= panneauEnLigne({
+      root: $('ui'),
+      lister: (tri, page) => this.niveauxEnLigne.lister(tri, page),
+      moi: () => (this.compte.etat.statut === 'connecte' ? this.compte.etat.id : null),
+      onJouer: async (n) => {
+        const r = await this.niveauxEnLigne.charger(n.id);
+        if (!r.ok) return r;
+        void this.niveauxEnLigne.compterPartie(n.id);
+        await this.demarrer(cleNiveauPerso(r.valeur.empreinte), r.valeur.level, { index: -1, retour: () => this.niveaux(), menuLabel: 'Menu' });
+        return { ok: true, valeur: null };
+      },
+      onClassement: (n) => this.ecranClassement(cleNiveauPerso(n.empreinte), n.nom, () => this.niveaux()),
+      onEnregistrer: async (n) => {
+        const r = await this.niveauxEnLigne.charger(n.id);
+        if (!r.ok) return r;
+        this.ajouterNiveau(r.valeur.level);
+        return { ok: true, valeur: null };
+      },
+      onRetirer: (n) => this.niveauxEnLigne.retirer(n.id),
+    }));
   }
 
   private niveauxAffiches: MonNiveau[] | null = null;
@@ -190,6 +218,7 @@ export class App {
           .catch(() => this.screens.toast('Classement indisponible pour ce niveau.'));
       },
       onImporter: () => void this.importer(() => this.niveaux()),
+      enLigne: () => this.panneauLigne(),
       onEditeur: () => this.hubEditeur(),
       onGarage: () => this.garage(() => this.niveaux()),
       onReglages: () => this.reglagesEcran(() => this.niveaux()),
