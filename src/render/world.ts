@@ -10,6 +10,7 @@ import { decorDuTheme, THEMES_VISUELS } from './themes';
 import { Snowfall } from './weather';
 import { QUALITY, type QualityLevel } from './quality';
 import { createSky } from './sky';
+import { Eau } from './eau';
 import { buildRoad, createRoadTextures } from './road';
 import { buildTerrain, buildMountains } from './terrainMesh';
 import { buildDecor } from './decor';
@@ -20,6 +21,7 @@ import { SpeedGauge, gaugeRatio } from './speedGauge';
 import { CARS } from '../core/physics/cars';
 import { skinDef, type SkinId } from '../core/skins';
 import { vitessePratique } from '../core/physics/vitessePratique';
+import type { CamLibre } from '../debug/camLibre';
 
 export interface WorldInit {
   renderer: THREE.WebGLRenderer;
@@ -55,6 +57,9 @@ export class World {
   private readonly rear = [new THREE.Vector3(), new THREE.Vector3()];
   private readonly target: CameraTarget = { x: 0, y: 0, z: 0, heading: 0, vx: 0, vz: 0, speed: 0 };
   private readonly owned: { dispose(): void }[] = [];
+  private eau: Eau | null = null;
+  /** caméra libre (développement, `?debug`) : remplace la caméra de poursuite */
+  camLibre: CamLibre | null = null;
 
   constructor(private readonly init: WorldInit) {
     const { renderer, level, track, terrain, env, assets, quality } = init;
@@ -88,6 +93,10 @@ export class World {
     this.terrainGroup = buildTerrain(level, track, terrain, p, quality);
     this.scene.add(this.terrainGroup);
     this.scene.add(buildMountains(track, p, level.decor.graine));
+    if (terrain.plans.length > 0) {
+      this.eau = new Eau(terrain.plans, p, quality);
+      this.scene.add(this.eau.group);
+    }
     this.decor = decorDuTheme(assets, level.environnement, level.ambiance);
     this.scene.add(buildDecor(env, assets, quality, q.shadows, this.decor));
     const meteo = THEMES_VISUELS[level.environnement].meteo;
@@ -153,7 +162,12 @@ export class World {
 
     this.setTarget(car, pose.x, pose.y, pose.z);
     this.chase.update(this.target, cfg, dt, this.init.terrain);
+    if (this.camLibre) {
+      this.camera.position.set(...this.camLibre.pos);
+      this.camera.lookAt(...this.camLibre.cible);
+    }
     this.sky.position.copy(this.camera.position);
+    this.eau?.update(dt);
     if (this.snow?.points.visible) this.snow.update(dt, this.camera.position);
     const params = CARS[this.init.carId];
     this.gauge.update(pose.x, pose.y, pose.z, params.width, gaugeRatio(car.speed, car.reverse, this.gaugeMax), this.camera, dt);
@@ -166,7 +180,7 @@ export class World {
     const cx = this.camera.position.x, cz = this.camera.position.z;
     for (const chunk of this.terrainGroup.children) {
       const c = chunk.userData.center as THREE.Vector3;
-      chunk.visible = (c.x - cx) * (c.x - cx) + (c.z - cz) * (c.z - cz) < maxD * maxD;
+      chunk.visible = this.camLibre !== null || (c.x - cx) * (c.x - cx) + (c.z - cz) * (c.z - cz) < maxD * maxD;
     }
   }
 
@@ -186,6 +200,7 @@ export class World {
     this.smoke.dispose();
     this.skids.dispose();
     this.snow?.dispose();
+    this.eau?.dispose();
     this.scene.traverse((o) => {
       const mesh = o as THREE.Mesh;
       if (mesh.isMesh && mesh.geometry && !shared.has(mesh.geometry)) mesh.geometry.dispose();
