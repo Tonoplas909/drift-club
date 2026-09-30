@@ -57,7 +57,7 @@ describe('ChaseCamera', () => {
     cam.reset(t, CAMERA_PROCHE, flat);
     for (let i = 0; i < 120; i++) cam.update(t, CAMERA_PROCHE, 1 / 60, flat);
     expect(cam.camera.position.z).toBeCloseTo(-7, 0);
-    expect(cam.camera.position.y).toBeGreaterThan(2);
+    expect(cam.camera.position.y).toBeGreaterThan(3.5);
     expect(cam.camera.fov).toBeGreaterThan(60);
   });
   it('suit la direction de la vitesse (drift), le cap à l\'arrêt', () => {
