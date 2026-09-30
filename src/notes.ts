@@ -13,6 +13,18 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.3.8',
+    date: '30/09/2026',
+    titre: 'Nouveau son',
+    notes: [
+      'Tout le son du jeu est refait : moteur plus plein et plus doux, avec un creux à chaque rapport et le rebond du limiteur.',
+      'Chaque voiture a sa voix : La Légère plus aiguë, La Turbo plus grave avec le sifflement du turbo et le « pschh » au lever de pied.',
+      'Crissement des pneus moins strident, grondement hors piste, léger souffle du vent à haute vitesse.',
+      'Nouveaux sons de décompte, d\'encaissement (qui montent avec le combo), de choc, d\'arrivée et de caisses (révélation selon la rareté).',
+      'Mixage revu : plus de saturation.',
+    ],
+  },
+  {
     version: '0.3.7',
     date: '30/09/2026',
     titre: 'Recommencer en un clic',
