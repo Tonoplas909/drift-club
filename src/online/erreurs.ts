@@ -22,9 +22,13 @@ export function messageErreur(err: unknown): string {
   if (code === '23505') return 'Ce pseudo est déjà pris.';
   if (code === '23514') return 'Pseudo invalide.';
   // tables ou fonctions absentes : le SQL de supabase/ n'a pas encore été appliqué
-  if (code === '42P01' || code === '42883' || code.startsWith('PGRST2')) return "Le classement en ligne n'est pas encore disponible.";
+  if (code === '42P01' || code === '42883' || code.startsWith('PGRST2')) {
+    return /niveau|publier|retirer|compter_partie/.test(bas) ? "Les niveaux en ligne ne sont pas encore disponibles." : "Le classement en ligne n'est pas encore disponible.";
+  }
+  // fonction réservée aux comptes connectés appelée sans session
+  if (code === '42501' || code === 'PGRST301' || bas.includes('jwt')) return 'Connecte-toi pour faire cela.';
   if (nom === 'AuthRetryableFetchError' || nom === 'TypeError' || bas.includes('failed to fetch') || bas.includes('networkerror') || bas.includes('load failed') || bas.includes('network request failed') || e.status === 0) return MSG_INDISPONIBLE;
-  // messages français levés par soumettre_score (ex. « Temps invalide. »)
+  // messages français levés par les fonctions SQL (ex. « Temps invalide. », « Limite atteinte : … »)
   if (code === 'P0001' && msg) return msg;
   return 'Une erreur est survenue. Réessaie plus tard.';
 }
