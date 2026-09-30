@@ -1,4 +1,5 @@
 import type { Level, TypeObjet } from '../core/level/types';
+import { THEMES } from '../core/env/themes';
 import type { AnalyseNiveau } from '../core/editor/analyse';
 import type { TrackData } from '../core/track/buildTrack';
 import { mondeVersEcran, pasGrille, pasEchantillons, echelleGraphique, troncons, directionRot, type Vue2D } from './geom';
@@ -38,7 +39,7 @@ export function dessiner(ctx: CanvasRenderingContext2D, e: EtatDessin): void {
   const { vue, w, h } = e;
   const P = (x: number, z: number) => mondeVersEcran(vue, w, h, x, z);
   ctx.clearRect(0, 0, w, h);
-  ctx.fillStyle = '#86c874';
+  ctx.fillStyle = THEMES[e.level.environnement].fondEditeur; // sol du décor choisi
   ctx.fillRect(0, 0, w, h);
   grille(ctx, e);
 
@@ -209,7 +210,7 @@ function departArrivee(ctx: CanvasRenderingContext2D, track: TrackData, e: EtatD
   }
 }
 
-function symbole(ctx: CanvasRenderingContext2D, type: TypeObjet, sx: number, sy: number, r: number, rot: number, scale: number): void {
+function symbole(ctx: CanvasRenderingContext2D, type: TypeObjet, sx: number, sy: number, r: number, rot: number, scale: number, fond: string): void {
   const d = directionRot(rot);
   ctx.lineWidth = 2;
   ctx.strokeStyle = INK;
@@ -239,7 +240,7 @@ function symbole(ctx: CanvasRenderingContext2D, type: TypeObjet, sx: number, sy:
   ctx.fill();
   ctx.stroke();
   if (type === 'pneus') {
-    ctx.beginPath(); ctx.arc(sx, sy, r * 0.45, 0, Math.PI * 2); ctx.fillStyle = '#86c874'; ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(sx, sy, r * 0.45, 0, Math.PI * 2); ctx.fillStyle = fond; ctx.fill(); ctx.stroke();
   }
 }
 
@@ -254,7 +255,7 @@ function objets(ctx: CanvasRenderingContext2D, e: EtatDessin): void {
       ctx.fillStyle = 'rgba(255,210,63,.55)'; ctx.fill();
       ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.stroke();
     }
-    symbole(ctx, o.type, p.sx, p.sy, r, o.rot, e.vue.scale);
+    symbole(ctx, o.type, p.sx, p.sy, r, o.rot, e.vue.scale, THEMES[e.level.environnement].fondEditeur);
     // repère de rotation
     const d = directionRot(o.rot);
     ctx.beginPath();
