@@ -11,6 +11,10 @@ export async function empreinteNiveau(level: Level): Promise<string> {
     barrieres: level.barrieres,
     decor: level.decor,
     objets: level.objets,
+    // les lacs n'entrent dans l'empreinte que s'il y en a : les niveaux sans eau gardent leur empreinte d'avant
+    ...(level.eau && level.eau.length > 0
+      ? { eau: level.eau.map((l) => ({ niveau: l.niveau, points: l.points.map((p) => ({ x: p.x, z: p.z })) })) }
+      : {}),
   };
 
   // Sérialise en JSON canonique (clés fixes, minifié)

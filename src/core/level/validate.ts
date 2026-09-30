@@ -1,5 +1,6 @@
 import { LIMITES, ENVIRONNEMENTS } from './types';
-import type { Level, PointRoute, Barriere, ObjetPlace, Ambiance, CoteBarriere, TypeObjet, Environnement } from './types';
+import type { Level, PointRoute, Barriere, ObjetPlace, Ambiance, CoteBarriere, TypeObjet, Environnement, PlanEau } from './types';
+import { aire, autoIntersection } from '../env/eau';
 
 export type ResultatValidation = { ok: true; level: Level } | { ok: false; erreurs: string[] };
 
@@ -114,6 +115,41 @@ export function validateLevel(raw: unknown): ResultatValidation {
     });
   }
 
+  // Lacs (optionnels)
+  const eau: PlanEau[] = [];
+  if (raw.eau !== undefined) {
+    if (!Array.isArray(raw.eau)) {
+      e.push('eau : doit être une liste de lacs.');
+    } else {
+      if (raw.eau.length > LIMITES.eauMax) e.push(`eau : ${LIMITES.eauMax} lacs au maximum.`);
+      raw.eau.forEach((l: unknown, i: number) => {
+        const n = i + 1;
+        if (!isObj(l) || !isNum(l.niveau) || !Array.isArray(l.points)) {
+          e.push(`eau[${i}] : hauteur de la surface (niveau) et liste de points x, z attendues.`);
+          return;
+        }
+        if (l.niveau < LIMITES.eauNiveauMin || l.niveau > LIMITES.eauNiveauMax) {
+          e.push(`eau[${i}].niveau : hauteur hors limites (${LIMITES.eauNiveauMin}–${LIMITES.eauNiveauMax}).`);
+        }
+        if (l.points.length < LIMITES.eauPointsMin || l.points.length > LIMITES.eauPointsMax) {
+          e.push(`eau[${i}] : le lac ${n} doit avoir ${LIMITES.eauPointsMin} à ${LIMITES.eauPointsMax} points.`);
+          return;
+        }
+        const pts: { x: number; z: number }[] = [];
+        for (const p of l.points) {
+          if (!isObj(p) || !isNum(p.x) || !isNum(p.z)) {
+            e.push(`eau[${i}] : chaque point du lac doit avoir x et z (nombres).`);
+            return;
+          }
+          pts.push({ x: p.x, z: p.z });
+        }
+        if (autoIntersection(pts)) e.push(`eau[${i}] : le contour du lac ${n} se croise lui-même.`);
+        else if (aire(pts) < LIMITES.eauAireMin) e.push(`eau[${i}] : le lac ${n} est trop petit (au moins ${LIMITES.eauAireMin} m²).`);
+        eau.push({ points: pts, niveau: l.niveau });
+      });
+    }
+  }
+
   if (e.length > 0) return { ok: false, erreurs: e };
   return {
     ok: true,
@@ -127,6 +163,7 @@ export function validateLevel(raw: unknown): ResultatValidation {
       barrieres,
       decor,
       objets,
+      ...(eau.length > 0 ? { eau } : {}),
     },
   };
 }

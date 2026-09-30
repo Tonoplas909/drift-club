@@ -1,6 +1,7 @@
 import type { Level, PointRoute, Barriere, CoteBarriere, TypeObjet } from '../level/types';
 import { LIMITES } from '../level/types';
 import { clamp } from '../math/vec';
+import { aire, autoIntersection } from '../env/eau';
 
 export type CoteEdit = 'gauche' | 'droite' | 'ext';
 
@@ -170,6 +171,43 @@ export function rotateObjet(l: Level, i: number, deltaDeg: number): void {
 /** Supprime un objet. */
 export function deleteObjet(l: Level, i: number): void {
   l.objets.splice(i, 1);
+}
+
+// Lacs
+
+/** Hauteur de surface proposée pour un nouveau lac : 3 m sous le point le plus bas de la route. */
+export function niveauLacParDefaut(l: Level): number {
+  const bas = l.route.reduce((m, p) => Math.min(m, p.y), Infinity);
+  return clamp(Math.round(bas - 3), LIMITES.eauNiveauMin, LIMITES.eauNiveauMax);
+}
+
+/** Pourquoi ce contour ne peut pas devenir un lac (message en français), ou null s'il convient. */
+export function erreurContourLac(l: Level, points: { x: number; z: number }[]): string | null {
+  if ((l.eau?.length ?? 0) >= LIMITES.eauMax) return `Maximum ${LIMITES.eauMax} lacs.`;
+  if (points.length < LIMITES.eauPointsMin) return `Il faut au moins ${LIMITES.eauPointsMin} points pour un lac.`;
+  if (points.length > LIMITES.eauPointsMax) return `Maximum ${LIMITES.eauPointsMax} points par lac.`;
+  if (autoIntersection(points)) return 'Le contour du lac se croise lui-même.';
+  if (aire(points) < LIMITES.eauAireMin) return `Ce lac est trop petit (au moins ${LIMITES.eauAireMin} m²).`;
+  return null;
+}
+
+/** Ajoute un lac de contour `points`. Renvoie l'index, ou -1 si le contour est refusé (voir `erreurContourLac`). */
+export function addLac(l: Level, points: { x: number; z: number }[], niveau = niveauLacParDefaut(l)): number {
+  if (erreurContourLac(l, points) !== null) return -1;
+  l.eau = [...(l.eau ?? []), { points: points.map((p) => ({ x: p.x, z: p.z })), niveau }];
+  return l.eau.length - 1;
+}
+
+/** Supprime un lac (le champ `eau` disparaît quand il n'en reste aucun). */
+export function deleteLac(l: Level, i: number): void {
+  if (!l.eau || !l.eau[i]) return;
+  l.eau.splice(i, 1);
+  if (l.eau.length === 0) delete l.eau;
+}
+
+/** Change la hauteur de la surface d'un lac. */
+export function setNiveauLac(l: Level, i: number, niveau: number): void {
+  if (l.eau?.[i]) l.eau[i].niveau = clamp(niveau, LIMITES.eauNiveauMin, LIMITES.eauNiveauMax);
 }
 
 // Picking helpers
