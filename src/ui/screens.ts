@@ -235,6 +235,8 @@ export class Screens {
         ),
       )));
       corps.scrollTop = defilement;
+      // rangée de voitures défilante (téléphone en paysage) : la voiture choisie reste visible
+      corps.querySelector('.choices.voitures .choice.on')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
     };
     render();
   }

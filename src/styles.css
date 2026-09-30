@@ -516,3 +516,12 @@ input[type=text], input[type=email], input[type=password] { user-select: text; -
   .gains { padding: 4px 10px; }
   .gains b { font-size: 17px; }
 }
+
+/* Garage sur téléphone en paysage : voitures en une rangée défilante, description masquée (elle reste en infobulle), pour laisser de la place aux livrées */
+@media (max-height: 480px) {
+  .choices.voitures { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 5px; padding-bottom: 3px; scrollbar-width: thin; flex: none; }
+  .choices.voitures .choice { flex: none; padding: 2px 10px; }
+  .choices.voitures .choice b { font-size: 13px; white-space: nowrap; }
+  .voiture-desc { display: none; }
+  .panel.side h2 { font-size: 20px; }
+}
