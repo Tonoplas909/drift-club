@@ -17,6 +17,15 @@ describe('données des livrées', () => {
       }
     }
   });
+  it('les nouvelles voitures ont chacune une trentaine de livrées, de la commune à la légendaire, et 1 à 2 exotiques', () => {
+    for (const car of ['kei', 'muscle', 'rotative', 'break'] as const) {
+      expect(SKINS[car].length).toBeGreaterThanOrEqual(31);
+      const n = (r: string) => SKINS[car].filter((s) => s.id !== 'unie' && s.rarete === r).length;
+      expect(n('legendaire')).toBeGreaterThanOrEqual(3);
+      expect(n('exotique')).toBeGreaterThanOrEqual(1);
+      expect(n('exotique')).toBeLessThanOrEqual(2);
+    }
+  });
   it('pyramide des raretés : au moins 8 communes (hors unie), au plus 3 exotiques, plus de communes que de rares', () => {
     for (const car of CAR_IDS) {
       const n = (r: string) => SKINS[car].filter((s) => s.id !== 'unie' && s.rarete === r).length;

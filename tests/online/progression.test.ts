@@ -5,13 +5,13 @@ import { MSG_INDISPONIBLE, messageErreur } from '../../src/online/erreurs';
 import { faussClient } from './mock';
 
 const ligne = { joueur: 'u1', cles: 3, debloques: ['turbo:flammes'], caisse_offerte: true, ouvertes: 0, importee: false };
-const local = { cles: 9, debloques: { equilibree: ['rayures'], legere: [], turbo: ['flammes', 'unie'] }, caisseOfferte: true, ouvertes: 1 };
+const local = { cles: 9, debloques: { equilibree: ['rayures'], legere: [], turbo: ['flammes', 'unie'], kei: [], muscle: [], rotative: [], break: [] }, caisseOfferte: true, ouvertes: 1 };
 
 describe('ProgressionEnLigne.charger', () => {
   it('appelle ma_progression et convertit la ligne', async () => {
     const m = faussClient({ 'rpc.ma_progression': { data: [ligne], error: null } });
     const r = await new ProgressionEnLigne(m.fournisseur).charger();
-    expect(r).toEqual({ ok: true, valeur: { importee: false, progression: { cles: 3, ouvertes: 0, caisseOfferte: true, debloques: { equilibree: [], legere: [], turbo: ['flammes'] } } } });
+    expect(r).toEqual({ ok: true, valeur: { importee: false, progression: { cles: 3, ouvertes: 0, caisseOfferte: true, debloques: { equilibree: [], legere: [], turbo: ['flammes'], kei: [], muscle: [], rotative: [], break: [] } } } });
     expect(m.appels[0].args[0]).toBe('ma_progression');
   });
   it('accepte une réponse sous forme d’objet seul, refuse une réponse vide', async () => {

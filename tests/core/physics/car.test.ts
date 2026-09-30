@@ -139,7 +139,7 @@ describe('voiture : direction clavier (rampe asymétrique)', () => {
     stepFor(vite, 1, 0.5);
     expect(vite.steerInput).toBeLessThan(lent.steerInput * 0.7);
   });
-  it('une pression brève à 100 km/h ne fait pas décrocher la voiture (3 voitures × 3 modes)', () => {
+  it('une pression brève à 100 km/h ne fait pas décrocher la voiture (toutes les voitures × 3 modes)', () => {
     for (const id of CAR_IDS) for (const mode of MODE_IDS) {
       const c = createCarState(0, 0, 0);
       c.vz = 27.8;
@@ -206,7 +206,7 @@ describe('voiture : tête-à-queue et drift au clavier', () => {
     return { enDrift, pic, c };
   };
 
-  it('un drift se tient au clavier (W tenu + appuis A/D) sans tête-à-queue : 3 voitures × 3 modes', () => {
+  it('un drift se tient au clavier (W tenu + appuis A/D) sans tête-à-queue  : toutes les voitures × 3 modes', () => {
     for (const id of CAR_IDS) for (const mode of MODE_IDS) {
       const { enDrift, pic, c } = simule(id, mode, 12, pilote(mode));
       expect(enDrift).toBeGreaterThan(5);
@@ -252,7 +252,7 @@ describe('voiture : tête-à-queue et drift au clavier', () => {
       expect(MODES[mode]).not.toHaveProperty('spinStiffness');
     }
   });
-  it('les trois voitures restent distinctes : la Turbo a la queue la plus légère, l’Équilibrée la plus stable', () => {
+  it('les voitures restent distinctes : la Turbo a la queue la plus légère, l’Équilibrée la plus stable', () => {
     expect(CARS.turbo.muRear / CARS.turbo.muFront).toBeLessThan(CARS.legere.muRear / CARS.legere.muFront);
     expect(CARS.legere.muRear / CARS.legere.muFront).toBeLessThan(CARS.equilibree.muRear / CARS.equilibree.muFront);
     expect(CARS.legere.steerSpeed).toBeGreaterThan(CARS.equilibree.steerSpeed);
@@ -279,7 +279,7 @@ describe('voiture : robustesse', () => {
     run(b, ctxOf('turbo', 'semi'), 20, randomInputs(7));
     expect(a).toEqual(b);
   });
-  it('3 voitures × 3 modes, 30 s d’entrées aléatoires : état fini, vitesse bornée', () => {
+  it('toutes les voitures × 3 modes, 30 s d’entrées aléatoires : état fini, vitesse bornée', () => {
     for (const id of CAR_IDS) for (const mode of MODE_IDS) {
       const c = createCarState(0, 0, 0);
       run(c, ctxOf(id, mode), 30, randomInputs(id.length * 31 + mode.length));
@@ -304,5 +304,89 @@ describe('vitesse pratique (échelle de la jauge)', () => {
     expect(kmh('legere')).toBeLessThan(115);
     for (const id of CAR_IDS) expect(vitessePratique(CARS[id])).toBeLessThan(CARS[id].maxSpeed);
     expect(kmh('turbo')).toBeGreaterThan(kmh('equilibree'));
+    expect(kmh('kei')).toBeLessThan(kmh('legere'));
+    for (const id of CAR_IDS) expect(kmh(id)).toBeGreaterThan(90);
+  });
+});
+
+describe('nouvelles voitures : Kei, Muscle, Rotative, Break', () => {
+  const tempsZeroCent = (id: CarId): number => {
+    const c = createCarState(0, 0, 0);
+    const ctx = ctxOf(id, 'semi');
+    let t = 0;
+    while (c.speed * 3.6 < 100 && t < 30) { stepCar(c, inp({ gaz: 1 }), ctx, SIM_DT); t += SIM_DT; }
+    return t;
+  };
+  const vmax = (id: CarId): number => {
+    const c = createCarState(0, 0, 0);
+    run(c, ctxOf(id, 'semi'), 80, inp({ gaz: 1 }));
+    return c.speed;
+  };
+  it('chaque voiture a un identifiant cohérent, un nom et des valeurs plausibles', () => {
+    for (const id of CAR_IDS) {
+      const p = CARS[id];
+      expect(p.id).toBe(id);
+      expect(p.nom.length).toBeGreaterThan(3);
+      expect(p.mass).toBeGreaterThan(600);
+      expect(p.mass).toBeLessThan(2000);
+      expect(p.cgToFront).toBeGreaterThan(0.4 * p.wheelbase);
+      expect(p.cgToFront).toBeLessThan(0.6 * p.wheelbase);
+      expect(p.length).toBeGreaterThan(p.wheelbase + 0.5);
+      expect(p.rpmMax).toBeGreaterThanOrEqual(6000);
+      // accélération au départ : de 4 à 9 m/s²
+      expect(p.engineForce / p.mass).toBeGreaterThan(4);
+      expect(p.engineForce / p.mass).toBeLessThan(9);
+    }
+  });
+  it('la Kei est la plus légère et la plus courte, la plus vive au braquage, mais la moins rapide', () => {
+    for (const id of CAR_IDS) if (id !== 'kei') {
+      expect(CARS.kei.mass).toBeLessThan(CARS[id].mass);
+      expect(CARS.kei.length).toBeLessThan(CARS[id].length);
+      expect(CARS.kei.wheelbase).toBeLessThan(CARS[id].wheelbase);
+      expect(CARS.kei.steerSpeed).toBeGreaterThan(CARS[id].steerSpeed);
+      expect(tempsZeroCent('kei')).toBeGreaterThan(tempsZeroCent(id));
+      expect(vmax('kei')).toBeLessThan(vmax(id));
+    }
+  });
+  it('la Muscle est la plus lourde et la plus large, sa direction paresseuse, avec un couple énorme', () => {
+    for (const id of CAR_IDS) if (id !== 'muscle') {
+      expect(CARS.muscle.mass).toBeGreaterThan(CARS[id].mass);
+      expect(CARS.muscle.width).toBeGreaterThan(CARS[id].width);
+      expect(CARS.muscle.steerSpeed).toBeLessThan(CARS[id].steerSpeed);
+    }
+    expect(CARS.muscle.engineForce / CARS.muscle.mass).toBeGreaterThan(CARS.turbo.engineForce / CARS.turbo.mass);
+    expect(CARS.muscle.cgToFront / CARS.muscle.wheelbase).toBeLessThan(0.47); // moteur à l'avant : poids sur l'avant
+    expect(CARS.muscle.rpmMax).toBeLessThan(CARS.equilibree.rpmMax); // gros V8 : rupteur bas
+  });
+  it('la Rotative : équilibrée (μ avant = μ arrière à 3 % près), centre de gravité bas, rupteur le plus haut', () => {
+    const p = CARS.rotative;
+    expect(Math.abs(p.muRear / p.muFront - 1)).toBeLessThan(0.03);
+    expect(Math.abs(p.cgToFront / p.wheelbase - 0.5)).toBeLessThan(0.02);
+    for (const id of CAR_IDS) if (id !== 'rotative') {
+      expect(p.cgHeight).toBeLessThanOrEqual(CARS[id].cgHeight);
+      expect(p.rpmMax).toBeGreaterThan(CARS[id].rpmMax);
+    }
+  });
+  it('le Break est long, stable (l’arrière accroche au moins autant que l’avant) et pas rapide', () => {
+    const p = CARS.break;
+    expect(p.muRear).toBeGreaterThanOrEqual(p.muFront);
+    expect(p.length).toBeGreaterThan(CARS.equilibree.length);
+    expect(p.engineForce / p.mass).toBeLessThan(CARS.equilibree.engineForce / CARS.equilibree.mass);
+  });
+  it('0 à 100 km/h : la Turbo la plus rapide, la Kei la plus lente, toutes entre 4 et 10 s', () => {
+    const t = Object.fromEntries(CAR_IDS.map((id) => [id, tempsZeroCent(id)])) as Record<CarId, number>;
+    for (const id of CAR_IDS) { expect(t[id]).toBeGreaterThan(4); expect(t[id]).toBeLessThan(10); }
+    expect(Math.min(...Object.values(t))).toBe(t.turbo);
+    expect(Math.max(...Object.values(t))).toBe(t.kei);
+  });
+  it('le régime monte jusqu’au rupteur propre à chaque voiture, sans le dépasser', () => {
+    for (const id of CAR_IDS) {
+      const c = createCarState(0, 0, 0);
+      let max = 0;
+      const ctx = ctxOf(id, 'semi');
+      for (let i = 0; i < Math.round(40 / SIM_DT); i++) { stepCar(c, inp({ gaz: 1 }), ctx, SIM_DT); max = Math.max(max, c.rpm); }
+      expect(max).toBeLessThanOrEqual(CARS[id].rpmMax);
+      expect(max).toBeGreaterThan(CARS[id].rpmMax - 1500);
+    }
   });
 });
