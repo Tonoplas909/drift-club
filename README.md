@@ -48,6 +48,7 @@ Cinq décors, deux niveaux chacun : ville (Circuit du Lac, Grand Huit), montagne
 | Tourner | Q / A / D / ← → |
 | Frein à main (Drift en Arcade) | Espace |
 | Replacer sur la route | R |
+| Recommencer le niveau | Retour arrière (⌫) |
 | Caméra proche / éloignée | C |
 | Pause | Échap / P |
 | Muet / plein écran | M / F |

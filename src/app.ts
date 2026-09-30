@@ -105,6 +105,13 @@ export class App {
     window.addEventListener('pointerdown', unlock);
     window.addEventListener('keydown', unlock);
     window.addEventListener('keydown', (e) => { if (e.code === 'Escape' && this.onEscape) { const f = this.onEscape; this.onEscape = null; f(); } });
+    // Retour arrière : recommence le niveau depuis la pause ou les résultats (en course, la session s'en charge)
+    window.addEventListener('keydown', (e) => {
+      const t = e.target as HTMLElement | null;
+      if (e.code !== 'Backspace' || e.repeat || !this.session?.enPause || (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA'))) return;
+      e.preventDefault();
+      this.recommencerCourse();
+    });
     document.addEventListener('visibilitychange', () => { if (document.hidden && this.session) this.pauseRace(); });
     $('app').append(Object.assign(document.createElement('div'), { className: 'portrait', textContent: 'Tourne ton téléphone en mode paysage' }));
 
@@ -568,6 +575,15 @@ export class App {
     this.session?.resume();
   }
 
+  /** Recommence le niveau depuis le début (touche Retour arrière, pause ou résultats). */
+  private recommencerCourse(): void {
+    if (!this.session) return;
+    this.onEscape = null;
+    this.screens.clear();
+    this.touchControls.show(this.touch || this.input.touchActive);
+    this.session.restart();
+  }
+
   private pauseRace(): void {
     if (!this.session) return;
     this.session.pause();
@@ -576,7 +592,7 @@ export class App {
     this.onEscape = () => this.reprendre();
     this.screens.pause({
       onReprendre: () => { this.onEscape = null; this.reprendre(); },
-      onRecommencer: () => { this.onEscape = null; this.screens.clear(); this.touchControls.show(this.touch || this.input.touchActive); this.session?.restart(); },
+      onRecommencer: () => this.recommencerCourse(),
       onMenu: () => { this.onEscape = null; this.quitterCourse(); },
       menuLabel: this.current?.contexte.menuLabel,
     });
@@ -612,7 +628,7 @@ export class App {
         cles: gainLocal ? { ...gainLocal, total: this.progression.cles } : undefined,
         gainsEnLigne: gains?.el,
         onCaisses: () => this.caisses(montrer),
-        onRecommencer: () => { this.screens.clear(); this.touchControls.show(this.touch || this.input.touchActive); this.session?.restart(); },
+        onRecommencer: () => this.recommencerCourse(),
         onSuivant: next >= 0 ? () => void this.lancer(next) : null,
         onMenu: () => this.quitterCourse(),
         menuLabel: cur.contexte.menuLabel,

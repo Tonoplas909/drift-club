@@ -70,3 +70,14 @@ describe('InputManager', () => {
     expect(new InputManager(new KeyboardInput(), null).state(true).gaz).toBe(0);
   });
 });
+
+describe('touche Retour arrière', () => {
+  it('déclenche l\'action « recommencer » une seule fois', () => {
+    const k = new KeyboardInput();
+    k.keyDown('Backspace');
+    expect(k.consumeActions().recommencer).toBe(true);
+    expect(k.consumeActions().recommencer).toBe(false);
+    k.keyDown('Backspace', true);
+    expect(k.consumeActions().recommencer).toBe(false);
+  });
+});

@@ -13,6 +13,14 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.3.7',
+    date: '30/09/2026',
+    titre: 'Recommencer en un clic',
+    notes: [
+      'La touche Retour arrière (⌫) recommence le niveau depuis le début, en course, en pause ou sur l\'écran des résultats.',
+    ],
+  },
+  {
     version: '0.3.6',
     date: '30/09/2026',
     titre: 'Livrées et clés liées à ton compte',

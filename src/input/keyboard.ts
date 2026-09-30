@@ -1,7 +1,7 @@
 import type { InputState } from '../core/input';
 
-export interface Actions { replacer: boolean; pause: boolean; camera: boolean; muet: boolean; pleinEcran: boolean }
-export const NO_ACTIONS: Readonly<Actions> = Object.freeze({ replacer: false, pause: false, camera: false, muet: false, pleinEcran: false });
+export interface Actions { replacer: boolean; recommencer: boolean; pause: boolean; camera: boolean; muet: boolean; pleinEcran: boolean }
+export const NO_ACTIONS: Readonly<Actions> = Object.freeze({ replacer: false, recommencer: false, pause: false, camera: false, muet: false, pleinEcran: false });
 
 const GAZ = ['KeyW', 'ArrowUp'];
 const FREIN = ['KeyS', 'ArrowDown'];
@@ -9,9 +9,9 @@ const GAUCHE = ['KeyA', 'ArrowLeft'];
 const DROITE = ['KeyD', 'ArrowRight'];
 const FREIN_A_MAIN = ['Space'];
 const ACTION_CODES: Record<string, keyof Actions> = {
-  KeyR: 'replacer', Escape: 'pause', KeyP: 'pause', KeyC: 'camera', KeyM: 'muet', KeyF: 'pleinEcran',
+  KeyR: 'replacer', Backspace: 'recommencer', Escape: 'pause', KeyP: 'pause', KeyC: 'camera', KeyM: 'muet', KeyF: 'pleinEcran',
 };
-const PREVENT = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space']);
+const PREVENT = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Backspace']);
 
 export class KeyboardInput {
   /** true pendant une course : empêche le défilement de la page avec les flèches / Espace */
