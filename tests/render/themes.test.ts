@@ -34,11 +34,12 @@ describe('palettes des thèmes', () => {
     for (const env of ENVIRONNEMENTS) {
       for (const amb of ['jour', 'coucher'] as const) {
         const p = paletteDe(env, amb);
-        expect(Object.keys(p).filter((k) => k !== 'epaule' && k !== 'trottoir').sort()).toEqual(cles.filter((k) => k !== 'epaule' && k !== 'trottoir'));
+        const facultatifs = ['epaule', 'trottoir', 'eau', 'plage', 'fondEau', 'vibreurs', 'ciel', 'terrasses'];
+        expect(Object.keys(p).filter((k) => !facultatifs.includes(k)).sort()).toEqual(cles.filter((k) => !facultatifs.includes(k)));
         expect(p.brume).toBeGreaterThan(0.3);
         expect(p.brume).toBeLessThanOrEqual(1);
         expect(p.reliefs.ligne).toBeGreaterThan(0);
-        expect(['cones', 'mesas', 'ville']).toContain(p.reliefs.forme);
+        expect(['cones', 'mesas', 'ville', 'iles', 'murs', 'lune', 'fuji']).toContain(p.reliefs.forme);
         expect(epauleDe(p)).toBeInstanceOf(THREE.Color);
       }
     }
@@ -190,7 +191,9 @@ describe('neige (météo)', () => {
     positionFlocon(5, 20, 5, 2, 0, 1, 0, 0, 0, b);
     expect(b.y).toBeLessThan(a.y);
   });
-  it('seule la neige a de la météo', () => {
+  it('seuls la neige et le japon (pétales) ont de la météo', () => {
+    expect(THEMES_VISUELS.japon.meteo?.type).toBe('petales');
+    expect(THEMES_VISUELS.pirate.meteo).toBeUndefined();
     expect(THEMES_VISUELS.ville.meteo).toBeUndefined();
     expect(THEMES_VISUELS.neige.meteo?.nombre).toBeGreaterThan(0);
     expect(THEMES_VISUELS.montagne.meteo).toBeUndefined();
