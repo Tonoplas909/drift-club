@@ -19,11 +19,12 @@ export function rise(e: number, n: number): number {
 
 interface Grid {
   ox: number; oz: number; cell: number; nx: number; nz: number;
-  h: Float32Array; d: Float32Array; noise: Float32Array;
+  h: Float32Array; d: Float32Array;
+  seed: number; relief: Relief;
 }
 
 const FINE_CELL = 4, FINE_R = 64;
-const COARSE_CELL = 16, COARSE_R = 420, MARGIN = 440;
+const COARSE_CELL = 16, COARSE_R_DEFAUT = 420;
 /** Pente maximale (dénivelé / distance) du terrain à partir de l'accotement d'un tronçon de route : talus de déblai ou de remblai. */
 const PENTE_TALUS = 1.2;
 /** Fenêtre (m) autour de la distance au tronçon le plus proche où les tronçons comptent dans la hauteur « naturelle » du versant. */
@@ -35,19 +36,22 @@ const ECART_BRANCHES = 25;
 
 const scratchTerrain: number[] = [];
 
-function makeGrid(ox: number, oz: number, cell: number, width: number, depth: number, seed: number, relief: number): Grid {
+/** Multiplicateur du relief : constant, ou variable dans l'espace (transitions du mode Zen). */
+export type Relief = number | ((x: number, z: number) => number);
+
+function makeGrid(ox: number, oz: number, cell: number, width: number, depth: number, seed: number, relief: Relief): Grid {
   const nx = Math.ceil(width / cell) + 1;
   const nz = Math.ceil(depth / cell) + 1;
   const h = new Float32Array(nx * nz).fill(Infinity);
   const d = new Float32Array(nx * nz).fill(Infinity);
-  const noise = new Float32Array(nx * nz);
-  for (let iz = 0; iz < nz; iz++) {
-    for (let ix = 0; ix < nx; ix++) {
-      const wx = ox + ix * cell, wz = oz + iz * cell;
-      noise[iz * nx + ix] = (0.35 + 0.65 * fbm(wx / 140, wz / 140, seed + 77)) * relief;
-    }
-  }
-  return { ox, oz, cell, nx, nz, h, d, noise };
+  return { ox, oz, cell, nx, nz, h, d, seed, relief };
+}
+
+/** Facteur de bruit des collines de la case `i` (calculé seulement pour les cases proches de la route). */
+function bruitCase(g: Grid, i: number): number {
+  const wx = g.ox + (i % g.nx) * g.cell, wz = g.oz + Math.floor(i / g.nx) * g.cell;
+  const r = typeof g.relief === 'number' ? g.relief : g.relief(wx, wz);
+  return Math.fround((0.35 + 0.65 * fbm(wx / 140, wz / 140, g.seed + 77)) * r);
 }
 
 /** Appelle `f(idx, distance)` pour chaque case de la grille à moins de `radius` m du tronçon `sp`. */
@@ -106,7 +110,7 @@ function remplir(g: Grid, track: TrackData, every: number, radius: number): void
   });
   for (let i = 0; i < n; i++) {
     if (g.d[i] === Infinity) continue;
-    const nat = swy[i] / sw[i] + rise(ecart[i], g.noise[i]);
+    const nat = swy[i] / sw[i] + rise(ecart[i], bruitCase(g, i));
     g.h[i] = bas[i] <= haut[i] ? Math.min(haut[i], Math.max(bas[i], nat)) : (bas[i] + haut[i]) / 2;
   }
 }
@@ -123,6 +127,65 @@ function bilinear(g: Grid, arr: Float32Array, x: number, z: number): number {
   return (a + (b - a) * tx) * (1 - tz) + (c + (d - c) * tx) * tz;
 }
 
+/** Rayon (m) dans lequel chercher les tronçons de route qui bornent le terrain (pour `appliquerTalus`). */
+export const RAYON_TALUS = RAYON_CHAUSSEE;
+
+const candTalus: TrackSample[] = [];
+const sCandTalus: number[] = [];
+
+/** Hauteur de la chaussée en (x, z) selon le tronçon `sp`, et bornes du talus : au plus `PENTE_TALUS` de dénivelé par mètre au-delà de largeur/2 + 1 m. */
+function borne(sp: TrackSample, x: number, z: number, dist: number, out: { y: number; lo: number; hi: number }): void {
+  const y = sp.y + sp.grade * ((x - sp.x) * sp.tx + (z - sp.z) * sp.tz);
+  const dev = PENTE_TALUS * Math.max(0, dist - (sp.w + 1));
+  out.y = y; out.lo = y - dev; out.hi = y + dev;
+}
+
+const b1 = { y: 0, lo: 0, hi: 0 };
+const b2 = { y: 0, lo: 0, hi: 0 };
+
+/**
+ * Hauteur finale à partir de la hauteur « naturelle » `g` et des tronçons candidats (à moins de `RAYON_TALUS`, dans
+ * n'importe quel ordre, doublons admis) : bornes des talus des deux branches les plus proches (si elles sont
+ * incompatibles, le milieu), puis la chaussée la plus proche impose sa hauteur. `sCand[k]` = abscisse de `cand[k]`
+ * dans un repère commun à tous les candidats (sert à distinguer les branches).
+ */
+export function appliquerTalus(g: number, x: number, z: number, cand: readonly TrackSample[], sCand: ArrayLike<number>, n: number): number {
+  let k1 = -1, d1 = Infinity;
+  for (let k = 0; k < n; k++) {
+    const sp = cand[k];
+    const d = (sp.x - x) * (sp.x - x) + (sp.z - z) * (sp.z - z);
+    if (d < d1) { d1 = d; k1 = k; }
+  }
+  if (k1 < 0) return g;
+  // 2e branche : tronçon le plus proche parmi ceux qui ne sont pas voisins du premier le long de la route
+  let k2 = -1, d2 = Infinity;
+  const s1 = sCand[k1];
+  for (let k = 0; k < n; k++) {
+    if (Math.abs(sCand[k] - s1) < ECART_BRANCHES) continue;
+    const sp = cand[k];
+    const d = (sp.x - x) * (sp.x - x) + (sp.z - z) * (sp.z - z);
+    if (d < d2) { d2 = d; k2 = k; }
+  }
+  const sp1 = cand[k1];
+  borne(sp1, x, z, Math.sqrt(d1), b1);
+  let lo = b1.lo, hi = b1.hi;
+  if (k2 >= 0) {
+    borne(cand[k2], x, z, Math.sqrt(d2), b2);
+    lo = Math.max(lo, b2.lo); hi = Math.min(hi, b2.hi);
+  }
+  const h = lo <= hi ? (g < lo ? lo : g > hi ? hi : g) : (lo + hi) / 2;
+  const w = 1 - smoothstep(sp1.w + 1, sp1.w + 3, Math.sqrt(d1));
+  return w > 0 ? h + (b1.y - h) * w : h;
+}
+
+/** Réglages de la taille des grilles (défaut : niveaux ; le mode Zen réduit la grille grossière). */
+export interface OptionsTerrain {
+  /** rayon (m) de la grille grossière autour de la route (défaut 420) */
+  rayonGrossier?: number;
+  /** un tronçon sur `pasGrossier` compte dans la grille grossière (défaut 4) */
+  pasGrossier?: number;
+}
+
 export class Terrain implements Ground {
   readonly minX: number;
   readonly maxX: number;
@@ -133,13 +196,14 @@ export class Terrain implements Ground {
   private readonly lacs: Lac[];
 
   /** `relief` : multiplicateur des reliefs autour de la route (1 = montagne ; < 1 = plaine, thème ville) ; `eau` : lacs (polygones). */
-  constructor(private readonly track: TrackData, seed: number, relief = 1, eau: readonly PlanEau[] = []) {
+  constructor(private readonly track: TrackData, seed: number, relief: Relief = 1, eau: readonly PlanEau[] = [], opts: OptionsTerrain = {}) {
     this.lacs = eau.map((p) => new Lac(p));
     const b = track.bounds;
+    const COARSE_R = opts.rayonGrossier ?? COARSE_R_DEFAUT, MARGIN = COARSE_R + 20;
     this.fine = makeGrid(b.minX - FINE_R, b.minZ - FINE_R, FINE_CELL, b.maxX - b.minX + 2 * FINE_R, b.maxZ - b.minZ + 2 * FINE_R, seed, relief);
     this.coarse = makeGrid(b.minX - MARGIN, b.minZ - MARGIN, COARSE_CELL, b.maxX - b.minX + 2 * MARGIN, b.maxZ - b.minZ + 2 * MARGIN, seed, relief);
     remplir(this.fine, track, 2, FINE_R);
-    remplir(this.coarse, track, 4, COARSE_R);
+    remplir(this.coarse, track, opts.pasGrossier ?? 4, COARSE_R);
     let maxH = -Infinity;
     for (const h of this.coarse.h) if (h < Infinity && h > maxH) maxH = h;
     for (let i = 0; i < this.coarse.h.length; i++) {
@@ -167,42 +231,22 @@ export class Terrain implements Ground {
 
   /** Hauteur du terrain : versant + lacs, puis les talus des tronçons voisins (la chaussée impose sa hauteur, le terrain la quitte en pente bornée). */
   heightAt(x: number, z: number): number {
-    let g = this.gridHeight(x, z);
-    for (const lac of this.lacs) g = lac.hauteur(x, z, g);
     const S = this.track.samples;
     this.track.grid.query(x, z, RAYON_CHAUSSEE, scratchTerrain);
-    let i1 = -1, d1 = Infinity;
-    for (const i of scratchTerrain) {
-      const sp = S[i];
-      const d = (sp.x - x) * (sp.x - x) + (sp.z - z) * (sp.z - z);
-      if (d < d1) { d1 = d; i1 = i; }
+    const n = scratchTerrain.length;
+    for (let k = 0; k < n; k++) {
+      const sp = S[scratchTerrain[k]];
+      candTalus[k] = sp;
+      sCandTalus[k] = sp.s;
     }
-    if (i1 < 0) return g;
-    // 2e branche : tronçon le plus proche parmi ceux qui ne sont pas voisins du premier le long de la route
-    let i2 = -1, d2 = Infinity;
-    for (const i of scratchTerrain) {
-      if (Math.abs(S[i].s - S[i1].s) < ECART_BRANCHES) continue;
-      const d = (S[i].x - x) * (S[i].x - x) + (S[i].z - z) * (S[i].z - z);
-      if (d < d2) { d2 = d; i2 = i; }
-    }
-    // bornes des talus des deux branches (comme la grille : si elles sont incompatibles, on prend le milieu), puis la chaussée la plus proche impose sa hauteur
-    const r1 = this.borne(i1, x, z, Math.sqrt(d1));
-    let lo = r1.lo, hi = r1.hi;
-    if (i2 >= 0) {
-      const r2 = this.borne(i2, x, z, Math.sqrt(d2));
-      lo = Math.max(lo, r2.lo); hi = Math.min(hi, r2.hi);
-    }
-    const h = lo <= hi ? (g < lo ? lo : g > hi ? hi : g) : (lo + hi) / 2;
-    const w = 1 - smoothstep(S[i1].w + 1, S[i1].w + 3, Math.sqrt(d1));
-    return w > 0 ? h + (r1.y - h) * w : h;
+    return appliquerTalus(this.hauteurGrille(x, z), x, z, candTalus, sCandTalus, n);
   }
 
-  /** Hauteur de la chaussée en (x, z) selon le tronçon `i`, et bornes du talus : au plus `PENTE_TALUS` de dénivelé par mètre au-delà de largeur/2 + 1 m. */
-  private borne(i: number, x: number, z: number, dist: number): { y: number; lo: number; hi: number } {
-    const sp = this.track.samples[i];
-    const y = sp.y + sp.grade * ((x - sp.x) * sp.tx + (z - sp.z) * sp.tz);
-    const dev = PENTE_TALUS * Math.max(0, dist - (sp.w + 1));
-    return { y, lo: y - dev, hi: y + dev };
+  /** Hauteur « naturelle » du versant (grilles + lacs), avant les talus de la route. */
+  hauteurGrille(x: number, z: number): number {
+    let g = this.gridHeight(x, z);
+    for (const lac of this.lacs) g = lac.hauteur(x, z, g);
+    return g;
   }
 
   /** Hauteur de la surface AFFICHÉE : celle du terrain, 15 cm plus bas sous la chaussée et l'accotement pour ne pas affleurer la route. */

@@ -71,6 +71,15 @@ export function buildTrack(level: Level): TrackData {
     samples[i].k = sum / cnt;
   }
 
+  return finirPiste(samples, pointS.map((s) => Math.min(n - 1, Math.round(s / STEP))));
+}
+
+/**
+ * Complète une piste à partir d'échantillons déjà calculés (position, tangente, largeur, courbure, pente ; `s` croissant
+ * depuis 0, pas de 1 m) : temps cible, vibreurs, grille spatiale, emprise. Sert aussi aux tronçons du mode Zen.
+ */
+export function finirPiste(samples: TrackSample[], pointSample: number[] = []): TrackData {
+  const n = samples.length;
   // Temps cible (spec §5.2)
   let targetTime = 0;
   for (let i = 1; i < n; i++) {
@@ -95,8 +104,6 @@ export function buildTrack(level: Level): TrackData {
       start = -1;
     }
   }
-
-  const pointSample = pointS.map((s) => Math.min(n - 1, Math.round(s / STEP)));
 
   const grid = new SampleGrid(16);
   let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;

@@ -86,13 +86,33 @@ const MAX_DENIVELE_BATIMENT = 3.5;
 /** Aucun bâtiment à moins de 45 m d'un lac : le front de lac reste dégagé. */
 const MARGE_BATIMENT_LAC = 45;
 
-export function generateEnvironment(level: Level, track: TrackData, terrain: Terrain): Environment {
+/** Ce que le décor lit du sol : le `Terrain` d'un niveau, ou le sol composé du mode Zen. */
+export type SolDecor = Pick<Terrain, 'heightAt' | 'gradientAt' | 'distanceToRoad' | 'distanceEau'>;
+
+/** Options de génération (mode Zen : décor d'un tronçon de route parmi d'autres). Sans options : comportement des niveaux. */
+export interface OptionsDecor {
+  /** graine des tirages (défaut : `decor.graine`, qui reste la graine du masque de forêt) */
+  alea?: number;
+  /** ne garde que les objets dont la position (x, z) est acceptée (tronçon « propriétaire » de l'endroit) */
+  garder?: (x: number, z: number) => boolean;
+  /** distance maximale (m) des arbres, rochers et bâtiments de fond (défaut 320) */
+  distanceMax?: number;
+  /** emprise balayée par les arbres, rochers et bâtiments de fond (défaut : celle de la route) */
+  zone?: { minX: number; maxX: number; minZ: number; maxZ: number };
+  /** altitude de référence du mélange d'essences (défaut : point le plus bas de la route) */
+  altitudeBase?: number;
+}
+
+export function generateEnvironment(level: Level, track: TrackData, terrain: SolDecor, opts: OptionsDecor = {}): Environment {
   const env: Environment = { items: [], circles: [], segments: [], barriers: [] };
   const { graine, densite } = level.decor;
-  const rng = mulberry32(graine);
+  const rng = mulberry32(opts.alea ?? graine);
   const theme = THEMES[level.environnement];
   const S = track.samples;
-  const lowest = S.reduce((m, s) => Math.min(m, s.y), Infinity);
+  const lowest = opts.altitudeBase ?? S.reduce((m, s) => Math.min(m, s.y), Infinity);
+  const garder = opts.garder ?? null;
+  const dLoin = opts.distanceMax ?? 320;
+  const zone = opts.zone ?? track.bounds;
   const manual = level.objets;
 
   const nearManual = (x: number, z: number, r: number): boolean =>
@@ -117,6 +137,7 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Ter
   };
   const posés: { x: number; z: number; r: number }[] = [];
   const add = (item: EnvItem): void => {
+    if (garder && !item.manual && !garder(item.x, item.z)) return;
     env.items.push(item);
     const box = boiteDe(item.kind, item.variant);
     if (theme.bord.sansChevauchement) {
@@ -222,7 +243,7 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Ter
         const sp = S[i];
         const off = sp.w + ex.decalage;
         const x = sp.x + sp.nx * side * off, z = sp.z + sp.nz * side * off;
-        if (nearManual(x, z, 3) || inCorridor(x, z, 3, terrain.distanceToRoad(x, z)) || surEau(x, z, 3)) continue;
+        if ((garder && !garder(x, z)) || nearManual(x, z, 3) || inCorridor(x, z, 3, terrain.distanceToRoad(x, z)) || surEau(x, z, 3)) continue;
         const variant = Math.min(VARIANTS[ex.kind] - 1, Math.floor(variantR * VARIANTS[ex.kind]));
         const [eMin, eAmp] = ex.echelle ?? [0.8, 0.5];
         const scale = eMin + eAmp * scaleR;
@@ -257,7 +278,7 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Ter
     emprises.length > 0 && (grille.get(cle(Math.floor(x / CASE), Math.floor(z / CASE))) ?? []).some((e) => contient(e, x, z, m));
   const bat = theme.batiments;
   if (bat) {
-    const rb = mulberry32(graine + 4099);
+    const rb = mulberry32((opts.alea ?? graine) + 4099);
     /** Pose (si la place est libre) un bâtiment de centre (x, z) et de cap `rot` ; renvoie s'il est posé. */
     const poser = (kind: DecorKind, variant: number, x: number, z: number, rot: number): boolean => {
       const b = batimentDe(kind, variant)!;
@@ -266,6 +287,7 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Ter
       const pts = [...pourtour(e, 3.5), [x, z] as [number, number]];
       let dMin = Infinity, yMin = Infinity, yMax = -Infinity;
       for (const [px, pz] of pts) {
+        if (garder && !garder(px, pz)) return false; // à cheval sur la zone d'un autre tronçon
         if (forestMask(px, pz, graine) > thr) return false; // parc
         const ns = nearestSampleWithin(track, px, pz, 10 + bat.recul + 0.5);
         if (ns && ns.dist < S[ns.index].w + bat.recul) return false;
@@ -307,13 +329,13 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Ter
     rang(0, 2, bat.rang1, 0);
     rang(24, 14, bat.rang2, 0.4);
     // fond : tours et immeubles isolés jusqu'à 320 m (visuels, hors de portée de la voiture)
-    const bb = track.bounds, cell = bat.fond.cellule;
-    for (let gz = bb.minZ - 320; gz < bb.maxZ + 320; gz += cell) {
-      for (let gx = bb.minX - 320; gx < bb.maxX + 320; gx += cell) {
+    const bb = zone, cell = bat.fond.cellule;
+    for (let gz = bb.minZ - dLoin; gz < bb.maxZ + dLoin; gz += cell) {
+      for (let gx = bb.minX - dLoin; gx < bb.maxX + dLoin; gx += cell) {
         const x = gx + rb() * cell, z = gz + rb() * cell;
         const pick = rb(), kindR = rb(), variantR = rb(), rotR = rb();
         const d = terrain.distanceToRoad(x, z);
-        if (d < 45 || d >= 320 || pick >= bat.fond.probabilite) continue;
+        if (d < 45 || d >= dLoin || pick >= bat.fond.probabilite) continue;
         const kind: DecorKind = kindR < 0.35 ? 'tour' : 'immeuble';
         poser(kind, Math.min(VARIANTS[kind] - 1, Math.floor(variantR * VARIANTS[kind])), x, z, Math.round(rotR * 4) * (Math.PI / 2));
       }
@@ -322,7 +344,7 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Ter
 
   // 5. Arbres en bosquets (6 tirages par case, toujours consommés → déterminisme)
   const arbres = theme.arbres;
-  const b = track.bounds;
+  const b = zone;
   const trees = (cell: number, dMin: number, dMax: number): void => {
     for (let gz = b.minZ - dMax; gz < b.maxZ + dMax; gz += cell) {
       for (let gx = b.minX - dMax; gx < b.maxX + dMax; gx += cell) {
@@ -330,6 +352,7 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Ter
         const pick = rng(), kindR = rng(), variantR = rng(), rotR = rng(), scaleR = rng();
         const d = terrain.distanceToRoad(x, z);
         if (d < dMin || d >= dMax) continue;
+        if (garder && !garder(x, z)) continue;
         if (inCorridor(x, z, 3, d) || nearManual(x, z, 4) || enBatiment(x, z, 2.5) || surEau(x, z, 6)) continue;
         let p = forestMask(x, z, graine) > thr ? arbres.pForet : arbres.pHors * (0.5 + densite);
         if (d < 12) p *= 0.5;
@@ -345,16 +368,18 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Ter
     }
   };
   trees(7, 0, 60);
-  trees(14, 60, 320);
+  trees(14, 60, dLoin);
 
   // 6. Rochers, plus fréquents sur les pentes
   const roc = theme.rochers;
-  for (let gz = b.minZ - 200; gz < b.maxZ + 200; gz += 11) {
-    for (let gx = b.minX - 200; gx < b.maxX + 200; gx += 11) {
+  const dRoc = Math.min(200, dLoin);
+  for (let gz = b.minZ - dRoc; gz < b.maxZ + dRoc; gz += 11) {
+    for (let gx = b.minX - dRoc; gx < b.maxX + dRoc; gx += 11) {
       const x = gx + rng() * 11, z = gz + rng() * 11;
       const pick = rng(), kindR = rng(), variantR = rng(), rotR = rng(), scaleR = rng();
       const d = terrain.distanceToRoad(x, z);
-      if (d >= 200) continue;
+      if (d >= dRoc) continue;
+      if (garder && !garder(x, z)) continue;
       if (inCorridor(x, z, 4, d) || nearManual(x, z, 4) || surEau(x, z, 6)) continue;
       const g = terrain.gradientAt(x, z);
       const slope = Math.hypot(g.gx, g.gz);
