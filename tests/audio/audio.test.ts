@@ -18,6 +18,8 @@ describe('audio', () => {
       a.startEngine();
       a.updateEngine(4000, 1, 0.5, 20);
       a.playBank(3); a.playLose(); a.playCrash(8); a.playCountdown(0);
+      a.playTick(); a.playTick(0.9); a.playOuvrirCaisse();
+      for (const r of ['commune', 'rare', 'epique', 'legendaire', 'exotique'] as const) a.playReveal(r);
       a.stopEngine();
     }).not.toThrow();
     expect(a.toggleMute()).toBe(true);
