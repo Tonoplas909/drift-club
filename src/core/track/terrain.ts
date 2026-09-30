@@ -184,6 +184,8 @@ export interface OptionsTerrain {
   rayonGrossier?: number;
   /** un tronçon sur `pasGrossier` compte dans la grille grossière (défaut 4) */
   pasGrossier?: number;
+  /** un tronçon sur `pasFin` compte dans la grille fine (défaut 2) */
+  pasFin?: number;
 }
 
 export class Terrain implements Ground {
@@ -202,7 +204,7 @@ export class Terrain implements Ground {
     const COARSE_R = opts.rayonGrossier ?? COARSE_R_DEFAUT, MARGIN = COARSE_R + 20;
     this.fine = makeGrid(b.minX - FINE_R, b.minZ - FINE_R, FINE_CELL, b.maxX - b.minX + 2 * FINE_R, b.maxZ - b.minZ + 2 * FINE_R, seed, relief);
     this.coarse = makeGrid(b.minX - MARGIN, b.minZ - MARGIN, COARSE_CELL, b.maxX - b.minX + 2 * MARGIN, b.maxZ - b.minZ + 2 * MARGIN, seed, relief);
-    remplir(this.fine, track, 2, FINE_R);
+    remplir(this.fine, track, opts.pasFin ?? 2, FINE_R);
     remplir(this.coarse, track, opts.pasGrossier ?? 4, COARSE_R);
     let maxH = -Infinity;
     for (const h of this.coarse.h) if (h < Infinity && h > maxH) maxH = h;
