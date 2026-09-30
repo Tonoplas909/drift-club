@@ -104,6 +104,8 @@ export class App {
     const unlock = () => this.audio.unlock();
     window.addEventListener('pointerdown', unlock);
     window.addEventListener('keydown', unlock);
+    // clic de menu discret sur les boutons (les caisses et la course ont leurs propres sons)
+    document.addEventListener('click', (e) => { if ((e.target as HTMLElement | null)?.closest?.('button, .btn')) this.audio.playClick(); });
     window.addEventListener('keydown', (e) => { if (e.code === 'Escape' && this.onEscape) { const f = this.onEscape; this.onEscape = null; f(); } });
     // Retour arrière : recommence le niveau depuis la pause ou les résultats (en course, la session s'en charge)
     window.addEventListener('keydown', (e) => {
