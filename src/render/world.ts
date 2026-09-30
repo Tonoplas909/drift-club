@@ -16,6 +16,7 @@ import { SmokeSystem, SkidMarks } from './effects';
 import { ChaseCamera, type ChaseConfig, type CameraTarget } from './camera';
 import { SpeedGauge, gaugeRatio } from './speedGauge';
 import { CARS } from '../core/physics/cars';
+import { skinDef, type SkinId } from '../core/skins';
 import { vitessePratique } from '../core/physics/vitessePratique';
 
 export interface WorldInit {
@@ -27,6 +28,8 @@ export interface WorldInit {
   assets: Assets;
   carId: CarId;
   color: string;
+  /** livrée du modèle (défaut : unie) */
+  skin?: SkinId;
   quality: QualityLevel;
 }
 
@@ -83,7 +86,7 @@ export class World {
     this.scene.add(buildMountains(track, p, level.decor.graine));
     this.scene.add(buildDecor(env, assets, quality, q.shadows));
 
-    this.carView = new CarView(assets.cars[init.carId], init.color, q.shadows);
+    this.carView = new CarView(assets.cars[init.carId], init.color, q.shadows, skinDef(init.carId, init.skin));
     this.scene.add(this.carView.root, this.gauge.root);
     this.gaugeMax = vitessePratique(CARS[init.carId]);
     this.smoke = new SmokeSystem(q.smokeMax, 0xe9e6e1);

@@ -53,7 +53,7 @@ export const CAR_SHAPES: Record<CarId, CarShape> = {
   },
 };
 
-function arch(cz: number, y0: number, r: number, n = 6): [number, number][] {
+export function arch(cz: number, y0: number, r: number, n = 6): [number, number][] {
   const pts: [number, number][] = [];
   for (let i = 0; i <= n; i++) {
     const a = Math.PI * (1 - i / n);
@@ -134,5 +134,5 @@ export function buildJdmCar(s: CarShape): CarModel {
       wheels.push({ geometry: wheel, position: new THREE.Vector3(side * wx, s.wheelR, z), front, left: side > 0 });
     }
   }
-  return { body, wheels, paint: PAINT.clone() };
+  return { body, wheels, paint: PAINT.clone(), shape: s };
 }

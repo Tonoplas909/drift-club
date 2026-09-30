@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { RaceSim, type RaceEvent, type RaceResult } from '../core/race/race';
 import { CARS } from '../core/physics/cars';
 import { MODES } from '../core/physics/assists';
+import { skinChoisie } from '../core/skins';
 import type { AssistParams, CarParams, CarState } from '../core/physics/types';
 import type { Assets } from '../render/assets';
 import { World } from '../render/world';
@@ -56,7 +57,7 @@ export class GameSession {
   constructor(private readonly level: PreparedLevel, private readonly deps: SessionDeps, private readonly cb: SessionCallbacks) {
     this.world = new World({
       renderer: deps.renderer, level: level.level, track: level.track, terrain: level.terrain, env: level.env,
-      assets: deps.assets, carId: deps.reglages.voiture, color: deps.reglages.couleur, quality: deps.quality.level,
+      assets: deps.assets, carId: deps.reglages.voiture, color: deps.reglages.couleur, skin: skinChoisie(deps.reglages.skins, deps.reglages.voiture), quality: deps.quality.level,
     });
     this.race = this.newRace();
     this.loop = new FixedStepLoop(() => this.simStep());

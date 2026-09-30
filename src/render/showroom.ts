@@ -3,6 +3,7 @@ import type { CarId } from '../core/physics/types';
 import type { Assets } from './assets';
 import { CarView } from './carView';
 import { toonMaterial } from './materials';
+import { skinDef, type SkinId } from '../core/skins';
 
 export class Showroom {
   private readonly scene = new THREE.Scene();
@@ -26,9 +27,9 @@ export class Showroom {
     this.camera.lookAt(0, 0.7, 0);
   }
 
-  setCar(id: CarId, color: string): void {
+  setCar(id: CarId, color: string, skin?: SkinId): void {
     if (this.view) { this.scene.remove(this.view.root); this.view.dispose(); }
-    this.view = new CarView(this.assets.cars[id], color, false);
+    this.view = new CarView(this.assets.cars[id], color, false, skinDef(id, skin));
     this.scene.add(this.view.root);
   }
 
