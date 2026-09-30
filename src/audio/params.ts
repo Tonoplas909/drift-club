@@ -17,8 +17,9 @@ export function engineFrequency(rpm: number): number {
   return (rpm / 60) * 2;
 }
 
-export function rpmNorm(rpm: number): number {
-  return clamp((rpm - RPM_RALENTI) / (RPM_MAX - RPM_RALENTI), 0, 1);
+/** `max` : régime au rupteur de la voiture (RPM_MAX par défaut). */
+export function rpmNorm(rpm: number, max = RPM_MAX): number {
+  return clamp((rpm - RPM_RALENTI) / (max - RPM_RALENTI), 0, 1);
 }
 
 /** Curseur de volume 0..1 → gain linéaire (courbe perceptive douce, 0 → silence). */
@@ -58,12 +59,20 @@ export interface CarSound {
   /** niveau global de la voiture */
   level: number;
   turbo: boolean;
+  /** régime au rupteur (tr/min) ; RPM_MAX si absent */
+  rpmMax?: number;
 }
 
 export const CAR_SOUND: Record<CarId, CarSound> = {
   equilibree: { pitch: 1, detune: 8, saw: 0.55, sub: 0.5, upper: 0.28, cutBase: 380, cutRpm: 0.2, cutThrottle: 650, q: 2.2, drive: 1.5, noise: 0.05, level: 1, turbo: false },
   legere: { pitch: 1.22, detune: 12, saw: 0.5, sub: 0.3, upper: 0.4, cutBase: 450, cutRpm: 0.2, cutThrottle: 600, q: 2.4, drive: 1.3, noise: 0.05, level: 1.12, turbo: false },
   turbo: { pitch: 0.86, detune: 6, saw: 0.55, sub: 0.7, upper: 0.22, cutBase: 300, cutRpm: 0.18, cutThrottle: 600, q: 2, drive: 1.8, noise: 0.07, level: 0.88, turbo: true },
+  // trois cylindres nerveux : très aigu, un peu râpeux, monte haut dans les tours
+  kei: { pitch: 1.3, detune: 20, saw: 0.62, sub: 0.14, upper: 0.5, cutBase: 520, cutRpm: 0.22, cutThrottle: 700, q: 2.6, drive: 1.2, noise: 0.07, level: 1.08, turbo: false, rpmMax: 8200 },
+  // gros V8 : grave, sourd, avec un battement lent entre les deux dents de scie ; rupteur bas
+  muscle: { pitch: 0.62, detune: 26, saw: 0.5, sub: 0.95, upper: 0.14, cutBase: 260, cutRpm: 0.14, cutThrottle: 500, q: 1.6, drive: 2.3, noise: 0.1, level: 0.96, turbo: false, rpmMax: 6200 },
+  // rotatif : timbre clair et lisse, très haut dans les tours, souffle de combustion marqué (le « brap »)
+  rotative: { pitch: 1.05, detune: 4, saw: 0.45, sub: 0.2, upper: 0.62, cutBase: 520, cutRpm: 0.26, cutThrottle: 850, q: 3, drive: 1.6, noise: 0.11, level: 1.02, turbo: false, rpmMax: 9000 },
 };
 
 export interface EngineTargets {
@@ -74,10 +83,11 @@ export interface EngineTargets {
 /** Consignes du moteur pour un régime et un accélérateur : en charge (gaz) plus brillant et plus fort qu'en décélération. */
 export function engineTargets(c: CarSound, rpm: number, throttle: number): EngineTargets {
   const load = clamp(Math.abs(throttle), 0, 1);
-  const r = rpmNorm(rpm);
+  const max = c.rpmMax ?? RPM_MAX;
+  const r = rpmNorm(rpm, max);
   const timbre = 0.55 + 0.45 * load;
   return {
-    freq: engineFrequency(clamp(rpm, RPM_RALENTI, RPM_MAX)) * c.pitch,
+    freq: engineFrequency(clamp(rpm, RPM_RALENTI, max)) * c.pitch,
     cutoff: Math.min(4000, (c.cutBase + rpm * c.cutRpm + load * c.cutThrottle) * timbre),
     q: c.q,
     gain: c.level * (0.45 + 0.55 * load) * (0.75 + 0.25 * r),
@@ -91,8 +101,8 @@ export function engineTargets(c: CarSound, rpm: number, throttle: number): Engin
 }
 
 /** 0 sous le seuil, 1 à fond de régime : intensité du rebond du limiteur. */
-export function limiteurQuantite(rpm: number): number {
-  return smoothstep(RPM_LIMITEUR, RPM_MAX - 20, rpm);
+export function limiteurQuantite(rpm: number, max = RPM_MAX): number {
+  return smoothstep(max - (RPM_MAX - RPM_LIMITEUR), max - 20, rpm);
 }
 
 /**
