@@ -13,13 +13,13 @@ const BOIS = 0x8a5a2b, BOIS_CLAIR = 0xb58a52, BOIS_SOMBRE = 0x5a3c22, FER = 0x34
 export function palmierGeometry(variant: number): Part {
   const parts: Part[] = [];
   const tronc = (H: number, pench: number, r0: number, dx = 0, dz = 0): [number, number, number] => {
-    const N = 6;
+    const N = 4;
     let prev: [number, number, number] = [dx, -0.3, dz];
     for (let i = 1; i <= N; i++) {
       const t = i / N;
       const p: [number, number, number] = [dx + pench * t * t * H * 0.4, -0.3 + t * (H + 0.3), dz];
       const r = r0 * (1 - 0.45 * t);
-      parts.push(barre(prev, p, r, i % 2 ? 0x8a6a45 : 0x79593a, 6));
+      parts.push(barre(prev, p, r, i % 2 ? 0x8a6a45 : 0x79593a, 5));
       prev = p;
     }
     return prev;
@@ -30,10 +30,10 @@ export function palmierGeometry(variant: number): Part {
       const dx = Math.cos(a), dz = Math.sin(a);
       let p: [number, number, number] = [top[0], top[1], top[2]];
       // trois tronçons de plus en plus courbés vers le bas
-      const pas: [number, number][] = [[0.55, 0.42], [0.42, -0.06], [0.3, -0.55]];
+      const pas: [number, number][] = [[0.75, 0.3], [0.6, -0.5]];
       pas.forEach(([h, v], i) => {
         const q: [number, number, number] = [p[0] + dx * long * h, p[1] + v * long * 0.6, p[2] + dz * long * h];
-        parts.push(lame(p, q, 0.85 - i * 0.2, 0.07, (k + i) % 2 ? 0x3c9c4a : 0x2f8a45));
+        parts.push(lame(p, q, 0.95 - i * 0.3, 0.07, (k + i) % 2 ? 0x3c9c4a : 0x2f8a45));
         p = q;
       });
     }
@@ -41,7 +41,7 @@ export function palmierGeometry(variant: number): Part {
   if (variant === 0) {
     const top = tronc(7.2, 0.25, 0.26);
     feuilles(top, 8, 3.4, 0.3);
-    for (const [x, z] of [[0.18, 0.1], [-0.15, 0.16], [0.02, -0.2]]) parts.push(blob(0.17, 1, 1, 1, top[0] + x, top[1] - 0.3, top[2] + z, 0x6b4a2a, 0));
+    for (const [x, z] of [[0.18, 0.1], [-0.15, 0.16]]) parts.push(blob(0.17, 1, 1, 1, top[0] + x, top[1] - 0.3, top[2] + z, 0x6b4a2a, 0));
   } else if (variant === 1) {
     const top = tronc(6.2, 0.95, 0.27);
     feuilles(top, 7, 3.2, 1.1);
