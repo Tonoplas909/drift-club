@@ -71,7 +71,16 @@ html, body {
 .btn { font: 800 20px var(--font); padding: 10px 26px; border-radius: 16px; border: 3px solid var(--ink); background: var(--orange); color: var(--ink); box-shadow: 0 5px 0 var(--ink); cursor: pointer; }
 .btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
 
-/* Menus */
+/* Menus : illustration de touge au crépuscule (SVG) sous un voile sombre pour garder les panneaux lisibles.
+   Écrans pleins uniquement : .dim (translucide sur la course) et .garage (showroom 3D) l'écrasent plus bas ; l'éditeur (.ed) n'est pas un .screen. */
+.screen:not(.dim):not(.garage) {
+  background:
+    radial-gradient(ellipse at 50% 42%, rgba(21, 19, 28, .05) 30%, rgba(21, 19, 28, .5) 100%),
+    linear-gradient(rgba(21, 19, 28, .14), rgba(21, 19, 28, .24)),
+    url('./assets/fond-menu.svg') center bottom / cover no-repeat,
+    var(--bg2);
+}
+.accueil .hint { background: rgba(21, 19, 28, .62); border-radius: 12px; padding: 4px 14px; opacity: .9; }
 .screen.dim { background: rgba(21, 19, 28, .55); }
 .logo { margin: 0; font-size: 56px; font-weight: 800; color: var(--yellow); -webkit-text-stroke: 4px var(--ink); paint-order: stroke fill; letter-spacing: 1px; line-height: 1; transform: rotate(-4deg); }
 .logo span { color: var(--orange); margin-left: 8px; }

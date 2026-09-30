@@ -1,0 +1,272 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice">
+<style>
+.nu{animation:nu 70s ease-in-out infinite alternate}.nu2{animation-duration:95s;animation-direction:alternate-reverse}
+.fu{transform-box:fill-box;transform-origin:20% 90%;animation:fu 7s ease-out infinite}.f2{animation-delay:-2.3s}.f3{animation-delay:-4.6s}
+@keyframes nu{to{transform:translateX(90px)}}
+@keyframes fu{0%{transform:translate(0,0) scale(.85);opacity:.9}100%{transform:translate(-46px,-22px) scale(1.15);opacity:.55}}
+@media (prefers-reduced-motion:reduce){.nu,.fu{animation:none}}
+</style>
+<defs>
+<linearGradient id="ciel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1c2052"/><stop offset=".38" stop-color="#4a3f8a"/><stop offset=".64" stop-color="#c85c80"/><stop offset=".84" stop-color="#ff8f6b"/><stop offset="1" stop-color="#ffc27a"/></linearGradient>
+<radialGradient id="lueur"><stop offset="0" stop-color="#ffd23f" stop-opacity=".55"/><stop offset="1" stop-color="#ff8a1f" stop-opacity="0"/></radialGradient>
+<g id="pin" stroke="#15131c" stroke-width="5" stroke-linejoin="round"><rect x="-5" y="-16" width="10" height="16" fill="#2a1f36"/><path fill="currentColor" d="M-36-14H36L0-64Z M-30-42H30L0-88Z M-22-68H22L0-112Z"/></g>
+<g id="torii" stroke="#15131c" stroke-width="6" stroke-linejoin="round" fill="#e63b2e"><rect x="-44" y="-100" width="12" height="100"/><rect x="32" y="-100" width="12" height="100"/><path d="M-62-108Q0-96 62-108L66-124Q0-108-66-124Z"/><rect x="-50" y="-88" width="100" height="10"/></g>
+</defs>
+<rect width="1600" height="620" fill="url(#ciel)"/>
+<circle cx="1473.2" cy="0" r="1.8" fill="#fff7e8" opacity="0.8"/>
+<circle cx="1167" cy="63.2" r="2.3" fill="#fff7e8" opacity="0.7"/>
+<circle cx="1203.3" cy="98.8" r="2.7" fill="#fff7e8" opacity="0.7"/>
+<circle cx="1095.2" cy="162.9" r="2.5" fill="#fff7e8" opacity="0.6"/>
+<circle cx="387.2" cy="245" r="1.9" fill="#fff7e8" opacity="0.4"/>
+<circle cx="1116.9" cy="212.4" r="1.3" fill="#fff7e8" opacity="0.5"/>
+<circle cx="748.6" cy="205.2" r="3" fill="#fff7e8" opacity="0.5"/>
+<circle cx="196.5" cy="242.2" r="2.2" fill="#fff7e8" opacity="0.4"/>
+<circle cx="1101.6" cy="277" r="2.5" fill="#fff7e8" opacity="0.4"/>
+<circle cx="1459.2" cy="173.2" r="3" fill="#fff7e8" opacity="0.6"/>
+<circle cx="536.6" cy="111.7" r="2.9" fill="#fff7e8" opacity="0.7"/>
+<circle cx="244.1" cy="99.7" r="1.8" fill="#fff7e8" opacity="0.7"/>
+<circle cx="471.8" cy="128.5" r="3.1" fill="#fff7e8" opacity="0.6"/>
+<circle cx="1166.8" cy="167.2" r="3" fill="#fff7e8" opacity="0.6"/>
+<circle cx="437.6" cy="17.6" r="2.3" fill="#fff7e8" opacity="0.8"/>
+<circle cx="674.3" cy="152.6" r="1.6" fill="#fff7e8" opacity="0.6"/>
+<circle cx="87.8" cy="272.7" r="1.9" fill="#fff7e8" opacity="0.4"/>
+<circle cx="1063.1" cy="103.2" r="3" fill="#fff7e8" opacity="0.7"/>
+<circle cx="264.9" cy="154.5" r="2" fill="#fff7e8" opacity="0.6"/>
+<circle cx="583.1" cy="85.1" r="2" fill="#fff7e8" opacity="0.7"/>
+<circle cx="850.7" cy="99.8" r="2.4" fill="#fff7e8" opacity="0.7"/>
+<circle cx="1450.4" cy="70" r="2.1" fill="#fff7e8" opacity="0.7"/>
+<circle cx="1016.2" cy="258.9" r="2.5" fill="#fff7e8" opacity="0.4"/>
+<circle cx="807.9" cy="154.9" r="2.6" fill="#fff7e8" opacity="0.6"/>
+<circle cx="634.8" cy="281.9" r="2.6" fill="#fff7e8" opacity="0.4"/>
+<circle cx="939" cy="75.3" r="1.9" fill="#fff7e8" opacity="0.7"/>
+<circle cx="626.3" cy="99.2" r="2.8" fill="#fff7e8" opacity="0.7"/>
+<circle cx="177.7" cy="263.3" r="2.8" fill="#fff7e8" opacity="0.4"/>
+<circle cx="650.9" cy="23.3" r="1.5" fill="#fff7e8" opacity="0.8"/>
+<circle cx="1593.9" cy="23.4" r="1.6" fill="#fff7e8" opacity="0.8"/>
+<circle cx="230.8" cy="189.7" r="2.1" fill="#fff7e8" opacity="0.5"/>
+<circle cx="220.5" cy="177.9" r="3" fill="#fff7e8" opacity="0.6"/>
+<circle cx="1424.9" cy="265.4" r="3" fill="#fff7e8" opacity="0.4"/>
+<circle cx="1217.8" cy="272.3" r="1.8" fill="#fff7e8" opacity="0.4"/>
+<circle cx="397.3" cy="3.1" r="1.4" fill="#fff7e8" opacity="0.8"/>
+<circle cx="986.9" cy="0.5" r="1.7" fill="#fff7e8" opacity="0.8"/>
+<circle cx="783" cy="222.3" r="2.6" fill="#fff7e8" opacity="0.5"/>
+<circle cx="1411.3" cy="71.4" r="1.7" fill="#fff7e8" opacity="0.7"/>
+<circle cx="1430.8" cy="112.2" r="1.4" fill="#fff7e8" opacity="0.7"/>
+<circle cx="4.8" cy="146.8" r="3" fill="#fff7e8" opacity="0.6"/>
+<circle cx="1475.4" cy="191.1" r="1.2" fill="#fff7e8" opacity="0.5"/>
+<circle cx="301" cy="270" r="3.1" fill="#fff7e8" opacity="0.4"/>
+<circle cx="1087" cy="169.6" r="1.7" fill="#fff7e8" opacity="0.6"/>
+<circle cx="334.3" cy="66.8" r="2.3" fill="#fff7e8" opacity="0.7"/>
+<circle cx="1231.1" cy="15.7" r="2.6" fill="#fff7e8" opacity="0.8"/>
+<circle cx="797.1" cy="214.2" r="1.3" fill="#fff7e8" opacity="0.5"/>
+<circle cx="1330" cy="430" r="260" fill="url(#lueur)"/>
+<circle cx="1330" cy="430" r="150" fill="#ffb347" opacity=".55"/>
+<circle cx="1330" cy="430" r="112" fill="#ffd23f" stroke="#15131c" stroke-width="5"/>
+<g class="nu " opacity="0.55"><path d="M120 250h240a14 14 0 0 0 0-28h-60a20 20 0 0 0-72-16a30 30 0 0 0-84 16h-24a14 14 0 0 0 0 28Z" fill="#ff9a86"/></g>
+<g class="nu nu2" opacity="0.5"><path d="M760 190h300a14 14 0 0 0 0-28h-75a20 20 0 0 0-90-16a30 30 0 0 0-105 16h-30a14 14 0 0 0 0 28Z" fill="#7a68b8"/></g>
+<g class="nu " opacity="0.6"><path d="M1050 330h260a14 14 0 0 0 0-28h-65a20 20 0 0 0-78-16a30 30 0 0 0-91 16h-26a14 14 0 0 0 0 28Z" fill="#ffb08a"/></g>
+<g class="nu nu2" opacity="0.5"><path d="M-40 380h200a14 14 0 0 0 0-28h-50a20 20 0 0 0-60-16a30 30 0 0 0-70 16h-20a14 14 0 0 0 0 28Z" fill="#ff9a86"/></g>
+<path d="M0 540L110 490L200 520L300 470L420 520L560 480L700 530L840 495L960 530L1100 490L1210 520L1330 505L1440 470L1540 500L1600 490V900H0Z" fill="#8a5f9e" stroke="#15131c" stroke-width="4" stroke-linejoin="round"/>
+<path d="M-20 570Q250 530 302 338L330 300L358 338Q410 530 720 570Z" fill="#6a5ba6" stroke="#15131c" stroke-width="5" stroke-linejoin="round"/>
+<path d="M302 338L330 300L358 338L344 352L332 338L318 358L306 342Z" fill="#fff7e8" stroke="#15131c" stroke-width="4" stroke-linejoin="round"/>
+<path d="M0 600L90 560L180 590L300 545L420 590L560 570L700 610V900H0Z M1180 640L1290 580L1400 620L1500 570L1600 610V900H1180Z" fill="#4d4382" stroke="#15131c" stroke-width="5" stroke-linejoin="round"/>
+<use href="#pin" transform="translate(589.8 628.9) scale(.42)" color="#3a3675"/>
+<use href="#pin" transform="translate(1541.5 626.1) scale(.42)" color="#3a3675"/>
+<use href="#pin" transform="translate(1530.1 654.8) scale(.42)" color="#3a3675"/>
+<use href="#pin" transform="translate(1495.4 637.6) scale(.42)" color="#3a3675"/>
+<use href="#pin" transform="translate(471.2 651.5) scale(.42)" color="#3a3675"/>
+<use href="#pin" transform="translate(165.5 637.1) scale(.42)" color="#3a3675"/>
+<use href="#pin" transform="translate(1421.2 635.5) scale(.42)" color="#3a3675"/>
+<use href="#pin" transform="translate(1484.6 635.1) scale(.42)" color="#3a3675"/>
+<use href="#pin" transform="translate(1372.2 631) scale(.42)" color="#3a3675"/>
+<use href="#pin" transform="translate(631 654.8) scale(.42)" color="#3a3675"/>
+<use href="#pin" transform="translate(1534 652.5) scale(.42)" color="#3a3675"/>
+<use href="#pin" transform="translate(420 629.1) scale(.42)" color="#3a3675"/>
+<use href="#pin" transform="translate(365.6 648.1) scale(.42)" color="#3a3675"/>
+<use href="#pin" transform="translate(1393.5 630.6) scale(.42)" color="#3a3675"/>
+<path d="M-60 900V720C100 660 250 500 400 450C560 400 700 395 870 370C1010 350 1150 420 1240 500C1350 590 1500 640 1660 660V900Z" fill="#2f2b5c" stroke="#15131c" stroke-width="6" stroke-linejoin="round"/>
+<path d="M870 370C1010 350 1150 420 1240 500C1350 590 1500 640 1660 660V900H1100C1150 700 1050 520 870 370Z" fill="#241f4c" opacity=".55"/>
+<use href="#pin" transform="translate(662.9 445.7) scale(0.3)" color="#2b2a63"/>
+<use href="#pin" transform="translate(800.6 461) scale(0.3)" color="#2b2a63"/>
+<use href="#pin" transform="translate(824.8 461.1) scale(0.3)" color="#2b2a63"/>
+<use href="#pin" transform="translate(1109.6 500.5) scale(0.4)" color="#2b2a63"/>
+<use href="#pin" transform="translate(1092.9 510.7) scale(0.4)" color="#2b2a63"/>
+<use href="#pin" transform="translate(718.9 537.8) scale(0.5)" color="#2b2a63"/>
+<use href="#pin" transform="translate(1151.6 541.8) scale(0.5)" color="#2b2a63"/>
+<use href="#pin" transform="translate(1135.3 542.7) scale(0.5)" color="#2b2a63"/>
+<use href="#pin" transform="translate(499.6 545) scale(0.5)" color="#2b2a63"/>
+<use href="#pin" transform="translate(740.7 549.4) scale(0.5)" color="#2b2a63"/>
+<use href="#pin" transform="translate(1252.4 553.5) scale(0.5)" color="#2b2a63"/>
+<use href="#pin" transform="translate(702 554.3) scale(0.5)" color="#2b2a63"/>
+<use href="#pin" transform="translate(662.8 557.2) scale(0.5)" color="#2b2a63"/>
+<use href="#pin" transform="translate(588.3 557.7) scale(0.5)" color="#2b2a63"/>
+<use href="#pin" transform="translate(1265.9 559.1) scale(0.5)" color="#2b2a63"/>
+<use href="#pin" transform="translate(1170.6 562.2) scale(0.5)" color="#2b2a63"/>
+<use href="#pin" transform="translate(583.2 563.4) scale(0.5)" color="#2b2a63"/>
+<use href="#pin" transform="translate(231.3 571.9) scale(0.6)" color="#2b2a63"/>
+<use href="#pin" transform="translate(1247.1 581.2) scale(0.6)" color="#2b2a63"/>
+<use href="#pin" transform="translate(210.5 592.8) scale(0.6)" color="#2b2a63"/>
+<use href="#pin" transform="translate(213.1 602.6) scale(0.6)" color="#2b2a63"/>
+<use href="#pin" transform="translate(229.1 610.5) scale(0.6)" color="#2b2a63"/>
+<use href="#pin" transform="translate(373.5 628.2) scale(0.7)" color="#2b2a63"/>
+<use href="#pin" transform="translate(1347.2 633.5) scale(0.7)" color="#2b2a63"/>
+<use href="#pin" transform="translate(178.7 639.3) scale(0.7)" color="#2b2a63"/>
+<use href="#pin" transform="translate(223.7 648.8) scale(0.7)" color="#2b2a63"/>
+<use href="#pin" transform="translate(222 655) scale(0.7)" color="#1f2350"/>
+<use href="#pin" transform="translate(430.1 661.7) scale(0.7)" color="#1f2350"/>
+<use href="#pin" transform="translate(275 665) scale(0.7)" color="#1f2350"/>
+<use href="#pin" transform="translate(366.7 667.3) scale(0.7)" color="#1f2350"/>
+<use href="#pin" transform="translate(573.4 668.4) scale(0.7)" color="#1f2350"/>
+<use href="#pin" transform="translate(1408.7 668.9) scale(0.7)" color="#1f2350"/>
+<use href="#pin" transform="translate(468 670.8) scale(0.7)" color="#1f2350"/>
+<use href="#pin" transform="translate(816.9 671.8) scale(0.7)" color="#1f2350"/>
+<use href="#pin" transform="translate(721.3 675.8) scale(0.7)" color="#1f2350"/>
+<use href="#pin" transform="translate(1003.8 675.8) scale(0.7)" color="#1f2350"/>
+<use href="#pin" transform="translate(1465.8 679.5) scale(0.7)" color="#1f2350"/>
+<use href="#pin" transform="translate(758.7 679.7) scale(0.7)" color="#1f2350"/>
+<use href="#pin" transform="translate(312.7 681.2) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(1442.5 681.7) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(1031.1 683.7) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(1555 684.2) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(1085.1 686.1) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(993 689) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(1115.5 689.6) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(1474.8 690) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(342.3 690.6) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(834.3 696.6) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(497.7 700.1) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(317.2 701.3) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(154.7 708.4) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(901.2 709.9) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(930.7 711.2) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(694.3 711.5) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(647.7 714.1) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(836.6 714.5) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(119 714.7) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(1014 714.7) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(526.9 717) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(115.4 717.1) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(932 717.2) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(694.6 717.6) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(73.7 717.7) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(935.1 717.9) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(300.2 720) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(1446.8 722.1) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(423.6 723.3) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(925.2 723.9) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(1627.7 724.3) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(1426.8 726.4) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(574.2 727.2) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(1397.1 729.3) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(430.4 732.1) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(1592.2 733.1) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(1579.2 733.5) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(1472.8 734.7) scale(0.8)" color="#1f2350"/>
+<use href="#pin" transform="translate(303.8 737.5) scale(0.9)" color="#1f2350"/>
+<use href="#pin" transform="translate(427.8 737.9) scale(0.9)" color="#1f2350"/>
+<use href="#pin" transform="translate(1439.1 739.1) scale(0.9)" color="#1f2350"/>
+<use href="#pin" transform="translate(1397.6 739.9) scale(0.9)" color="#1f2350"/>
+<use href="#pin" transform="translate(1507 740.5) scale(0.9)" color="#1f2350"/>
+<use href="#pin" transform="translate(534.6 741.4) scale(0.9)" color="#1f2350"/>
+<use href="#pin" transform="translate(1340.1 741.5) scale(0.9)" color="#1f2350"/>
+<use href="#pin" transform="translate(1555.1 745.7) scale(0.9)" color="#1f2350"/>
+<use href="#pin" transform="translate(577.5 749.5) scale(0.9)" color="#1f2350"/>
+<use href="#pin" transform="translate(1570.5 749.9) scale(0.9)" color="#1f2350"/>
+<use href="#pin" transform="translate(1380.2 753.9) scale(0.9)" color="#1f2350"/>
+<use href="#pin" transform="translate(1530.1 756.7) scale(0.9)" color="#1f2350"/>
+<use href="#pin" transform="translate(523.2 757.4) scale(0.9)" color="#1f2350"/>
+<use href="#pin" transform="translate(1511.7 760) scale(0.9)" color="#1f2350"/>
+<use href="#pin" transform="translate(1566.4 768.3) scale(0.9)" color="#1f2350"/>
+<use href="#pin" transform="translate(1281.7 782) scale(0.9)" color="#1f2350"/>
+<use href="#pin" transform="translate(1509.2 784.2) scale(0.9)" color="#1f2350"/>
+<use href="#pin" transform="translate(1241.7 792.4) scale(1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1583.8 793.5) scale(1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1432.7 795.3) scale(1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1516.5 800.1) scale(1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1596.2 800.5) scale(1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1353.6 806.5) scale(1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1431.3 806.7) scale(1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1467 809.6) scale(1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1322.2 810.2) scale(1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1488 811) scale(1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1312.7 814.4) scale(1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1212.5 815.6) scale(1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1287.5 820.2) scale(1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1332.5 828.6) scale(1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1559.2 834.9) scale(1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1199.3 842.3) scale(1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1137.9 848.9) scale(1.1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1190.9 849.1) scale(1.1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1415.5 849.3) scale(1.1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1196.1 853.9) scale(1.1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1358.9 857.7) scale(1.1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1516.1 858.6) scale(1.1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1217 868.3) scale(1.1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1225.4 869.1) scale(1.1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1486.3 872.6) scale(1.1)" color="#1f2350"/>
+<use href="#pin" transform="translate(988.6 872.9) scale(1.1)" color="#1f2350"/>
+<use href="#pin" transform="translate(948.7 875.5) scale(1.1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1270.1 881) scale(1.1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1002.7 882.6) scale(1.1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1135.3 883.9) scale(1.1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1253.2 885.2) scale(1.1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1333 887.2) scale(1.1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1587.3 887.5) scale(1.1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1160.6 890.5) scale(1.1)" color="#1f2350"/>
+<use href="#pin" transform="translate(748.9 892.5) scale(1.1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1396.8 894.1) scale(1.1)" color="#1f2350"/>
+<use href="#pin" transform="translate(1541.7 899.1) scale(1.1)" color="#1f2350"/>
+<use href="#torii" transform="translate(858 384) scale(.42)"/>
+<g stroke-linecap="round" stroke-linejoin="round" fill="none">
+<path d="M-60,800 C250,845 800,835 1120,765" stroke="#15131c" stroke-width="132"/>
+<path d="M1120,765 C1300,722 1340,655 1180,628" stroke="#15131c" stroke-width="104"/>
+<path d="M1180,628 C900,580 640,665 470,590" stroke="#15131c" stroke-width="82"/>
+<path d="M470,590 C350,562 350,512 520,500" stroke="#15131c" stroke-width="64"/>
+<path d="M520,500 C760,478 930,535 1040,490" stroke="#15131c" stroke-width="50"/>
+<path d="M1040,490 C1110,462 1100,432 1000,424" stroke="#15131c" stroke-width="40"/>
+<path d="M1000,424 C930,418 890,430 880,400" stroke="#15131c" stroke-width="31"/>
+<path d="M-60,800 C250,845 800,835 1120,765" stroke="#fff7e8" stroke-width="120"/>
+<path d="M1120,765 C1300,722 1340,655 1180,628" stroke="#fff7e8" stroke-width="92"/>
+<path d="M1180,628 C900,580 640,665 470,590" stroke="#fff7e8" stroke-width="70"/>
+<path d="M470,590 C350,562 350,512 520,500" stroke="#fff7e8" stroke-width="52"/>
+<path d="M520,500 C760,478 930,535 1040,490" stroke="#fff7e8" stroke-width="38"/>
+<path d="M1040,490 C1110,462 1100,432 1000,424" stroke="#fff7e8" stroke-width="28"/>
+<path d="M1000,424 C930,418 890,430 880,400" stroke="#fff7e8" stroke-width="19"/>
+<path d="M-60,800 C250,845 800,835 1120,765" stroke="#454358" stroke-width="109"/>
+<path d="M1120,765 C1300,722 1340,655 1180,628" stroke="#454358" stroke-width="81"/>
+<path d="M1180,628 C900,580 640,665 470,590" stroke="#454358" stroke-width="59"/>
+<path d="M470,590 C350,562 350,512 520,500" stroke="#454358" stroke-width="41"/>
+<path d="M520,500 C760,478 930,535 1040,490" stroke="#454358" stroke-width="27"/>
+<path d="M1040,490 C1110,462 1100,432 1000,424" stroke="#454358" stroke-width="17"/>
+<path d="M1000,424 C930,418 890,430 880,400" stroke="#454358" stroke-width="8"/>
+<path d="M-60,800 C250,845 800,835 1120,765" stroke="#ffd23f" stroke-width="5.9" stroke-linecap="butt" stroke-dasharray="49.6 37.8"/>
+<path d="M1120,765 C1300,722 1340,655 1180,628" stroke="#ffd23f" stroke-width="4.5" stroke-linecap="butt" stroke-dasharray="37.8 28.8"/>
+<path d="M1180,628 C900,580 640,665 470,590" stroke="#ffd23f" stroke-width="3.4" stroke-linecap="butt" stroke-dasharray="28.6 21.8"/>
+<path d="M470,590 C350,562 350,512 520,500" stroke="#ffd23f" stroke-width="2.5" stroke-linecap="butt" stroke-dasharray="21 16"/>
+<path d="M520,500 C760,478 930,535 1040,490" stroke="#ffd23f" stroke-width="2.5" stroke-linecap="butt" stroke-dasharray="15.1 11.5"/>
+<path d="M1040,490 C1110,462 1100,432 1000,424" stroke="#ffd23f" stroke-width="2.5" stroke-linecap="butt" stroke-dasharray="10.9 8.3"/>
+<path d="M1000,424 C930,418 890,430 880,400" stroke="#ffd23f" stroke-width="2.5" stroke-linecap="butt" stroke-dasharray="7.1 5.4"/>
+</g>
+<g transform="translate(0 48)" stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="M1180,628 C900,580 640,665 470,590" stroke="#15131c" stroke-width="11.1"/><path d="M1180,628 C900,580 640,665 470,590" stroke="#dcdcf0" stroke-width="6.1"/><path d="M1180,628 C900,580 640,665 470,590" stroke="#15131c" stroke-width="21.8" stroke-linecap="butt" stroke-dasharray="3 34" opacity=".8"/></g>
+<g fill="none" stroke="#15131c" stroke-linecap="round" opacity=".45"><path d="M330 852C240 862 110 856 -40 822" stroke-width="7"/><path d="M334 830C244 840 114 834 -40 800" stroke-width="7"/></g>
+<g transform="translate(345 828) rotate(-9) scale(1.3)">
+<g stroke="#15131c" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+<path d="M-102-16L-104-34L-84-44L-54-48L-30-70L26-72L54-46L92-38L106-30L106-16Z" fill="#e63b2e"/>
+<path d="M-102-16L-104-24L106-24L106-16Z" fill="#b82a20" stroke="none"/>
+<path d="M-26-63L20-65L40-49L-44-49Z" fill="#a8dcff"/>
+<path d="M-108-52H-78" stroke-width="7"/><path d="M-96-50V-38M-86-50V-40" stroke-width="4"/>
+<path d="M98-34L106-32V-26L96-28Z" fill="#ffd23f" stroke-width="3"/>
+<circle cx="-64" cy="-14" r="18" fill="#15131c"/><circle cx="64" cy="-14" r="18" fill="#15131c"/>
+<circle cx="-64" cy="-14" r="7" fill="#fff7e8" stroke="none"/><circle cx="64" cy="-14" r="7" fill="#fff7e8" stroke="none"/>
+</g></g>
+<circle class="fu " cx="206" cy="844" r="32" fill="#fff7e8" stroke="#15131c" stroke-width="4" opacity=".85"/>
+<circle class="fu f2" cx="148" cy="830" r="44" fill="#fff7e8" stroke="#15131c" stroke-width="4" opacity=".85"/>
+<circle class="fu f3" cx="82" cy="810" r="36" fill="#fff7e8" stroke="#15131c" stroke-width="4" opacity=".85"/>
+<circle class="fu " cx="44" cy="782" r="26" fill="#fff7e8" stroke="#15131c" stroke-width="4" opacity=".85"/>
+<circle class="fu f2" cx="226" cy="812" r="24" fill="#fff7e8" stroke="#15131c" stroke-width="4" opacity=".85"/>
+<use href="#pin" transform="translate(-20 960) scale(2.4)" color="#141a36"/>
+<use href="#pin" transform="translate(-60 950) scale(2.2)" color="#10152e"/>
+<use href="#pin" transform="translate(1520 940) scale(3.1)" color="#141a36"/>
+<use href="#pin" transform="translate(1380 930) scale(1.9)" color="#10152e"/>
+<use href="#pin" transform="translate(1630 960) scale(2.4)" color="#0f142c"/>
+</svg>
