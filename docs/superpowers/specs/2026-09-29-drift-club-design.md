@@ -135,6 +135,8 @@ Remet la voiture au centre de la route, 5 m avant le point de progression maxima
 ### 4.7 Panneau de réglage `?debug`
 Ajouter `?debug` à l'URL affiche un panneau avec des curseurs pour tous les paramètres (voitures, aides des modes, score, caméra), modifiables en direct, et un bouton « Copier les paramètres » (JSON) pour les reporter dans le code. Affiche aussi β, vitesse, forces des essieux, FPS.
 
+Sous `?debug` (jamais autrement) : `?cam=x,y,z,tx,ty,tz` place une caméra libre en (x, y, z) qui regarde (tx, ty, tz), et `window.__dc` expose `{ world, level, teleporter(s), camera(c) }` (`teleporter(s)` place la voiture à l'échantillon `s` de la route) pour vérifier le décor et le relief à l'œil (vues aériennes, captures automatisées).
+
 ## 5. Niveaux et piste
 
 ### 5.1 Format de niveau (v1)
@@ -163,6 +165,7 @@ Ajouter `?debug` à l'URL affiche un panneau avec des curseurs pour tous les par
 | `barrieres` | tronçons de `de` à `a` (indices de points, `de < a`), `cote` ∈ `gauche`, `droite`, `deux`, `ext` (extérieur du virage : suit le côté extérieur, change de côté aux inflexions). Ailleurs, le bord donne sur l'herbe. |
 | `decor` | `graine` entier ∈ [0, 2³¹−1] ; `densite` ∈ [0, 1] |
 | `objets` | 0–300 ; `type` ∈ `arbre`, `sapin`, `rocher`, `pneus`, `barriere`, `panneau` ; `rot` en degrés. Leur apparence dépend de l'environnement (§5.5). |
+| `eau` | **facultatif** (absent si aucun lac) : 0–3 lacs `{ "niveau": −4, "points": [ { "x": 0, "z": −38 }, … ] }` ; `niveau` = hauteur de la surface (m, −60 à 150) ; contour simple (3 à 64 points, sans croisement, au moins 100 m²). La route reste au sec : le bord de l'eau est à au moins 6 m du bord de la route (§5.6). Un niveau sans eau ne porte pas ce champ, garde son empreinte et son code de partage d'avant. |
 
 Longueur de route totale ≤ 3 km.
 
@@ -173,9 +176,12 @@ Longueur de route totale ≤ 3 km.
 - **Vibreurs** automatiques sur les bords intérieurs et extérieurs des tronçons de rayon < 40 m.
 
 ### 5.3 Terrain
-- **Grille de hauteurs** couvrant une bande autour de la route : maille de 2 m jusqu'à 120 m de la route, maille de 8 m jusqu'à 400 m.
-- Hauteur = hauteur de route au plus près (moins 0,15 m sous la chaussée), puis collines qui s'élèvent progressivement avec l'éloignement (bruit à graine).
-- Requête de hauteur et de gradient par interpolation bilinéaire — **utilisée par la physique et par le rendu**.
+- **Grille de hauteurs** couvrant une bande autour de la route : maille de 4 m jusqu'à 64 m de la route, maille de 16 m jusqu'à 420 m.
+- **Versant naturel** : moyenne, pondérée par l'inverse du carré de la distance à l'accotement, des hauteurs de tous les tronçons voisins (dans 45 m autour du plus proche), puis collines qui s'élèvent progressivement avec l'éloignement (bruit à graine). Deux branches de route empilées (épingles) à des hauteurs différentes se raccordent donc par une rampe continue, sans falaise ni marche.
+- **Talus bornés** : pour CHAQUE tronçon proche, la hauteur du terrain reste à `hauteur de la route ± 1,2 × (distance − (largeur/2 + 1 m))` (déblai ou remblai). Si deux branches sont trop proches pour que la pente suffise, le terrain prend le milieu des bornes et la chaussée la plus proche garde sa hauteur exacte (jusqu'à largeur/2 + 1 m, fondu sur 2 m).
+- **Physique = rendu** : `Terrain.heightAt` / `gradientAt` sont utilisées par la physique, la caméra et le placement du décor ; le maillage du terrain (`Terrain.hauteurRendue`) est cette même hauteur, 15 cm plus bas sous la chaussée et l'accotement pour ne pas affleurer la route. Un test parcourt les échantillons de tous les niveaux officiels : le terrain n'est jamais au-dessus de la route, ne fait pas de falaise (< 3,5 m par mètre près de la route) et la pente sur la route reste raisonnable.
+- **Lacs** (§5.1 `eau`) : dans le polygone, le fond descend sous la surface (pente 0,4, profondeur ≤ 5 m) ; à l'extérieur, une rive de 10 m raccorde le terrain à une berge à 0,3 m au-dessus de l'eau. Calculé à la volée dans `heightAt` (bord net quelle que soit la maille). Rendu : surface plane translucide teintée par la palette, plage claire sur la rive et fond sombre sous l'eau (couleurs de sommets du terrain), éclats blancs animés en Haute qualité.
+- Requête de hauteur et de gradient par interpolation bilinéaire de la grille, puis talus et lacs.
 - Anneau de montagnes lointaines (vers 600 m) : décor de fond purement visuel.
 
 ### 5.4 Progression et anti-raccourci
@@ -190,7 +196,9 @@ Entièrement déterminé par `environnement`, `graine`, `densite` et la route. U
 - **Forêt en bosquets** : un bruit à graine définit zones denses, clairières et lisières ; mélange sapins/feuillus (les sapins dominent en altitude), variations de taille et de rotation.
 - **Rochers**, plus fréquents sur les pentes raides.
 - **Bord de route** : panneaux à chevrons à l'extérieur des virages de rayon < 30 m, bornes le long des bords tous les ~25 m.
-- **Couloir libre** : rien n'est généré à moins de `largeur/2 + 3 m` de l'axe, ni à moins de 4 m d'un objet placé à la main.
+- **Couloir libre** : rien n'est généré à moins de `largeur/2 + 3 m` de l'axe (TOUS les tronçons proches sont testés, pas seulement le plus proche), ni à moins de 4 m d'un objet placé à la main.
+- **Pentes** : pas d'arbre sur une pente > 1,1 ; sur une pente, le pied des arbres et des rochers s'enfonce légèrement (rien ne flotte côté aval) ; un bâtiment n'est posé que si le sol sous son emprise varie de 3,5 m au plus.
+- **Eau** : rien n'est posé dans un lac ni à moins de 6 m de sa rive (3 m pour le bord de route) ; aucun bâtiment à moins de 45 m d'un lac (front de lac dégagé).
 - **Solide** : tout objet à moins de 40 m de l'axe de la route (collision, rayon propre à chaque type de décor). Au-delà : visuel seulement — la voiture ne peut pas l'atteindre (§5.4, limite de zone).
 
 Chaque thème fixe : le mélange d'essences (poids en bas et en altitude, échelles), la densité en forêt et hors forêt, les rochers (fréquence, pente, part de rochers « hauts »), les objets de bord de route (chevrons, bornes, petits objets espacés), la correspondance des objets posés à la main, les palettes des deux ambiances (ciel, brouillard, lumières, sol, forêt, roche, asphalte, accotement, fumée, reliefs lointains), et éventuellement une météo.
@@ -210,7 +218,7 @@ Chaque thème fixe : le mélange d'essences (poids en bas et en altitude, échel
 **Aperçu (développement)** : `?theme=<id>` et `?ambiance=<jour|coucher>` dans l'URL remplacent l'environnement / l'ambiance de tout niveau au chargement, sans modifier le niveau.
 
 ### 5.6 Validation
-Un niveau importé ou édité est validé : types, bornes du tableau 5.1, limites, **aucun croisement de route** (deux portions non voisines de la route à moins de `largeur_a/2 + largeur_b/2 + 4 m`), virages de rayon < 8 m signalés. Résultat : liste d'erreurs lisibles en français. Un niveau invalide n'est jamais chargé dans le jeu.
+Un niveau importé ou édité est validé : types, bornes du tableau 5.1, limites, **aucun croisement de route** (deux portions non voisines de la route à moins de `largeur_a/2 + largeur_b/2 + 4 m`), virages de rayon < 8 m signalés, **lacs** valides (contour simple, ≤ 3 lacs de 3 à 64 points, hauteur dans les limites) et **route au sec** (aucun point de la route à moins de `largeur/2 + 6 m` de l'eau). Résultat : liste d'erreurs lisibles en français. Un niveau invalide n'est jamais chargé dans le jeu.
 
 ### 5.7 Niveaux officiels (lot 1)
 Trois niveaux, du plus facile au plus dur (noms provisoires) :
@@ -350,8 +358,9 @@ Accueil → Éditeur : **Nouveau niveau**, modifier un de **Mes niveaux**, ou **
 1. **Route** : clic = ajouter un point en fin de route ; glisser = déplacer ; clic sur un tronçon = insérer un point ; point sélectionné → largeur, hauteur, supprimer. **Profil en long** en bas d'écran (hauteur en fonction de la distance), où l'on fait glisser les points verticalement.
 2. **Barrières** : clic sur un côté de tronçon = ajouter/retirer une barrière.
 3. **Objets** : palette (arbre, sapin, rocher, pile de pneus, barrière, panneau) ; clic = poser ; glisser = déplacer ; tourner ; supprimer.
-4. **Décor** : environnement, graine (bouton « Autre décor »), densité, ambiance.
-5. **Infos** : nom, auteur.
+4. **Lac** : clic = placer un point du contour (3 au moins), « Terminer le lac » ; hauteur de l'eau (dernier lac) ; supprimer le dernier lac. Les lacs sont dessinés en bleu sur la vue de dessus et conservés à chaque modification.
+5. **Décor** : environnement, graine (bouton « Autre décor »), densité, ambiance.
+6. **Infos** : nom, auteur.
 
 ### 10.4 Aides
 - **Validation en direct** (§5.6) : croisements surlignés en rouge, virages trop serrés signalés, compteur points/objets vs limites. Un niveau invalide ne peut être ni testé ni partagé ; la raison est affichée.
@@ -370,6 +379,7 @@ Accueil → Éditeur : **Nouveau niveau**, modifier un de **Mes niveaux**, ou **
 - **Importer** : coller un code ou charger un `.json`.
 - Tout import passe par la validation (§5.6).
 - **Précisions de mise en œuvre** : le code est `1.<base64url>` (le `1` est la version du code) ; le JSON compact stocke la route en différences successives ; le décodage plafonne le JSON à 200 ko et applique la validation complète. Le niveau reçu est le niveau **arrondi** (0,1 m, rotation au degré, densité au centième) : c'est lui qu'on publie et dont on calcule l'empreinte, pour que tous les joueurs partagent les mêmes records. Le lien `#en-ligne=<uuid>` désigne un niveau publié (Supabase, migration `0003`).
+- **Lacs** : le JSON compact reçoit une clé `w` **seulement si le niveau a de l'eau** (`[[niveau × 10, x0, z0, dx1, dz1, …], …]`, coordonnées × 10, points en différences). Les anciens codes (sans `w`) se décodent comme avant ; les niveaux sans eau produisent exactement le même code et la même empreinte qu'avant.
 - **Records** d'un niveau non officiel : liés à une empreinte SHA-256 de son contenu canonique **hors `nom` et `auteur`** (renommer ne réinitialise pas les records ; modifier la route, si). Niveaux officiels : liés à leur identifiant.
 
 ## 12. Sauvegarde (localStorage)
