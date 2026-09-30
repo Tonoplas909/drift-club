@@ -7,7 +7,7 @@ export const CARS: Record<CarId, CarParams> = {
   equilibree: {
     id: 'equilibree', nom: "L'Équilibrée",
     mass: 1250, wheelbase: 2.6, cgToFront: 1.25, cgHeight: 0.5, gyration: 1.5,
-    engineForce: 6200, maxSpeed: 55, brakeForce: 11000, handbrakeForce: 5000,
+    engineForce: 6500, maxSpeed: 55, brakeForce: 11000, handbrakeForce: 5000,
     dragCoef: 0.42, rollResist: 12, muFront: 1.0, muRear: 1.05, tireB: 8, tireC: 1.4,
     maxSteer: 0.62, steerLock: 0.85, steerSpeed: 2.2, steerReturn: 6, steerCounter: 2.2, steerSpeedReduction: 0.05,
     length: 4.4, width: 1.74, yawDamp: 1, throttleRise: 4, throttleFall: 8,
@@ -23,7 +23,7 @@ export const CARS: Record<CarId, CarParams> = {
   turbo: {
     id: 'turbo', nom: 'La Turbo',
     mass: 1650, wheelbase: 2.8, cgToFront: 1.45, cgHeight: 0.62, gyration: 1.65,
-    engineForce: 11500, maxSpeed: 58, brakeForce: 14000, handbrakeForce: 6000,
+    engineForce: 12250, maxSpeed: 58, brakeForce: 14000, handbrakeForce: 6000,
     dragCoef: 0.5, rollResist: 14, muFront: 1.02, muRear: 0.95, tireB: 7, tireC: 1.5,
     maxSteer: 0.58, steerLock: 0.82, steerSpeed: 2.0, steerReturn: 5.5, steerCounter: 2, steerSpeedReduction: 0.055,
     length: 4.6, width: 1.82, yawDamp: 0.7, throttleRise: 3.5, throttleFall: 8,
