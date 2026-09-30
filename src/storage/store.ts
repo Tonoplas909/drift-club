@@ -5,6 +5,7 @@ import type { Level } from '../core/level/types';
 import { validateLevel } from '../core/level/validate';
 import { validerSkins, type SkinsChoisies } from '../core/skins';
 import { offrirCaisse, progressionInitiale, validerProgression, type Progression } from '../core/economie';
+import type { EtatProgressionCompte } from '../core/progressionCompte';
 
 export interface KV {
   getItem(key: string): string | null;
@@ -44,6 +45,8 @@ const K_REGLAGES = 'driftclub.v1.reglages';
 const K_RECORDS = 'driftclub.v1.records';
 const K_NIVEAUX = 'driftclub.v1.niveaux';
 const K_PROGRESSION = 'driftclub.v1.progression';
+/** dernière progression connue du compte en ligne (lecture seule hors ligne) ; la progression locale ci-dessus n'est jamais modifiée par le compte */
+const K_PROGRESSION_COMPTE = 'driftclub.v1.progression-compte';
 const QUALITES: Qualite[] = ['auto', 'basse', 'haute'];
 
 export function memoryKV(): KV {
@@ -141,6 +144,24 @@ export class Store {
 
   saveProgression(p: Progression): void {
     this.write(K_PROGRESSION, p);
+  }
+
+  /** Identifiant du compte dont la progression est gardée sur cet appareil (null si aucun). */
+  idProgressionCompte(): string | null {
+    const raw = this.read(K_PROGRESSION_COMPTE);
+    return typeof raw === 'object' && raw !== null && typeof (raw as Record<string, unknown>).id === 'string' ? (raw as { id: string }).id : null;
+  }
+
+  /** Dernière progression du compte `id` reçue du serveur, ou null (absente, ou d'un autre compte). */
+  loadProgressionCompte(id: string): Progression | null {
+    const raw = this.read(K_PROGRESSION_COMPTE);
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return null;
+    const o = raw as Record<string, unknown>;
+    return o.id === id ? validerProgression(o.progression) : null;
+  }
+
+  saveProgressionCompte(e: Pick<EtatProgressionCompte, 'id' | 'progression'>): void {
+    this.write(K_PROGRESSION_COMPTE, { id: e.id, progression: e.progression });
   }
 
   private records(): RecordsMap {

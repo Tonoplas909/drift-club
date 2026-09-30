@@ -48,3 +48,34 @@ describe('progression (clés et livrées gagnées)', () => {
     expect(() => st.saveProgression(st.loadProgression({}))).not.toThrow();
   });
 });
+
+describe('progression du compte (copie gardée sur l\'appareil)', () => {
+  const compte = { cles: 6, debloques: { equilibree: [], legere: ['bande'], turbo: [] }, caisseOfferte: true, ouvertes: 2 };
+  it('aller-retour par compte, sans toucher à la progression locale', () => {
+    const kv = memoryKV();
+    const st = new Store(kv);
+    const locale = st.loadProgression({});
+    expect(st.idProgressionCompte()).toBeNull();
+    st.saveProgressionCompte({ id: 'u1', progression: compte });
+    expect(st.idProgressionCompte()).toBe('u1');
+    expect(st.loadProgressionCompte('u1')).toEqual(compte);
+    expect(st.loadProgression({})).toEqual(locale);
+    expect(JSON.parse(kv.getItem(CLE)!)).toEqual(locale);
+  });
+  it('un autre compte ne voit pas la copie ; données abîmées → null / valeurs nettoyées', () => {
+    const kv = memoryKV();
+    const st = new Store(kv);
+    st.saveProgressionCompte({ id: 'u1', progression: compte });
+    expect(st.loadProgressionCompte('u2')).toBeNull();
+    kv.setItem('driftclub.v1.progression-compte', '{pas du json');
+    expect(st.loadProgressionCompte('u1')).toBeNull();
+    expect(st.idProgressionCompte()).toBeNull();
+    kv.setItem('driftclub.v1.progression-compte', JSON.stringify({ id: 'u1', progression: { cles: -5, debloques: { turbo: ['fantome'] } } }));
+    expect(st.loadProgressionCompte('u1')?.cles).toBe(0);
+  });
+  it('stockage refusé : ne lève pas', () => {
+    const st = new Store(throwingKV);
+    expect(st.loadProgressionCompte('u1')).toBeNull();
+    expect(() => st.saveProgressionCompte({ id: 'u1', progression: compte })).not.toThrow();
+  });
+});
