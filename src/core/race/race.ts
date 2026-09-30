@@ -164,6 +164,8 @@ export class RaceSim {
       const near = nearestSample(track, this.car.x, this.car.z);
       if (!near || near.dist > ZONE_LIMIT) auto = true;
     }
+    // la voiture ne roule pas dans l'eau : elle est replacée dès qu'elle y entre
+    if (!auto && this.config.terrain.distanceEau(this.car.x, this.car.z) > 0.5) auto = true;
     let reset = false;
     if (replacer || auto) {
       this.respawn();
