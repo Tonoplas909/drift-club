@@ -20,6 +20,7 @@ export const NOTES: NoteVersion[] = [
       'Nouveau décor Ville : rues bordées d\'immeubles colorés, tours vitrées au loin, lampadaires, abribus, voitures garées et arbres en bacs. Au coucher du soleil, fenêtres et lampadaires s\'allument.',
       'Les décors sont redistribués, deux niveaux par thème : Ville (Circuit du Lac, Grand Huit), Montagne (Col du Loup, Épingles du Diable), Montagne enneigée (Lacets du Belvédère, Route des Crêtes Nord), Canyon (Vallée des Crêtes, Descente du Moulin), Forêt d\'automne (Forêt des Pins, Premiers virages).',
       'Dans l\'éditeur, « Ville » est disponible dans l\'outil Décor.',
+      'Nouvelle icône d\'onglet : une petite voiture en drift.',
     ],
   },
   {

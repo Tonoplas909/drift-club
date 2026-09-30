@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- voiture de profil, style toon (contours foncés) -->
+  <g stroke="#15131c" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M6 40 L8 30 Q9 27 13 27 L21 26 L28 18 Q30 16 34 16 L44 16 Q47 16 49 19 L53 26 L57 27 Q60 28 60 31 L60 40 Z" fill="#e63b2e"/>
+    <path d="M26 26 L31 20 Q32 19 34 19 L38 19 L38 26 Z" fill="#2a2f45"/>
+    <path d="M41 19 L44 19 Q46 19 47 21 L50 26 L41 26 Z" fill="#2a2f45"/>
+    <rect x="52" y="30" width="6" height="3" rx="1" fill="#ffd23f" stroke-width="2"/>
+    <circle cx="18" cy="41" r="7" fill="#15131c"/>
+    <circle cx="48" cy="41" r="7" fill="#15131c"/>
+    <circle cx="18" cy="41" r="3" fill="#c9ccd6" stroke-width="0"/>
+    <circle cx="48" cy="41" r="3" fill="#c9ccd6" stroke-width="0"/>
+  </g>
+  <!-- fumée de drift -->
+  <circle cx="5" cy="47" r="3.5" fill="#e8e6ef" opacity=".85"/>
+  <circle cx="10" cy="51" r="2.5" fill="#e8e6ef" opacity=".7"/>
+</svg>
