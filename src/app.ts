@@ -169,7 +169,7 @@ export class App {
       const s = levelSummary(n.data);
       return {
         nom: s?.nom ?? n.id,
-        detail: s ? `${formatDistance(s.longueur)} · ${s.ambiance === 'jour' ? 'Jour' : 'Coucher de soleil'}` : '',
+        detail: s ? `${formatDistance(s.longueur)} · ${s.theme} · ${s.ambiance === 'jour' ? 'Jour' : 'Coucher de soleil'}` : '',
         place: attente,
       };
     });
