@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { buildTrack } from '../../../src/core/track/buildTrack';
 import { Terrain } from '../../../src/core/track/terrain';
+import { creerTerrain } from '../../../src/core/env/terrainDuNiveau';
 import { nearestSample } from '../../../src/core/track/projection';
 import { generateEnvironment } from '../../../src/core/env/generate';
 import { THEMES, typesDuTheme } from '../../../src/core/env/themes';
-import { COLLIDER_RADIUS, VARIANTS } from '../../../src/core/env/types';
+import { CERCLES_MULTIPLES, COLLIDER_RADIUS, SANS_COLLISION, VARIANTS } from '../../../src/core/env/types';
 import { boiteDe, batimentDe, IMMEUBLES, TOURS, HAUTEUR_ETAGE } from '../../../src/core/env/ville';
 import { buildCollisionWorld, resolveCollisions, CRASH_IMPACT } from '../../../src/core/physics/collision';
 import { createCarState } from '../../../src/core/physics/car';
@@ -17,7 +18,7 @@ import { straightLevel, hairpinLevel } from '../../fixtures/levels';
 
 function envOf(level: Level) {
   const track = buildTrack(level);
-  const terrain = new Terrain(track, level.decor.graine, THEMES[level.environnement].relief);
+  const terrain = creerTerrain(track, level);
   return { track, terrain, env: generateEnvironment(level, track, terrain) };
 }
 const avec = (lv: Level, environnement: Environnement): Level => ({ ...lv, environnement });
@@ -31,6 +32,7 @@ describe('registre des thèmes (règles)', () => {
     expect(ENVIRONNEMENTS[0]).toBe('montagne');
     expect(ENVIRONNEMENTS.slice(0, 4)).toEqual(['montagne', 'neige', 'desert', 'automne']);
     expect(ENVIRONNEMENTS[4]).toBe('ville'); // ajouté à la fin : les anciens liens gardent leur indice
+    expect(ENVIRONNEMENTS.slice(5)).toEqual(['pirate', 'backrooms', 'espace', 'japon']);
   });
   for (const id of ENVIRONNEMENTS) {
     describe(id, () => {
@@ -70,12 +72,13 @@ describe('registre des thèmes (règles)', () => {
           const n = nearestSample(track, it.x, it.z);
           if (!n) continue;
           const w = track.samples[n.index].w;
-          const bord = it.kind === 'chevron' || it.kind === 'borne' || it.kind === 'piquet';
+          const bord = it.kind === 'chevron' || it.kind === 'borne' || it.kind === 'piquet' || it.kind === 'balise';
+          if (SANS_COLLISION.has(it.kind)) continue; // dalles suspendues au-dessus de la route
           expect(n.dist).toBeGreaterThanOrEqual((bord ? w + 1.5 : w + 3) - 0.05);
         }
         // un cercle par objet solide rond, 4 segments par objet solide à emprise rectangulaire (ville)
-        const solides = env.items.filter((i) => i.solid);
-        expect(env.circles.length).toBe(solides.filter((i) => !boiteDe(i.kind, i.variant)).length);
+        const solides = env.items.filter((i) => i.solid && !SANS_COLLISION.has(i.kind));
+        expect(env.circles.length).toBe(solides.filter((i) => !boiteDe(i.kind, i.variant)).reduce((n, i) => n + (CERCLES_MULTIPLES[i.kind]?.length ?? 1), 0));
         expect(env.segments.length).toBe(4 * solides.filter((i) => boiteDe(i.kind, i.variant)).length);
         for (const c of env.circles) expect(Number.isFinite(c.r + c.x + c.z)).toBe(true);
       });
@@ -94,6 +97,15 @@ describe('registre des thèmes (règles)', () => {
     expect(kinds('ville').has('immeuble')).toBe(true);
     expect(kinds('ville').has('lampadaire')).toBe(true);
     expect(kinds('ville').has('sapin')).toBe(false);
+    expect(kinds('pirate').has('palmier')).toBe(true);
+    expect(kinds('pirate').has('tonneau')).toBe(true);
+    expect(kinds('pirate').has('sapin')).toBe(false);
+    expect(kinds('backrooms').has('mur')).toBe(true);
+    expect(kinds('backrooms').has('dalleLumiere')).toBe(true);
+    expect(kinds('espace').has('cristal')).toBe(true);
+    expect(kinds('espace').has('feuillu')).toBe(false);
+    expect(kinds('japon').has('cerisier')).toBe(true);
+    expect(kinds('japon').has('toro')).toBe(true);
   });
 
   it('objets manuels : correspondance par thème (désert : sapin → cactus, arbre → arbre sec)', () => {
@@ -106,6 +118,10 @@ describe('registre des thèmes (règles)', () => {
     expect(manuels('neige')).toEqual(['feuillu', 'sapin', 'rocher', 'pneus', 'panneau']);
     expect(manuels('automne')).toEqual(['feuillu', 'sapin', 'rocher', 'pneus', 'panneau']);
     expect(manuels('ville')).toEqual(['arbreVille', 'lampadaire', 'blocBeton', 'pneus', 'panneau']);
+    expect(manuels('pirate')).toEqual(['palmier', 'drapeauPirate', 'rocher', 'tonneau', 'caisse']);
+    expect(manuels('backrooms')).toEqual(['pilier', 'lampeBureau', 'mur', 'carton', 'porteBureau']);
+    expect(manuels('espace')).toEqual(['cristal', 'antenne', 'rocher', 'bidon', 'balise']);
+    expect(manuels('japon')).toEqual(['cerisier', 'bambou', 'rocher', 'toro', 'torii']);
     // solides, avec le rayon du type
     const { env } = envOf(avec(lv, 'desert'));
     const cactus = env.items.find((i) => i.kind === 'cactus')!;

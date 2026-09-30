@@ -60,7 +60,7 @@ export const COLLIDER_RADIUS: Record<DecorKind, number> = {
   palmier: 0.4, ponton: 1.5, tonneau: 0.45, caisse: 0.6, coffre: 0.5, canon: 0.6, ancre: 0.4, drapeauPirate: 0.15, epave: 2.5,
   mur: 1, pilier: 0.6, lampeBureau: 0.15, dalleLumiere: 0.5, porteBureau: 0.6, carton: 0.6,
   cristal: 0.8, antenne: 0.6, atterrisseur: 2.2, parabole: 0.5, balise: 0.12, bidon: 0.5,
-  cerisier: 0.45, torii: 0.4, toro: 0.35, pagode: 4, bambou: 0.5, sanctuaire: 1.6,
+  cerisier: 0.45, torii: 2.9, toro: 0.35, pagode: 4, bambou: 0.5, sanctuaire: 1.6,
 };
 
 /**
