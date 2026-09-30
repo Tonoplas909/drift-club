@@ -4,16 +4,32 @@ import { decorKey, type Assets } from './assets';
 import { toonMaterial, outlineMaterial, outlineGeometry } from './materials';
 import type { QualityLevel } from './quality';
 
+/** Matériaux du décor, partageables entre plusieurs groupes (mode Zen : un groupe par tronçon). */
+export interface MateriauxDecor { mat: THREE.Material; outline: THREE.Material; outlineGros: THREE.Material }
+
+export function materiauxDecor(): MateriauxDecor {
+  return { mat: toonMaterial({ vertexColors: true }), outline: outlineMaterial(0.05), outlineGros: outlineMaterial(0.13) };
+}
+
+/** Contours déjà calculés, par modèle (le calcul parcourt tous les sommets : on ne le refait pas à chaque groupe). */
+const contours = new WeakMap<THREE.BufferGeometry, THREE.BufferGeometry>();
+export function contourDe(geo: THREE.BufferGeometry): THREE.BufferGeometry {
+  const c = geo.userData.contour as THREE.BufferGeometry | undefined;
+  if (c) return c;
+  let og = contours.get(geo);
+  if (!og) { og = outlineGeometry(geo); contours.set(geo, og); }
+  return og;
+}
+
 /**
  * Un InstancedMesh par modèle et par distance (proche = solide, lointain = visuel).
  * Qualité Basse : un objet lointain sur trois, contours seulement sur les objets proches.
  */
-export function buildDecor(env: Environment, assets: Assets, q: QualityLevel, shadows: boolean, decor: Record<string, THREE.BufferGeometry> = assets.decor): THREE.Group {
+export function buildDecor(env: Environment, assets: Assets, q: QualityLevel, shadows: boolean, decor: Record<string, THREE.BufferGeometry> = assets.decor, materiaux?: MateriauxDecor): THREE.Group {
   const root = new THREE.Group();
   root.name = 'decor';
-  const mat = toonMaterial({ vertexColors: true });
-  const outline = outlineMaterial(0.05);
-  const outlineGros = outlineMaterial(0.13); // bâtiments : grandes façades, trait plus épais
+  // bâtiments : grandes façades, trait plus épais (outlineGros)
+  const { mat, outline, outlineGros } = materiaux ?? materiauxDecor();
   const groups = new Map<string, [EnvItem[], EnvItem[]]>();
   env.items.forEach((it, i) => {
     const far = !it.solid;
@@ -26,8 +42,6 @@ export function buildDecor(env: Environment, assets: Assets, q: QualityLevel, sh
 
   const m = new THREE.Matrix4(), qt = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
   const up = new THREE.Vector3(0, 1, 0);
-  const outlines = new Map<string, THREE.BufferGeometry>();
-
   for (const [key, lists] of groups) {
     const geo = decor[key];
     if (!geo) continue;
@@ -46,8 +60,7 @@ export function buildDecor(env: Environment, assets: Assets, q: QualityLevel, sh
       mesh.computeBoundingSphere();
       root.add(mesh);
       if (q === 'haute' || !far) {
-        let og = outlines.get(key);
-        if (!og) { og = (geo.userData.contour as THREE.BufferGeometry | undefined) ?? outlineGeometry(geo); outlines.set(key, og); }
+        const og = contourDe(geo);
         const ol = new THREE.InstancedMesh(og, geo.userData.contour ? outlineGros : outline, list.length);
         ol.instanceMatrix = mesh.instanceMatrix;
         ol.computeBoundingSphere();
@@ -68,7 +81,7 @@ export function buildDecor(env: Environment, assets: Assets, q: QualityLevel, sh
     mesh.instanceMatrix.needsUpdate = true;
     mesh.castShadow = shadows;
     mesh.computeBoundingSphere();
-    const ol = new THREE.InstancedMesh(outlineGeometry(geo), outline, env.barriers.length);
+    const ol = new THREE.InstancedMesh(contourDe(geo), outline, env.barriers.length);
     ol.instanceMatrix = mesh.instanceMatrix;
     ol.computeBoundingSphere();
     root.add(mesh, ol);
