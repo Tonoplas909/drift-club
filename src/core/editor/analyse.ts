@@ -2,6 +2,7 @@ import type { Level } from '../level/types';
 import { validateLevel } from '../level/validate';
 import { buildTrack, type TrackData } from '../track/buildTrack';
 import { geometryProblems, type ProblemeGeometrie } from '../track/checkGeometry';
+import { problemesEau } from '../env/eau';
 
 export interface AnalyseNiveau {
   ok: boolean;
@@ -58,9 +59,12 @@ export function analyseLevel(level: Level): AnalyseNiveau {
   stats.longueur = track.length;
   stats.tempsCible = track.targetTime;
 
+  // la route doit rester au sec
+  const erreursEau = problemesEau(level.eau, track.samples);
+
   return {
-    ok: problemes.length === 0,
-    erreurs: [],
+    ok: problemes.length === 0 && erreursEau.length === 0,
+    erreurs: erreursEau,
     problemes,
     track,
     stats,

@@ -36,6 +36,9 @@ export function normaliserNiveau(level: Level): Level {
     barrieres: level.barrieres.map((b) => ({ de: b.de, a: b.a, cote: b.cote })),
     decor: { graine: level.decor.graine, densite: Math.round(level.decor.densite * 100) / 100 + 0 },
     objets: level.objets.map((o) => ({ type: o.type, x: d1(o.x), z: d1(o.z), rot: Math.round(o.rot) + 0 })),
+    ...(level.eau && level.eau.length > 0
+      ? { eau: level.eau.map((l) => ({ niveau: d1(l.niveau), points: l.points.map((p) => ({ x: d1(p.x), z: d1(p.z) })) })) }
+      : {}),
   };
 }
 
@@ -50,7 +53,7 @@ function compacter(l: Level): unknown {
     px = x; pz = z; py = y; pl = w;
     return d;
   });
-  return {
+  const compact: Record<string, unknown> = {
     n: l.nom,
     a: l.auteur,
     e: ENVIRONNEMENTS.indexOf(l.environnement),
@@ -60,6 +63,21 @@ function compacter(l: Level): unknown {
     d: [l.decor.graine, Math.round(l.decor.densite * 100)],
     o: l.objets.map((o) => [TYPES.indexOf(o.type), Math.round(o.x * 10), Math.round(o.z * 10), Math.round(o.rot)]),
   };
+  // lacs : clé ajoutée seulement s'il y en a (les liens sans eau restent identiques à ceux d'avant) ;
+  // chaque lac = [niveau × 10, x0, z0, dx1, dz1, …] (× 10, points en différences)
+  if (l.eau && l.eau.length > 0) {
+    compact.w = l.eau.map((lac) => {
+      const flat: number[] = [Math.round(lac.niveau * 10)];
+      let qx = 0, qz = 0;
+      for (const p of lac.points) {
+        const x = Math.round(p.x * 10), z = Math.round(p.z * 10);
+        flat.push(x - qx, z - qz);
+        qx = x; qz = z;
+      }
+      return flat;
+    });
+  }
+  return compact;
 }
 
 const estObjet = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -77,6 +95,20 @@ function developper(c: unknown): unknown | null {
   if (!tuples(r, 4) || !tuples(b, 3) || !tuples(o, 4)) return null;
   if (!Array.isArray(d) || d.length !== 2 || !estNombre(d[0]) || !estNombre(d[1])) return null;
   if (!b.every((t) => t.slice(0, 3).every(estEntier) && COTES[t[2]]) || !o.every((t) => estEntier(t[0]) && TYPES[t[0]])) return null;
+  // lacs (clé `w`, absente des anciens codes) : [niveau × 10, x0, z0, dx1, dz1, …]
+  let eau: unknown[] | undefined;
+  if (c.w !== undefined) {
+    if (!Array.isArray(c.w) || !c.w.every((t: unknown) => Array.isArray(t) && t.length >= 3 && t.length % 2 === 1 && t.every(estNombre))) return null;
+    eau = (c.w as number[][]).map((t) => {
+      const points: { x: number; z: number }[] = [];
+      let qx = 0, qz = 0;
+      for (let i = 1; i < t.length; i += 2) {
+        qx += t[i]; qz += t[i + 1];
+        points.push({ x: qx / 10, z: qz / 10 });
+      }
+      return { niveau: t[0] / 10, points };
+    });
+  }
   let x = 0, z = 0, y = 0, w = 0;
   return {
     format: 1,
@@ -91,6 +123,7 @@ function developper(c: unknown): unknown | null {
     barrieres: b.map((t) => ({ de: t[0], a: t[1], cote: COTES[t[2]] })),
     decor: { graine: d[0], densite: d[1] / 100 },
     objets: o.map((t) => ({ type: TYPES[t[0]], x: t[1] / 10, z: t[2] / 10, rot: t[3] })),
+    ...(eau ? { eau } : {}),
   };
 }
 
