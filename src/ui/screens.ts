@@ -119,7 +119,7 @@ export class Screens {
         compte,
         h('button', { class: 'btn sec', onclick: o.onReglages }, 'Réglages'),
       ),
-      h('p', { class: 'hint' }, 'Z/W ou ↑ accélérer · S ou ↓ freiner · Q/A, D ou ← → tourner · Espace frein à main · R replacer · C caméra · Échap pause'),
+      h('p', { class: 'hint' }, 'Z/W ou ↑ accélérer · S ou ↓ freiner · Q/A, D ou ← → tourner · Espace frein à main · R replacer · ⌫ recommencer · C caméra · Échap pause'),
       !o.persistent && h('p', { class: 'warn' }, 'Stockage indisponible : tes records et réglages ne seront pas enregistrés.'),
     ));
   }

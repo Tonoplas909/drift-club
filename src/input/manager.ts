@@ -27,6 +27,7 @@ export class InputManager {
     const b = this.touch.consumeActions();
     return {
       replacer: a.replacer || b.replacer,
+      recommencer: a.recommencer || b.recommencer,
       pause: a.pause || b.pause,
       camera: a.camera || b.camera,
       muet: a.muet || b.muet,

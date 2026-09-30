@@ -94,6 +94,7 @@ export class GameSession {
     if (this.paused) return;
 
     const a = this.deps.input.consumeActions();
+    if (a.recommencer) { this.restart(); return; }
     if (a.pause && this.race.phase !== 'arrivee') { this.cb.onPause(); return; }
     if (a.camera) {
       this.deps.reglages.cameraLoin = !this.deps.reglages.cameraLoin;
@@ -151,6 +152,11 @@ export class GameSession {
         this.finishDelay = 1.5;
         break;
     }
+  }
+
+  /** vrai pendant la pause et sur l'écran des résultats */
+  get enPause(): boolean {
+    return this.paused;
   }
 
   pause(): void {
