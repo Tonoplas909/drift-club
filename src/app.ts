@@ -20,6 +20,11 @@ import { analyseLevel } from './core/editor/analyse';
 import { Editeur } from './editor/editor';
 import { afficherHub } from './editor/hub';
 import { dateCourte, longueurRoute } from './editor/format';
+import { clientParDefaut } from './online/client';
+import { CompteService, type EtatCompte } from './online/compte';
+import { ClassementService, cleEnLigne } from './online/classement';
+import { ecranCompte } from './ui/compte';
+import { ecranClassement, zoneEnLigne } from './ui/classement';
 
 /** D'où vient la course : `index` ≥ 0 pour un niveau officiel, `retour` ramène à l'écran d'origine. */
 interface Contexte { index: number; retour: () => void; menuLabel: string }
@@ -44,6 +49,8 @@ export class App {
   private current: { index: number; prepared: PreparedLevel; contexte: Contexte } | null = null;
   private editeur: Editeur | null = null;
   private onEscape: (() => void) | null = null;
+  private readonly compte = new CompteService(clientParDefaut);
+  private readonly classement = new ClassementService(clientParDefaut);
 
   constructor(private readonly debug: DebugHook | null = null) {}
 
@@ -70,6 +77,10 @@ export class App {
     document.addEventListener('visibilitychange', () => { if (document.hidden && this.session) this.pauseRace(); });
     $('app').append(Object.assign(document.createElement('div'), { className: 'portrait', textContent: 'Tourne ton téléphone en mode paysage' }));
 
+    // comptes en ligne : hors ligne le jeu reste jouable, `demarrer` ne lève jamais
+    this.compte.onChange((e) => this.compteChange(e));
+    void this.compte.demarrer();
+
     await this.chargerModeles();
   }
 
@@ -90,10 +101,37 @@ export class App {
     this.store.saveReglages(this.reglages);
   }
 
+  private libelleCompte(e: EtatCompte = this.compte.etat): string {
+    return e.statut === 'connecte' && e.pseudo ? `Compte · ${e.pseudo}` : 'Compte';
+  }
+
+  private compteChange(e: EtatCompte): void {
+    this.screens.majCompte(this.libelleCompte(e));
+    // lien « mot de passe oublié » : on ouvre l'écran Compte pour choisir le nouveau mot de passe
+    if (e.statut === 'connecte' && e.recuperation && this.assets && !this.session) this.ecranCompte(() => this.accueil());
+  }
+
+  private ecranCompte(retour: () => void): void {
+    this.showroom?.stop();
+    this.screens.monter(ecranCompte(this.compte, { onRetour: retour }));
+  }
+
+  private ecranClassement(cle: string, titre: string, retour: () => void): void {
+    const e = this.compte.etat;
+    const mode = this.reglages.mode;
+    this.screens.monter(ecranClassement({
+      titre, mode, moi: e.statut === 'connecte' ? e.id : null,
+      charger: () => this.classement.chargerClassement(cle, mode, 20),
+      onRetour: retour,
+    }));
+  }
+
   private accueil(): void {
     this.showroom?.stop();
     this.screens.accueil({
       persistent: this.persistent,
+      compte: this.libelleCompte(),
+      onCompte: () => this.ecranCompte(() => this.accueil()),
       onJouer: () => this.niveaux(),
       onGarage: () => this.garage(() => this.accueil()),
       onEditeur: () => this.hubEditeur(),
@@ -137,6 +175,13 @@ export class App {
       cartes, perso, mode: this.reglages.mode, voiture: this.reglages.voiture,
       onChoisir: (i) => void this.lancer(i),
       onChoisirPerso: (i) => void this.lancerPerso(mesNiveaux[i].level, { index: -1, retour: () => this.niveaux(), menuLabel: 'Menu' }),
+      onClassement: (perso, i) => {
+        if (!perso) { this.ecranClassement(cleNiveauOfficiel(NIVEAUX_OFFICIELS[i].id), cartes[i].nom, () => this.niveaux()); return; }
+        const n = mesNiveaux[i];
+        void empreinteNiveau(n.level)
+          .then((e) => this.ecranClassement(cleNiveauPerso(e), n.level.nom, () => this.niveaux()))
+          .catch(() => this.screens.toast('Classement indisponible pour ce niveau.'));
+      },
       onEditeur: () => this.hubEditeur(),
       onGarage: () => this.garage(() => this.niveaux()),
       onReglages: () => this.reglagesEcran(() => this.niveaux()),
@@ -275,16 +320,40 @@ export class App {
       onSuivant: next >= 0 ? () => void this.lancer(next) : null,
       onMenu: () => this.quitterCourse(),
       menuLabel: cur.contexte.menuLabel,
+      enLigne: this.envoyerScore(cur.prepared.key, r),
     });
   }
 
-  private quitterCourse(): void {
+  /** Bloc « classement en ligne » des résultats : envoi en tâche de fond, l'écran n'attend jamais le réseau. */
+  private envoyerScore(cle: string, r: RaceResult): HTMLElement | null {
+    if (!cleEnLigne(cle)) return null;
+    const zone = zoneEnLigne();
+    const e = this.compte.etat;
+    if (e.statut !== 'connecte') {
+      zone.invite('Connecte-toi pour apparaître au classement.', () => this.ecranCompte(this.terminerCourse()));
+    } else if (!e.pseudo) {
+      zone.invite('Choisis un pseudo pour apparaître au classement.', () => this.ecranCompte(this.terminerCourse()));
+    } else {
+      zone.envoi();
+      void this.classement.soumettreScore({
+        niveau: cle, mode: this.reglages.mode, score: r.score, temps: r.time, voiture: this.reglages.voiture, meilleurDrift: r.bestDrift,
+      }).then((res) => zone.resultat(res));
+    }
+    return zone.el;
+  }
+
+  /** Ferme la course et renvoie l'écran où retourner. */
+  private terminerCourse(): () => void {
     this.session?.dispose();
     this.session = null;
     this.keyboard.capture = false;
     this.touchControls.show(false);
     const retour = this.current?.contexte.retour ?? (() => this.niveaux());
     this.current = null;
-    retour();
+    return retour;
+  }
+
+  private quitterCourse(): void {
+    this.terminerCourse()();
   }
 }
