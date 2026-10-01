@@ -10,6 +10,8 @@ const IDS = [
   'circuit-du-lac', 'epingles-du-diable', 'cretes-nord', 'descente-du-moulin', 'grand-huit',
   'serpentin-des-aigles', 'angles-droits', 'spirale-du-belvedere', 'trois-epingles', 'chicanes-du-port',
   'grande-descente', 'virages-en-cascade', 'route-des-vignes', 'touge-de-minuit', 'tire-bouchon',
+  'sentier-des-cerisiers', 'col-du-torii', 'dragon-de-jade', 'baie-des-naufrages', 'crique-du-perroquet',
+  'recif-du-kraken', 'orbite-basse', 'cratere-rouge', 'couloirs-jaunes', 'labyrinthe-de-neons',
 ];
 
 function charge(id: string) {
@@ -70,9 +72,9 @@ function pointNormalise(t: TrackData, u: number): { x: number; z: number } {
 }
 
 describe('niveaux officiels', () => {
-  it('vingt niveaux dans le bon ordre, identifiants uniques', () => {
+  it('trente niveaux dans le bon ordre, identifiants uniques', () => {
     expect(NIVEAUX_OFFICIELS.map((n) => n.id)).toEqual(IDS);
-    expect(new Set(NIVEAUX_OFFICIELS.map((n) => n.id)).size).toBe(20);
+    expect(new Set(NIVEAUX_OFFICIELS.map((n) => n.id)).size).toBe(30);
     expect(cleNiveauOfficiel('col-du-loup')).toBe('off:col-du-loup');
   });
   const AVEC_BARRIERES = ['col-du-loup', 'lacets-du-belvedere', 'vallee-des-cretes', 'epingles-du-diable', 'cretes-nord', 'descente-du-moulin',

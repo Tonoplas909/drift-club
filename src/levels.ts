@@ -18,6 +18,16 @@ import viragesEnCascade from '../levels/virages-en-cascade.json';
 import routeDesVignes from '../levels/route-des-vignes.json';
 import tougeDeMinuit from '../levels/touge-de-minuit.json';
 import tireBouchon from '../levels/tire-bouchon.json';
+import sentierDesCerisiers from '../levels/sentier-des-cerisiers.json';
+import colDuTorii from '../levels/col-du-torii.json';
+import dragonDeJade from '../levels/dragon-de-jade.json';
+import baieDesNaufrages from '../levels/baie-des-naufrages.json';
+import criqueDuPerroquet from '../levels/crique-du-perroquet.json';
+import recifDuKraken from '../levels/recif-du-kraken.json';
+import orbiteBasse from '../levels/orbite-basse.json';
+import cratereRouge from '../levels/cratere-rouge.json';
+import couloirsJaunes from '../levels/couloirs-jaunes.json';
+import labyrintheDeNeons from '../levels/labyrinthe-de-neons.json';
 
 export interface NiveauOfficiel {
   id: string;
@@ -45,6 +55,16 @@ export const NIVEAUX_OFFICIELS: NiveauOfficiel[] = [
   { id: 'route-des-vignes', data: routeDesVignes },
   { id: 'touge-de-minuit', data: tougeDeMinuit },
   { id: 'tire-bouchon', data: tireBouchon },
+  { id: 'sentier-des-cerisiers', data: sentierDesCerisiers },
+  { id: 'col-du-torii', data: colDuTorii },
+  { id: 'dragon-de-jade', data: dragonDeJade },
+  { id: 'baie-des-naufrages', data: baieDesNaufrages },
+  { id: 'crique-du-perroquet', data: criqueDuPerroquet },
+  { id: 'recif-du-kraken', data: recifDuKraken },
+  { id: 'orbite-basse', data: orbiteBasse },
+  { id: 'cratere-rouge', data: cratereRouge },
+  { id: 'couloirs-jaunes', data: couloirsJaunes },
+  { id: 'labyrinthe-de-neons', data: labyrintheDeNeons },
 ];
 
 export const cleNiveauOfficiel = (id: string): string => `off:${id}`;
