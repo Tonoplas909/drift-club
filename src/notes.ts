@@ -13,6 +13,18 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.4.1',
+    date: '01/10/2026',
+    titre: 'Quatre nouveaux décors',
+    notes: [
+      'Pirate : îles tropicales, mer turquoise, palmiers, épaves, pontons, canons et coffres au trésor.',
+      'Backrooms : murs jaunes à perte de vue, piliers, néons qui grésillent et portes au milieu de nulle part.',
+      'Espace : sol lunaire et cratères, cristaux, antennes, ciel étoilé et planètes dans le ciel.',
+      'Japon : cerisiers en fleurs, pétales qui volent, torii, pagodes, bambous, rizières en terrasses et volcan enneigé.',
+      'Les quatre décors sont disponibles dans l\'éditeur de niveaux et rejoignent la rotation du mode Zen.',
+    ],
+  },
+  {
     version: '0.4.0',
     date: '01/10/2026',
     titre: 'Mode Zen',

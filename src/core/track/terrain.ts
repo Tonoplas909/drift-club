@@ -236,7 +236,7 @@ export class Terrain implements Ground {
   /** mer du thème (pirate) : plan d'eau infini ; null sans mer */
   readonly mer: { niveau: number } | null;
   /** le thème creuse des cratères */
-  get avecCratere(): boolean { return this.opts.cratere !== undefined; }
+  get avecCratere(): boolean { return this.regles.cratere !== undefined; }
 
   /**
    * `relief` : multiplicateur des reliefs autour de la route (1 = montagne ; < 1 = plaine, thème ville) ; `eau` : lacs (polygones) ;
@@ -304,7 +304,7 @@ export class Terrain implements Ground {
 
   /** Creux (m, négatif) ou lèvre (positif) d'un cratère en (x, z) : sert à teinter le sol ; 0 sans cratères. */
   creux(x: number, z: number): number {
-    return this.opts.cratere ? creuxCratere(this.opts.cratere, x, z, this.distanceToRoad(x, z), this.seed) : 0;
+    return this.regles.cratere ? creuxCratere(this.regles.cratere, x, z, this.distanceToRoad(x, z), this.seed) : 0;
   }
 
   /** Mer et cratères du thème, appliqués au versant loin de la route (les talus des tronçons voisins bornent ensuite la hauteur). */

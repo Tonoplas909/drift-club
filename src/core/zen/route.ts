@@ -78,6 +78,9 @@ const grilleScratch: number[] = [];
 
 /** Sol composé : physique, caméra, placement du décor et maillage du terrain lisent tous ce sol. */
 export class SolZen implements Ground, SolDecor {
+  /** pas de mer en mode Zen (le décor pirate y reste sur la terre ferme) */
+  readonly mer = null;
+
   constructor(private readonly route: RouteZen) {}
 
   /** Hauteur des grilles (mélange des terrains des tronçons, pondéré par la distance à leur route) ; `d` = distance à la route la plus proche. */

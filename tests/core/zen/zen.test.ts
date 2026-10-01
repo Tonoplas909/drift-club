@@ -20,12 +20,12 @@ function empreinte(env: Environment): string {
 }
 
 describe('Zen : régions et transitions', () => {
-  it('les 5 décors reviennent tour à tour, jamais deux fois de suite, régions de 2,6 à 3,8 km', () => {
+  it('tous les décors reviennent tour à tour, jamais deux fois de suite, régions de 2,6 à 3,8 km', () => {
     const r = new Regions(99);
     const vus = new Set<string>();
     for (let i = 0; i < 20; i++) {
       const g = r.region(i);
-      if (i < 5) vus.add(g.theme);
+      if (i < ENVIRONNEMENTS.length) vus.add(g.theme);
       if (i > 0) {
         expect(g.theme).not.toBe(r.region(i - 1).theme);
         expect(g.debut).toBe(r.region(i - 1).fin);
