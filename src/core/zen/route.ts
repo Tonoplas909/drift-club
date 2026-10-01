@@ -1,7 +1,7 @@
 import type { Environnement, Level } from '../level/types';
 import { finirPiste, type TrackData, type TrackSample } from '../track/buildTrack';
-import { Terrain, appliquerTalus, RAYON_TALUS, type Ground } from '../track/terrain';
-import { generateEnvironment, type SolDecor } from '../env/generate';
+import { Terrain, appliquerTalus, terrainEnEtapes, RAYON_TALUS, type Ground } from '../track/terrain';
+import { decorEnEtapes, type SolDecor } from '../env/generate';
 import { THEMES } from '../env/themes';
 import type { Environment } from '../env/types';
 import { buildCollisionWorld, type CollisionWorld } from '../physics/collision';
@@ -60,6 +60,8 @@ export interface Troncon {
   ambiance: 'jour' | 'coucher';
   terrain: Terrain | null;
   parties: PartieDecor[] | null;
+  /** parties de décor déjà générées (en attendant les autres) */
+  enCours: PartieDecor[];
   mondes: CollisionWorld[];
   etat: EtatTroncon;
 }
@@ -254,6 +256,7 @@ export class RouteZen {
     for (const t of [...this.avecTerrain]) {
       if (t.n < this.nMin - VOISINS_TERRAIN || t.n > this.nMax + VOISINS_TERRAIN) {
         t.terrain = null;
+        t.enCours = [];
         t.etat = 'route';
         this.majListes();
       }
@@ -268,21 +271,54 @@ export class RouteZen {
    * s'il n'y a plus rien à faire. Les tronçons proches de la voiture passent en premier.
    */
   travailler(): boolean {
+    if (this.enCours) { this.etape(); return true; }
     // 1. décor des tronçons de la fenêtre, du plus proche au plus lointain (après leurs prérequis)
     for (let n = this.nMin; n <= this.nMax; n++) {
-      const t = this.troncons.get(n);
-      if (t?.etat === 'fini') continue;
+      const deja = this.troncons.get(n);
+      if (deja?.etat === 'fini') continue;
       for (let m = n - VOISINS_ROUTE; m <= n + VOISINS_ROUTE; m++) {
         if (m >= 0 && !this.troncons.has(m)) { this.creer(m); return true; }
       }
       for (let m = n - VOISINS_TERRAIN; m <= n + VOISINS_TERRAIN; m++) {
         const v = this.troncons.get(m);
-        if (v && !v.terrain) { this.construireTerrain(v); return true; }
+        if (v && !v.terrain) { this.lancer(v, this.construireTerrain(v), (ter) => { v.terrain = ter as Terrain; v.etat = 'terrain'; this.majListes(); }); return true; }
       }
-      this.finir(this.troncons.get(n)!);
+      const t = this.troncons.get(n)!;
+      const k = t.enCours.length;
+      if (k < t.themes.length) {
+        this.lancer(t, this.decorPartie(t, k), (env) => {
+          // le décor n'est valable que si les terrains voisins n'ont pas bougé entre-temps
+          if (this.terrainsVoisins(t) && t.enCours.length === k) t.enCours.push({ theme: t.themes[k], env: env as Environment });
+          else t.enCours = [];
+        });
+        return true;
+      }
+      this.finir(t);
       return true;
     }
     return false;
+  }
+
+  /** Travail en cours, mené par petites étapes (un générateur qui rend la main toutes les quelques ms). */
+  private enCours: { t: Troncon; gen: Generator<void, unknown>; fin: (v: unknown) => void } | null = null;
+
+  private lancer(t: Troncon, gen: Generator<void, unknown>, fin: (v: unknown) => void): void {
+    this.enCours = { t, gen, fin };
+    this.etape();
+  }
+
+  /** Une étape du travail en cours ; à la fin, le résultat n'est gardé que si le tronçon existe encore. */
+  private etape(): void {
+    const e = this.enCours!;
+    const r = e.gen.next();
+    if (!r.done) return;
+    this.enCours = null;
+    if (this.troncons.get(e.t.n) === e.t) e.fin(r.value);
+  }
+
+  private terrainsVoisins(t: Troncon): boolean {
+    for (let m = Math.max(0, t.n - VOISINS_TERRAIN); m <= t.n + VOISINS_TERRAIN; m++) if (!this.troncons.get(m)?.terrain) return false;
+    return true;
   }
 
   /** Fait tout le travail en attente (tests, départ, téléportation). */
@@ -365,13 +401,13 @@ export class RouteZen {
     const t: Troncon = {
       n, debut, fin, debutPiste, track, axe, boite: { minX, maxX, minZ, maxZ }, themes,
       ambiance: ambianceA(debut + LONGUEUR_TRONCON / 2) > 0.5 ? 'coucher' : 'jour',
-      terrain: null, parties: null, mondes: [], etat: 'route',
+      terrain: null, parties: null, enCours: [], mondes: [], etat: 'route',
     };
     this.troncons.set(n, t);
     this.majListes();
   }
 
-  private construireTerrain(t: Troncon): void {
+  private construireTerrain(t: Troncon): Generator<void, Terrain> {
     const S = t.track.samples;
     const reliefDe = (th: Environnement): number => THEMES[th].relief ?? 1;
     let relief: number | ((x: number, z: number) => number);
@@ -393,16 +429,15 @@ export class RouteZen {
         return r;
       };
     }
-    t.terrain = new Terrain(t.track, this.seed, relief, [], { rayonGrossier: 330, pasGrossier: 8, pasFin: 3 });
-    t.etat = 'terrain';
-    this.majListes();
+    return terrainEnEtapes(t.track, this.seed, relief, [], { rayonGrossier: 330, pasGrossier: 8, pasFin: 3 });
   }
 
   /** Décor (un par thème présent, en fondu par taches), obstacles, puis annonce au rendu. */
-  private finir(t: Troncon): void {
+  /** Décor du thème numéro `k` du tronçon (en étapes). */
+  private decorPartie(t: Troncon, k: number): Generator<void, Environment> {
     const b = t.boite;
-    const parties: PartieDecor[] = [];
-    t.themes.forEach((theme, k) => {
+    const theme = t.themes[k];
+    {
       const level: Level = {
         format: 1, nom: 'Zen', auteur: '', environnement: theme, ambiance: t.ambiance,
         route: [], barrieres: [], decor: { graine: this.seed, densite: DENSITE }, objets: [],
@@ -416,11 +451,16 @@ export class RouteZen {
         const wA = this.poidsTheme(t.themes[0], p.s);
         return k === 0 ? u < wA : u >= wA;
       };
-      const env = generateEnvironment(level, t.track, this.sol, {
+      return decorEnEtapes(level, t.track, this.sol, {
         alea: graineMelangee(this.seed, t.n, k), garder, distanceMax: DISTANCE_DECOR, zone: b, altitudeBase: 0,
       });
-      parties.push({ theme, env });
-    });
+    }
+  }
+
+  /** Décor de chaque thème prêt : obstacles, puis annonce au rendu. */
+  private finir(t: Troncon): void {
+    const parties = t.enCours;
+    t.enCours = [];
     t.parties = parties;
     t.mondes = parties.map((p) => buildCollisionWorld(p.env));
     t.etat = 'fini';
