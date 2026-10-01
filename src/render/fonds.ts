@@ -149,8 +149,8 @@ export function buildFuji(track: TrackData, p: Palette, seed: number): THREE.Mes
     parts.push(coloree(g, (x, y) => (((x * 0.013 + i) % 2 + 2) % 2 < 1 ? colline : sombre).clone().multiplyScalar(0.92 + 0.14 * (y - c.base) / h)));
   }
   // le volcan : cône tronqué, neige au-dessus d'une ligne dentelée
-  const a0 = rng() * Math.PI * 2, r0 = c.R + 330;
-  const H = 440, rb = 620, rt = 46;
+  const a0 = rng() * Math.PI * 2, r0 = c.R + 420;
+  const H = 380, rb = 430, rt = 40;
   const dent = dentelure(rng);
   const v = new THREE.CylinderGeometry(rt, rb, H, 16, 4).translate(c.cx + Math.sin(a0) * r0, c.base + H / 2, c.cz + Math.cos(a0) * r0);
   parts.push(coloree(v, (x, y, z) => {
