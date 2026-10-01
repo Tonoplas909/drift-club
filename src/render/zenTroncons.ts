@@ -46,6 +46,7 @@ export class TronconsZen {
   private readonly visuels = new Map<number, Visuel>();
   private readonly tuiles = new Map<number, Tuile>();
   private readonly attente: Tuile[] = [];
+  private readonly taches: (() => void)[] = [];
   private readonly matTerrain = materiauTerrain();
   private readonly matDecor: MateriauxDecor = materiauxDecor();
   private readonly sols = new Map<string, Sol>();
@@ -90,13 +91,19 @@ export class TronconsZen {
       lignes: false, sDebut: t.debut,
       epaule: (sp) => cEp.copy(epauleDe(paletteZen(this.route, sp.s + t.debut))),
     }));
-    for (const p of t.parties ?? []) {
-      const decor = decorDuTheme(this.assets, p.theme, t.ambiance);
-      groupe.add(buildDecor(p.env, this.assets, this.quality, this.ombres(), decor, this.matDecor));
-    }
     this.racine.add(groupe);
     const v: Visuel = { groupe, tuiles: new Set() };
     this.visuels.set(t.n, v);
+    // décor : un groupe instancié par thème, chacun à son tour (tâches courtes, une par image au plus)
+    for (const p of t.parties ?? []) {
+      this.taches.push(() => {
+        if (this.visuels.get(t.n) !== v) return;
+        const t1 = performance.now();
+        const decor = decorDuTheme(this.assets, p.theme, t.ambiance);
+        groupe.add(buildDecor(p.env, this.assets, this.quality, this.ombres(), decor, this.matDecor));
+        this.mesures.troncons.push(performance.now() - t1);
+      });
+    }
     // morceaux de terrain dont ce tronçon est le propriétaire (axe le plus proche) et pas encore construits
     const b = t.boite;
     for (let iz = Math.floor((b.minZ - RAYON_TUILES) / TUILE); iz <= Math.floor((b.maxZ + RAYON_TUILES) / TUILE); iz++) {
@@ -155,8 +162,10 @@ export class TronconsZen {
     if (i >= 0) this.attente.splice(i, 1);
   }
 
-  /** Construit le morceau de terrain en attente le plus proche de (x, z) ; false s'il n'y en a pas. */
+  /** Construit un groupe de décor en attente, sinon le morceau de terrain en attente le plus proche de (x, z) ; false s'il n'y a rien à faire. */
   travailler(x: number, z: number): boolean {
+    const tache = this.taches.shift();
+    if (tache) { tache(); return true; }
     if (this.attente.length === 0) return false;
     let k = 0, best = Infinity;
     for (let i = 0; i < this.attente.length; i++) {

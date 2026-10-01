@@ -7,6 +7,7 @@ import { fbm } from '../math/noise';
 import { smoothstep, DEG } from '../math/vec';
 import { COLLIDER_RADIUS, SOLID_DISTANCE, VARIANTS, type DecorKind, type EnvItem, type Environment } from './types';
 import { THEMES, type Essence } from './themes';
+import { jusquAuBout } from '../track/terrain';
 import { batimentDe, boiteDe } from './ville';
 
 /** Au-dessus de ce seuil, le masque de forêt vaut « forêt » (`min` : plancher du thème, ex. parcs rares en ville). */
@@ -104,6 +105,14 @@ export interface OptionsDecor {
 }
 
 export function generateEnvironment(level: Level, track: TrackData, terrain: SolDecor, opts: OptionsDecor = {}): Environment {
+  return jusquAuBout(decorEnEtapes(level, track, terrain, opts));
+}
+
+/**
+ * Génération du décor en étapes : le générateur rend la main après chaque rangée de cases (quelques dixièmes de ms)
+ * pour que le mode Zen étale le travail sur plusieurs images. Même résultat que `generateEnvironment`.
+ */
+export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor, opts: OptionsDecor = {}): Generator<void, Environment> {
   const env: Environment = { items: [], circles: [], segments: [], barriers: [] };
   const { graine, densite } = level.decor;
   const rng = mulberry32(opts.alea ?? graine);
@@ -234,6 +243,7 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Sol
 
   // 4b. Petits objets de bord de route propres au thème (tirages toujours consommés → déterminisme)
   for (const ex of theme.bord.extras) {
+    yield;
     for (let s = 6; s < track.length - 6; s += ex.tousLes) {
       for (const side of [1, -1]) {
         const pick = rng(), jitter = rng(), rotR = rng(), scaleR = rng(), variantR = rng();
@@ -311,9 +321,11 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Sol
       return true;
     };
     // rangs le long de la route : le 2e rang (30 à 50 m) mêle des tours
-    const rang = (decale: number, amplitude: number, proba: number, partTours: number): void => {
+    const rang = function* (decale: number, amplitude: number, proba: number, partTours: number): Generator<void, void> {
       for (const side of [1, -1]) {
+        let k = 0;
         for (let s = 3 + rb() * 6; s < track.length - 3;) {
+          if (++k % 16 === 0) yield;
           const pick = rb(), kindR = rb(), variantR = rb(), gapR = rb(), offR = rb();
           const kind: DecorKind = kindR < partTours ? 'tour' : 'immeuble';
           const variant = Math.min(VARIANTS[kind] - 1, Math.floor(variantR * VARIANTS[kind]));
@@ -326,11 +338,12 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Sol
         }
       }
     };
-    rang(0, 2, bat.rang1, 0);
-    rang(24, 14, bat.rang2, 0.4);
+    yield* rang(0, 2, bat.rang1, 0);
+    yield* rang(24, 14, bat.rang2, 0.4);
     // fond : tours et immeubles isolés jusqu'à 320 m (visuels, hors de portée de la voiture)
     const bb = zone, cell = bat.fond.cellule;
     for (let gz = bb.minZ - dLoin; gz < bb.maxZ + dLoin; gz += cell) {
+      yield;
       for (let gx = bb.minX - dLoin; gx < bb.maxX + dLoin; gx += cell) {
         const x = gx + rb() * cell, z = gz + rb() * cell;
         const pick = rb(), kindR = rb(), variantR = rb(), rotR = rb();
@@ -345,8 +358,9 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Sol
   // 5. Arbres en bosquets (6 tirages par case, toujours consommés → déterminisme)
   const arbres = theme.arbres;
   const b = zone;
-  const trees = (cell: number, dMin: number, dMax: number): void => {
+  const trees = function* (cell: number, dMin: number, dMax: number): Generator<void, void> {
     for (let gz = b.minZ - dMax; gz < b.maxZ + dMax; gz += cell) {
+      yield;
       for (let gx = b.minX - dMax; gx < b.maxX + dMax; gx += cell) {
         const x = gx + rng() * cell, z = gz + rng() * cell;
         const pick = rng(), kindR = rng(), variantR = rng(), rotR = rng(), scaleR = rng();
@@ -367,13 +381,14 @@ export function generateEnvironment(level: Level, track: TrackData, terrain: Sol
       }
     }
   };
-  trees(7, 0, 60);
-  trees(14, 60, dLoin);
+  yield* trees(7, 0, 60);
+  yield* trees(14, 60, dLoin);
 
   // 6. Rochers, plus fréquents sur les pentes
   const roc = theme.rochers;
   const dRoc = Math.min(200, dLoin);
   for (let gz = b.minZ - dRoc; gz < b.maxZ + dRoc; gz += 11) {
+    yield;
     for (let gx = b.minX - dRoc; gx < b.maxX + dRoc; gx += 11) {
       const x = gx + rng() * 11, z = gz + rng() * 11;
       const pick = rng(), kindR = rng(), variantR = rng(), rotR = rng(), scaleR = rng();

@@ -40,7 +40,6 @@ export class ZenSession {
   private disposed = false;
   private pendingReplace = false;
   private camCfg: ChaseConfig;
-  private image = 0;
   /** mesures (développement) : durée des unités de travail de la route (ms) */
   readonly mesures = { coeur: [] as number[], image: [] as number[] };
 
@@ -123,6 +122,7 @@ export class ZenSession {
 
   private readonly frame = (now: number): void => {
     if (this.disposed) return;
+    const debut = performance.now();
     this.raf = requestAnimationFrame(this.frame);
     const dt = Math.min(0.25, Math.max(0, (now - this.last) / 1000));
     this.last = now;
@@ -148,11 +148,11 @@ export class ZenSession {
     this.deps.debug?.frame(car, dt);
     if (this.deps.quality.sample(dt)) this.world.setQuality(this.deps.quality.level);
     this.travailler();
-    this.mesures.image.push(performance.now() - now);
+    this.mesures.image.push(performance.now() - debut);
     if (this.mesures.image.length > 300) this.mesures.image.shift();
   };
 
-  /** Construction de la route à venir dans le temps libre de l'image (une grosse unité au plus par image). */
+  /** Construction de la route à venir dans le temps libre de l'image. */
   private travailler(): void {
     const t0 = performance.now();
     const s = this.sim.progressS;
@@ -160,15 +160,12 @@ export class ZenSession {
     // la zone de la voiture doit être prête (c'est normalement déjà le cas bien avant) : sinon on la termine tout de suite
     while (!this.route.pret(s) && this.route.travailler()) this.world.troncons.appliquer(this.route.vider());
     this.world.troncons.appliquer(this.route.vider());
+    // route (étapes de calcul) et rendu (décor, morceaux de terrain) à tour de rôle, dans le temps imparti
     const car = this.sim.car;
-    let coeur = false;
-    // une image sur trois, la route passe avant le terrain (pour ne jamais prendre de retard)
-    const routeDabord = this.image++ % 3 === 0;
     while (performance.now() - t0 < BUDGET_TRAVAIL) {
-      if (routeDabord && !coeur && this.unite()) { coeur = true; continue; }
-      if (this.world.troncons.travailler(car.x, car.z)) continue;
-      if (!coeur && this.unite()) { coeur = true; continue; }
-      break;
+      const a = this.unite();
+      const b = this.world.troncons.travailler(car.x, car.z);
+      if (!a && !b) break;
     }
   }
 

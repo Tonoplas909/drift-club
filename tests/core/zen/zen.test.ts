@@ -186,11 +186,15 @@ describe('Zen : tronçons, sol composé, décor', () => {
   it('fenêtre bornée sur 30 km : tronçons, terrains et décor en nombre limité, jamais de NaN', () => {
     const r = new RouteZen(2025);
     let maxTous = 0, maxTerrains = 0, maxFinis = 0, maxMem = 0;
-    const temps: number[] = [];
+    const temps: number[] = [], etapes: number[] = [];
     for (let s = 0; s <= 30000; s += 160) {
       r.viser(s);
       const t0 = performance.now();
-      r.toutFaire();
+      for (;;) {
+        const e0 = performance.now();
+        if (!r.travailler()) break;
+        etapes.push(performance.now() - e0);
+      }
       temps.push(performance.now() - t0);
       maxTous = Math.max(maxTous, r.tous.length);
       maxTerrains = Math.max(maxTerrains, r.avecTerrain.length);
@@ -207,8 +211,12 @@ describe('Zen : tronçons, sol composé, décor', () => {
     // coût moyen d'un tronçon (route + terrain + décor) : 160 m par pas, donc deux pas par tronçon
     temps.sort((a, b) => a - b);
     const med = temps[temps.length >> 1] * 2;
-    console.log(`Zen : ~${med.toFixed(1)} ms par tronçon de ${LONGUEUR_TRONCON} m (médiane)`);
+    // le travail est découpé en petites étapes (une par appel) : aucune ne doit bloquer une image
+    etapes.sort((a, b) => a - b);
+    const p99 = etapes[Math.floor(etapes.length * 0.99)];
+    console.log(`Zen : ~${med.toFixed(1)} ms de calcul par tronçon de ${LONGUEUR_TRONCON} m (médiane), ${etapes.length} étapes, médiane ${etapes[etapes.length >> 1].toFixed(2)} ms, 99 % < ${p99.toFixed(2)} ms, max ${etapes[etapes.length - 1].toFixed(1)} ms`);
     expect(med).toBeLessThan(150);
+    expect(p99).toBeLessThan(15);
   }, 180_000);
 
   it('décor déterministe : même graine ⇒ même décor, quel que soit le chemin pour y arriver', () => {
