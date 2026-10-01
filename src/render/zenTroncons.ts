@@ -16,9 +16,9 @@ import { chunkStep, geometrieMorceau, materiauTerrain } from './terrainMesh';
 import { PALETTES_THEMES, epauleDe, melangerPalettes, type Palette } from './palettes';
 import type { QualityLevel } from './quality';
 
-/** Morceaux de terrain de 64 m, construits jusqu'à 220 m de l'axe (centre) du tronçon propriétaire. */
+/** Morceaux de terrain de 64 m, construits jusqu’à 250 m de l'axe (centre) du tronçon propriétaire. */
 export const TUILE = 64;
-export const RAYON_TUILES = 220;
+export const RAYON_TUILES = 250;
 
 /** Palette du mode Zen à l'abscisse `s` : mélange des deux décors de la transition et du jour / coucher. */
 export function paletteZen(route: RouteZen, s: number): Palette {

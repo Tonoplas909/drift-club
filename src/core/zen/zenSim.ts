@@ -5,7 +5,7 @@ import type { AssistParams, CarParams, CarState, StepContext } from '../physics/
 import { createCarState, copyCarState, stepCar } from '../physics/car';
 import { resolveCollisions, CRASH_IMPACT } from '../physics/collision';
 import { DEG } from '../math/vec';
-import { RouteZen, type Troncon } from './route';
+import { RECUL_MAX, RouteZen, type Troncon } from './route';
 
 /** Données affichées pendant une balade Zen (pas de score ni de chrono). */
 export interface HudZen {
@@ -99,7 +99,8 @@ export class ZenSim {
     else this.wrongWayTime = Math.max(0, this.wrongWayTime - 2 * SIM_DT);
     this.wrongWay = this.wrongWayTime > 2;
 
-    let auto = this.frozenTime > GEL_MAX;
+    // trop loin à contresens : la route derrière n'est plus construite, on replace la voiture
+    let auto = this.frozenTime > GEL_MAX || this.progressS < this.maxProgressS - RECUL_MAX + 20;
     if (!auto && lat > 30) {
       const near = route.sol.plusProche(this.car.x, this.car.z, 64);
       if (!near || near.dist > LIMITE_ZONE) auto = true;
