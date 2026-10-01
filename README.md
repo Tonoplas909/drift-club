@@ -65,6 +65,19 @@ Cinq décors, quatre niveaux chacun : ville (Circuit du Lac, Grand Huit, Angles 
 
 Au tactile : glisse le pouce gauche pour tourner, boutons Gaz, Frein et Drift à droite (accélération automatique activable dans les réglages).
 
+## Mode Zen
+
+Depuis l'accueil, **Mode Zen** lance une balade sans fin, sans score ni chrono : la route se dessine au fil des kilomètres et traverse tour à tour les cinq décors (montagne, neige, canyon, forêt d'automne, ville), dans un ordre tiré au hasard. On passe d'un décor à l'autre en douceur sur environ 440 m : couleurs du sol, ciel, brume et lumière se fondent, les arbres et objets des deux décors se mélangent par taches, le relief s'aplatit à l'approche de la ville et les reliefs lointains s'enfoncent pendant que les nouveaux se lèvent. Le soleil se couche puis se relève lentement au fil de la route. Un nom discret annonce chaque nouvelle région.
+
+- Écran : vitesse, indicateur d'angle (si activé), kilomètres parcourus et région ; « Mauvais sens ! » reste affiché.
+- **R** replace la voiture sur la route ; trop loin de la route ou plus de 400 m à contresens, elle est replacée automatiquement.
+- **Pause** : Reprendre, **Nouvelle route** (autre tirage, aussi avec ⌫) ou Menu. La pause affiche le numéro de la route (copiable).
+- Voiture, couleur, livrée et mode de conduite : ceux des réglages. Pas de classement ni de clés à gagner.
+
+**Comment ça marche** (`src/core/zen/`) : un « dessinateur » enchaîne des morceaux décrits par leur courbure (lignes droites, grandes courbes, S, épingles suivies d'un contre-virage, lacets, angles de rue en ville), intégrés au mètre : position, cap, courbure, hauteur et largeur sont continues partout. Chaque morceau est contrôlé avant d'être gardé : la route ne se croise jamais et ne revient pas près d'elle-même (grilles spatiales sur les 3 derniers kilomètres) ; sinon un autre morceau est tiré. La route est découpée en **tronçons de 320 m** (avec 60 m de marge de chaque côté pour que terrain et décor se raccordent) ; chaque tronçon a son terrain (les grilles de hauteur des niveaux), puis son décor (le générateur des niveaux, par thème, limité à la zone dont le tronçon est le plus proche) et ses obstacles. La physique lit un **sol composé** : mélange des terrains des tronçons voisins pondéré par la distance à leur route, puis talus de la route appliqués avec tous les tronçons proches (la chaussée a exactement la hauteur de la route, pas de marche aux jonctions). Le décor et le terrain d'un tronçon ne sont construits que quand les terrains de ses 5 voisins de chaque côté existent : le résultat est le même quel que soit l'ordre de construction (même numéro ⇒ même route, même décor). On garde le décor de 600 m derrière à 800 m devant la voiture ; tout le reste est libéré, la mémoire reste bornée quelle que soit la distance parcourue. Les calculs sont découpés en petites étapes (la plupart < 1 ms) menées dans 4 ms par image, comme la construction des maillages (morceaux de terrain de 64 m).
+
+**Développement** : `?debug&zen=<numéro>` lance directement une balade ; `window.__dc.teleporter(s)` place la voiture à l'abscisse `s` (m) en construisant tout ce qu'il faut, `__dc.pilote(25)` la fait rouler toute seule (25 m/s au plus), `__dc.camera({ pos, cible })` place une caméra libre sans brume.
+
 ## Éditeur de niveaux
 
 Depuis l'accueil, **Éditeur** ouvre « Mes niveaux » : **Nouveau niveau**, **Copier un niveau officiel**, **Importer**, puis pour chaque niveau **Modifier**, **Jouer**, **Renommer**, **Dupliquer**, **Exporter** (fichier `.json` lisible), **Partager** et **Supprimer** (avec confirmation). Tes niveaux apparaissent aussi dans **Jouer → Mes niveaux**, avec leurs records.
