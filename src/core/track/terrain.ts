@@ -70,11 +70,23 @@ function surCases(g: Grid, sp: TrackSample, radius: number, f: (idx: number, dd:
   }
 }
 
-function surTronçons(track: TrackData, every: number, f: (sp: TrackSample) => void): void {
-  const S = track.samples;
-  for (let i = 0; i < S.length; i += every) f(S[i]);
-  if ((S.length - 1) % every !== 0) f(S[S.length - 1]);
+/** Indices des tronçons pris en compte (un sur `every`, plus le dernier). */
+function indicesTronçons(track: TrackData, every: number): number[] {
+  const n = track.samples.length, out: number[] = [];
+  for (let i = 0; i < n; i += every) out.push(i);
+  if ((n - 1) % every !== 0) out.push(n - 1);
+  return out;
 }
+
+/** Exécute un générateur jusqu'au bout (version d'un seul tenant des constructions « en étapes »). */
+export function jusquAuBout<T>(g: Generator<void, T>): T {
+  let r = g.next();
+  while (!r.done) r = g.next();
+  return r.value;
+}
+
+/** Tous les combien de tronçons (ou de cases) les constructions en étapes rendent la main. */
+const PAS_ETAPE = 24;
 
 /**
  * Hauteur du terrain sur une grille : versant « naturel » (moyenne des hauteurs de route voisines, pondérée par
@@ -82,33 +94,39 @@ function surTronçons(track: TrackData, every: number, f: (sp: TrackSample) => v
  * tronçon proche (|h − y| ≤ pente × distance). Deux branches de route à des hauteurs différentes se raccordent donc
  * en rampe continue au lieu de falaises ; si l'écart est trop grand pour la pente, on prend le milieu des bornes.
  */
-function remplir(g: Grid, track: TrackData, every: number, radius: number): void {
+function* remplir(g: Grid, track: TrackData, every: number, radius: number): Generator<void, void> {
   const n = g.nx * g.nz;
+  const idx = indicesTronçons(track, every);
   const ecart = new Float32Array(n).fill(Infinity);
   const bas = new Float32Array(n).fill(-Infinity);
   const haut = new Float32Array(n).fill(Infinity);
   const sw = new Float32Array(n), swy = new Float32Array(n);
-  surTronçons(track, every, (sp) => {
+  for (let k = 0; k < idx.length; k++) {
+    const sp = track.samples[idx[k]];
     const epaule = sp.w + 1.5;
-    surCases(g, sp, radius, (idx, dd) => {
-      if (dd < g.d[idx]) g.d[idx] = dd;
+    surCases(g, sp, radius, (c, dd) => {
+      if (dd < g.d[c]) g.d[c] = dd;
       const e = Math.max(0, dd - epaule);
-      if (e < ecart[idx]) ecart[idx] = e;
+      if (e < ecart[c]) ecart[c] = e;
       const dev = PENTE_TALUS * e;
-      if (sp.y + dev < haut[idx]) haut[idx] = sp.y + dev;
-      if (sp.y - dev > bas[idx]) bas[idx] = sp.y - dev;
+      if (sp.y + dev < haut[c]) haut[c] = sp.y + dev;
+      if (sp.y - dev > bas[c]) bas[c] = sp.y - dev;
     });
-  });
-  surTronçons(track, every, (sp) => {
+    if (k % PAS_ETAPE === PAS_ETAPE - 1) yield;
+  }
+  for (let k = 0; k < idx.length; k++) {
+    const sp = track.samples[idx[k]];
     const epaule = sp.w + 1.5;
-    surCases(g, sp, radius, (idx, dd) => {
-      if (dd - g.d[idx] >= FENETRE) return;
+    surCases(g, sp, radius, (c, dd) => {
+      if (dd - g.d[c] >= FENETRE) return;
       const e = Math.max(0, dd - epaule);
-      const w = (1 - smoothstep(FENETRE * 0.5, FENETRE, dd - g.d[idx])) / (e * e + 4);
-      sw[idx] += w; swy[idx] += w * sp.y;
+      const w = (1 - smoothstep(FENETRE * 0.5, FENETRE, dd - g.d[c])) / (e * e + 4);
+      sw[c] += w; swy[c] += w * sp.y;
     });
-  });
+    if (k % PAS_ETAPE === PAS_ETAPE - 1) yield;
+  }
   for (let i = 0; i < n; i++) {
+    if (i % (PAS_ETAPE * 200) === 0) yield;
     if (g.d[i] === Infinity) continue;
     const nat = swy[i] / sw[i] + rise(ecart[i], bruitCase(g, i));
     g.h[i] = bas[i] <= haut[i] ? Math.min(haut[i], Math.max(bas[i], nat)) : (bas[i] + haut[i]) / 2;
@@ -188,6 +206,24 @@ export interface OptionsTerrain {
   pasFin?: number;
 }
 
+/** Grilles d'un terrain déjà calculées (construction en étapes). */
+interface Grilles { fine: Grid; coarse: Grid }
+
+/**
+ * Construction d'un terrain en étapes : le générateur rend la main régulièrement (quelques ms de calcul au plus
+ * entre deux étapes) ; le mode Zen étale ainsi le travail sur plusieurs images. Même résultat que `new Terrain`.
+ */
+export function* terrainEnEtapes(track: TrackData, seed: number, relief: Relief = 1, eau: readonly PlanEau[] = [], opts: OptionsTerrain = {}): Generator<void, Terrain> {
+  const b = track.bounds;
+  const COARSE_R = opts.rayonGrossier ?? COARSE_R_DEFAUT, MARGIN = COARSE_R + 20;
+  const fine = makeGrid(b.minX - FINE_R, b.minZ - FINE_R, FINE_CELL, b.maxX - b.minX + 2 * FINE_R, b.maxZ - b.minZ + 2 * FINE_R, seed, relief);
+  const coarse = makeGrid(b.minX - MARGIN, b.minZ - MARGIN, COARSE_CELL, b.maxX - b.minX + 2 * MARGIN, b.maxZ - b.minZ + 2 * MARGIN, seed, relief);
+  yield;
+  yield* remplir(fine, track, opts.pasFin ?? 2, FINE_R);
+  yield* remplir(coarse, track, opts.pasGrossier ?? 4, COARSE_R);
+  return new Terrain(track, seed, relief, eau, opts, { fine, coarse });
+}
+
 export class Terrain implements Ground {
   readonly minX: number;
   readonly maxX: number;
@@ -198,14 +234,19 @@ export class Terrain implements Ground {
   private readonly lacs: Lac[];
 
   /** `relief` : multiplicateur des reliefs autour de la route (1 = montagne ; < 1 = plaine, thème ville) ; `eau` : lacs (polygones). */
-  constructor(private readonly track: TrackData, seed: number, relief: Relief = 1, eau: readonly PlanEau[] = [], opts: OptionsTerrain = {}) {
+  constructor(private readonly track: TrackData, seed: number, relief: Relief = 1, eau: readonly PlanEau[] = [], opts: OptionsTerrain = {}, grilles?: Grilles) {
     this.lacs = eau.map((p) => new Lac(p));
-    const b = track.bounds;
-    const COARSE_R = opts.rayonGrossier ?? COARSE_R_DEFAUT, MARGIN = COARSE_R + 20;
-    this.fine = makeGrid(b.minX - FINE_R, b.minZ - FINE_R, FINE_CELL, b.maxX - b.minX + 2 * FINE_R, b.maxZ - b.minZ + 2 * FINE_R, seed, relief);
-    this.coarse = makeGrid(b.minX - MARGIN, b.minZ - MARGIN, COARSE_CELL, b.maxX - b.minX + 2 * MARGIN, b.maxZ - b.minZ + 2 * MARGIN, seed, relief);
-    remplir(this.fine, track, opts.pasFin ?? 2, FINE_R);
-    remplir(this.coarse, track, opts.pasGrossier ?? 4, COARSE_R);
+    if (grilles) {
+      this.fine = grilles.fine;
+      this.coarse = grilles.coarse;
+    } else {
+      const b = track.bounds;
+      const COARSE_R = opts.rayonGrossier ?? COARSE_R_DEFAUT, MARGIN = COARSE_R + 20;
+      this.fine = makeGrid(b.minX - FINE_R, b.minZ - FINE_R, FINE_CELL, b.maxX - b.minX + 2 * FINE_R, b.maxZ - b.minZ + 2 * FINE_R, seed, relief);
+      this.coarse = makeGrid(b.minX - MARGIN, b.minZ - MARGIN, COARSE_CELL, b.maxX - b.minX + 2 * MARGIN, b.maxZ - b.minZ + 2 * MARGIN, seed, relief);
+      jusquAuBout(remplir(this.fine, track, opts.pasFin ?? 2, FINE_R));
+      jusquAuBout(remplir(this.coarse, track, opts.pasGrossier ?? 4, COARSE_R));
+    }
     let maxH = -Infinity;
     for (const h of this.coarse.h) if (h < Infinity && h > maxH) maxH = h;
     for (let i = 0; i < this.coarse.h.length; i++) {

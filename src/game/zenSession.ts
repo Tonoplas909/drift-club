@@ -8,6 +8,8 @@ import { ZenWorld } from '../render/zenWorld';
 import { CAMERA_LOIN, CAMERA_PROCHE, type ChaseConfig } from '../render/camera';
 import { camDepuisUrl, type CamLibre } from '../debug/camLibre';
 import { FixedStepLoop } from './loop';
+import type { InputState } from '../core/input';
+import { clamp, wrapAngle } from '../core/math/vec';
 import { interpolatePose } from './pose';
 import { toggleFullscreen, type SessionDeps } from './session';
 
@@ -81,12 +83,19 @@ export class ZenSession {
       get sim() { return self.sim; },
       /** place la voiture à l'abscisse `s` de la route (génère tout ce qu'il faut, d'un coup) */
       teleporter: (s: number) => this.teleporter(s),
+      pilote: (v: number) => { this.pilote = v; },
       camera: (c: CamLibre | null) => { this.world.camLibre = c; },
     };
   }
 
   /** Téléportation (développement) : génère la route jusque-là et construit tout autour, d'un coup. */
   teleporter(s: number): void {
+    // en arrière : la route derrière est oubliée, on la refait depuis le début (même graine, même route)
+    if (s < this.sim.maxProgressS - 300) {
+      this.world.dispose();
+      this.construire();
+      this.onResize();
+    }
     this.route.viser(s);
     this.route.toutFaire();
     this.world.troncons.appliquer(this.route.vider());
@@ -174,11 +183,24 @@ export class ZenSession {
     return fait;
   }
 
+  /** pilote automatique (développement, `__dc.pilote(v)`) : suit la route à `v` m/s au plus */
+  private pilote = 0;
+
   private simStep(): void {
-    const input = this.deps.input.state(this.deps.reglages.accelAuto);
+    const input = this.pilote > 0 ? this.autopilote() : this.deps.input.state(this.deps.reglages.accelAuto);
     const events = this.sim.step(input, this.pendingReplace);
     this.pendingReplace = false;
     for (const e of events) this.handle(e);
+  }
+
+  private autopilote(): InputState {
+    const car = this.sim.car, route = this.route, s = this.sim.progressS;
+    const cible = route.echantillon(s + 8 + car.speed * 0.5);
+    const err = wrapAngle(Math.atan2(cible.x - car.x, cible.z - car.z) - car.heading);
+    let kMax = 0;
+    for (let d = 0; d < 60; d += 5) kMax = Math.max(kMax, Math.abs(route.echantillon(s + d).k));
+    const v = clamp(Math.sqrt(5 / Math.max(kMax, 1e-4)), 8, this.pilote);
+    return { gaz: car.speed < v ? 1 : 0, frein: car.speed > v + 3 ? 1 : 0, direction: clamp(err * 2.5, -1, 1), freinAMain: false };
   }
 
   private handle(e: EvenementZen): void {

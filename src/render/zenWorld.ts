@@ -208,10 +208,12 @@ export class ZenWorld {
       const w = poidsFond.get(f) ?? 0;
       // un décor s'enfonce pendant que l'autre se lève (les deux sont là au milieu de la transition)
       const h = THREE.MathUtils.smoothstep(w, 0, 0.6);
-      f.visible = h > 0.01;
+      f.visible = h > 0.01 && !this.camLibre;
       f.scale.set(1, Math.max(0.01, h), 1);
       f.position.set(cam.x, this.yFond - 20, cam.z);
     }
+    // caméra libre (vues aériennes de développement) : sans brume, pour voir les raccords de loin
+    if (this.camLibre) { this.fog.near = 3000; this.fog.far = 6000; }
     const neige = route.poidsTheme('neige', s);
     this.snow.points.visible = this.quality === 'haute' && neige > 0.02;
     if (this.snow.points.visible) {

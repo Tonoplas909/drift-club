@@ -29,8 +29,10 @@ export const VOISINS_ROUTE = 6;
 /** Décor et obstacles gardés de `ARRIERE` m derrière la voiture à `AVANT` m devant. */
 export const ARRIERE = 600;
 export const AVANT = 800;
+/** Recul maximal (m) de la voiture derrière sa progression maximale (au-delà, elle est replacée). */
+export const RECUL_MAX = 400;
 /** Distance maximale (m) du décor à la route. */
-export const DISTANCE_DECOR = 230;
+export const DISTANCE_DECOR = 220;
 /** Pas (m) des points de l'axe qui servent à partager l'espace entre tronçons. */
 const PAS_AXE = 8;
 /** Taille (m) des taches du fondu entre deux décors (un objet garde le décor de sa tache). */
@@ -208,6 +210,8 @@ export class RouteZen {
   /** fenêtre voulue : tronçons à finir [nMin, nMax] */
   private nMin = 0;
   private nMax = 0;
+  /** plus grande abscisse visée : la voiture ne recule jamais de plus de `RECUL_MAX` m (elle est replacée avant) */
+  private sMax = 0;
 
   constructor(readonly seed: number) {
     this.regions = new Regions(seed);
@@ -238,6 +242,8 @@ export class RouteZen {
 
   /** Fixe la fenêtre de travail autour de l'abscisse `s` de la voiture et retire ce qui en sort. */
   viser(s: number): void {
+    this.sMax = Math.max(this.sMax, s);
+    s = Math.max(s, this.sMax - RECUL_MAX);
     this.nMin = RouteZen.indice(s - ARRIERE);
     this.nMax = RouteZen.indice(s + AVANT);
     const garderDe = this.nMin - VOISINS_ROUTE, garderA = this.nMax + VOISINS_ROUTE;
@@ -252,8 +258,8 @@ export class RouteZen {
         this.majListes();
       }
     }
-    // échantillons encore utiles : depuis la marge du premier tronçon gardé
-    const premier = Math.max(0, garderDe) * LONGUEUR_TRONCON - MARGE;
+    // échantillons encore utiles : depuis la marge du premier tronçon qui peut encore servir (voiture au plus loin en arrière)
+    const premier = Math.max(0, RouteZen.indice(this.sMax - RECUL_MAX - ARRIERE) - VOISINS_ROUTE) * LONGUEUR_TRONCON - MARGE;
     if (premier > 0) this.dessinateur.oublierAvant(Math.min(premier, this.dessinateur.fin - 1));
   }
 
