@@ -88,7 +88,7 @@ const MAX_DENIVELE_BATIMENT = 3.5;
 const MARGE_BATIMENT_LAC = 45;
 
 /** Ce que le décor lit du sol : le `Terrain` d'un niveau, ou le sol composé du mode Zen. */
-export type SolDecor = Pick<Terrain, 'heightAt' | 'gradientAt' | 'distanceToRoad' | 'distanceEau'>;
+export type SolDecor = Pick<Terrain, 'heightAt' | 'gradientAt' | 'distanceToRoad' | 'distanceEau' | 'mer'>;
 
 /** Options de génération (mode Zen : décor d'un tronçon de route parmi d'autres). Sans options : comportement des niveaux. */
 export interface OptionsDecor {

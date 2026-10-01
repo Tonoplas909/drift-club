@@ -60,11 +60,15 @@ const POIDS: Record<Environnement, Record<TypeMorceau, number>> = {
   desert: { droite: 3, courbe: 4, virage: 2, S: 1.5, epingle: 0.3, lacet: 0, angle: 0 },
   automne: { droite: 1.5, courbe: 3, virage: 3, S: 3.5, epingle: 0.6, lacet: 0.3, angle: 0 },
   ville: { droite: 4, courbe: 1, virage: 1, S: 1, epingle: 0, lacet: 0, angle: 3 },
+  pirate: { droite: 2.5, courbe: 4, virage: 2, S: 2.5, epingle: 0.2, lacet: 0, angle: 0 },
+  backrooms: { droite: 3, courbe: 0.5, virage: 1, S: 1, epingle: 0, lacet: 0, angle: 4 },
+  espace: { droite: 2.5, courbe: 4, virage: 2.5, S: 2, epingle: 0.4, lacet: 0.2, angle: 0 },
+  japon: { droite: 1.5, courbe: 3, virage: 3, S: 3, epingle: 0.8, lacet: 0.4, angle: 0 },
 };
 /** Pente maximale de la route selon le décor (la ville reste presque plate). */
-const PENTE_MAX: Record<Environnement, number> = { montagne: 0.075, neige: 0.065, desert: 0.05, automne: 0.06, ville: 0.022 };
+const PENTE_MAX: Record<Environnement, number> = { montagne: 0.075, neige: 0.065, desert: 0.05, automne: 0.06, ville: 0.022, pirate: 0.03, backrooms: 0.005, espace: 0.045, japon: 0.065 };
 /** Demi-largeur de la route selon le décor : [min, amplitude]. */
-const LARGEUR: Record<Environnement, [number, number]> = { montagne: [4, 1.5], neige: [4.2, 1.4], desert: [4.5, 1.8], automne: [4, 1.4], ville: [5, 1.6] };
+const LARGEUR: Record<Environnement, [number, number]> = { montagne: [4, 1.5], neige: [4.2, 1.4], desert: [4.5, 1.8], automne: [4, 1.4], ville: [5, 1.6], pirate: [4.5, 1.6], backrooms: [5, 1.5], espace: [4.5, 1.8], japon: [4, 1.4] };
 
 const CASE_FINE = 16;
 const CASE_LOIN = 128;
