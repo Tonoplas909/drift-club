@@ -13,6 +13,18 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.4.2',
+    date: '01/10/2026',
+    titre: 'Dix nouveaux niveaux',
+    notes: [
+      'Japon : Sentier des Cerisiers, Col du Torii et Dragon de Jade.',
+      'Pirate : Baie des Naufragés, Crique du Perroquet et Récif du Kraken.',
+      'Espace : Orbite Basse et Cratère Rouge.',
+      'Backrooms : Couloirs Jaunes et Labyrinthe de Néons.',
+      'De la balade facile au tracé technique : 30 niveaux officiels au total.',
+    ],
+  },
+  {
     version: '0.4.1',
     date: '01/10/2026',
     titre: 'Quatre nouveaux décors',
