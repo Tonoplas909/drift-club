@@ -4,6 +4,7 @@ import { loadLevel } from '../../../src/core/loadLevel';
 import { Terrain } from '../../../src/core/track/terrain';
 import { THEMES } from '../../../src/core/env/themes';
 import { generateEnvironment } from '../../../src/core/env/generate';
+import { SANS_COLLISION } from '../../../src/core/env/types';
 import { buildTrack } from '../../../src/core/track/buildTrack';
 import { makeLevel } from '../../fixtures/levels';
 
@@ -56,6 +57,8 @@ describe.each(NIVEAUX_OFFICIELS.map((n) => [n.id, n.data] as const))('relief du 
     const env = generateEnvironment(level, track, terrain);
     for (const it of env.items) {
       if (it.manual || it.kind === 'borne' || it.kind === 'chevron' || it.kind === 'piquet') continue;
+      // dalles suspendues (backrooms) : au-dessus de la route, sans collision
+      if (SANS_COLLISION.has(it.kind)) continue;
       let d = Infinity;
       let w = 0;
       const voisins: number[] = [];
