@@ -13,6 +13,17 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.4.0',
+    date: '01/10/2026',
+    titre: 'Mode Zen',
+    notes: [
+      'Nouveau mode Zen (bouton « Mode Zen » à l\'accueil) : une route sans fin, sans points ni chrono, qui se crée au fur et à mesure que tu avances.',
+      'Le décor change tous les 3 km environ, avec des transitions douces entre montagne, neige, canyon, automne et ville : ciel, lumière, végétation et relief se mélangent.',
+      'Le jour et le coucher de soleil alternent le long de la route ; le nom de la région s\'affiche quand tu y entres, et un compteur indique les kilomètres parcourus.',
+      'En pause : Reprendre, Nouvelle route ou Menu, avec le numéro de la route pour la retrouver.',
+    ],
+  },
+  {
     version: '0.3.14',
     date: '30/09/2026',
     titre: 'Quatre nouvelles voitures',
