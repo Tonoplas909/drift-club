@@ -13,6 +13,17 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.4.3',
+    date: '02/10/2026',
+    titre: 'Fumées de pneus',
+    notes: [
+      '24 fumées de pneus à collectionner, de la commune à l\'exotique : couleurs unies, dégradés, damier, feu, néon, givre, arc-en-ciel, galaxie, poussière d\'or, prisme, aurore…',
+      'Elles sortent des caisses, comme les livrées ; les plus rares brillent, changent de couleur ou lâchent des paillettes.',
+      'Nouvelle section « Fumée des pneus » dans le garage : une fumée pour toutes les voitures, en niveau comme en mode Zen.',
+      'Les fumées débloquées sont enregistrées dans ton compte.',
+    ],
+  },
+  {
     version: '0.4.2',
     date: '01/10/2026',
     titre: 'Dix nouveaux niveaux',
