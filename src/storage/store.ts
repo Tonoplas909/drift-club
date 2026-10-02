@@ -4,6 +4,7 @@ import { MODE_IDS } from '../core/physics/assists';
 import type { Level } from '../core/level/types';
 import { validateLevel } from '../core/level/validate';
 import { validerSkins, type SkinsChoisies } from '../core/skins';
+import { FUMEE_DEFAUT, validerFumee, type FumeeId } from '../core/fumees';
 import { offrirCaisse, progressionInitiale, validerProgression, type Progression } from '../core/economie';
 import type { EtatProgressionCompte } from '../core/progressionCompte';
 
@@ -20,6 +21,8 @@ export interface Reglages {
   couleur: string;
   /** livrée mémorisée par voiture (absente = « unie ») */
   skins: SkinsChoisies;
+  /** fumée des pneus choisie, pour toutes les voitures (« classique » = celle du décor) */
+  fumee: FumeeId;
   volume: number;
   muet: boolean;
   qualite: Qualite;
@@ -80,6 +83,7 @@ export function defaultReglages(touch: boolean): Reglages {
     voiture: 'equilibree',
     couleur: '#e63b2e',
     skins: {},
+    fumee: FUMEE_DEFAUT,
     volume: 0.8,
     muet: false,
     qualite: 'auto',
@@ -123,6 +127,7 @@ export class Store {
       voiture: CAR_IDS.includes(o.voiture as CarId) ? (o.voiture as CarId) : d.voiture,
       couleur: typeof o.couleur === 'string' && /^#[0-9a-f]{6}$/i.test(o.couleur) ? o.couleur : d.couleur,
       skins: validerSkins(o.skins),
+      fumee: validerFumee(o.fumee),
       volume: typeof o.volume === 'number' && o.volume >= 0 && o.volume <= 1 ? o.volume : d.volume,
       muet: typeof o.muet === 'boolean' ? o.muet : d.muet,
       qualite: QUALITES.includes(o.qualite as Qualite) ? (o.qualite as Qualite) : d.qualite,

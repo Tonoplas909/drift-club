@@ -7,12 +7,14 @@ export interface QualitySettings {
   shadows: boolean;
   fogFar: number;
   smokeMax: number;
+  /** étincelles des fumées à paillettes */
+  sparkMax: number;
   skidMax: number;
 }
 
 export const QUALITY: Record<QualityLevel, QualitySettings> = {
-  basse: { maxPixelRatio: 1, shadows: false, fogFar: 180, smokeMax: 60, skidMax: 250 },
-  haute: { maxPixelRatio: 2, shadows: true, fogFar: 350, smokeMax: 150, skidMax: 600 },
+  basse: { maxPixelRatio: 1, shadows: false, fogFar: 180, smokeMax: 60, sparkMax: 40, skidMax: 250 },
+  haute: { maxPixelRatio: 2, shadows: true, fogFar: 350, smokeMax: 150, sparkMax: 120, skidMax: 600 },
 };
 
 /** Qualité « auto » : Haute sur PC, Basse au tactile ; passe en Basse si < 50 i/s pendant 3 s. */

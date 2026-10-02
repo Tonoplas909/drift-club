@@ -4,6 +4,7 @@ import type { CarId, CarState } from '../core/physics/types';
 import { CARS } from '../core/physics/cars';
 import { vitessePratique } from '../core/physics/vitessePratique';
 import { skinDef, type SkinId } from '../core/skins';
+import { fumeeDef, type FumeeId } from '../core/fumees';
 import type { RouteZen } from '../core/zen/route';
 import { ambianceA } from '../core/zen/regions';
 import type { Assets } from './assets';
@@ -28,6 +29,8 @@ export interface ZenWorldInit {
   carId: CarId;
   color: string;
   skin?: SkinId;
+  /** fumée des pneus (défaut : classique, celle du décor) */
+  fumee?: FumeeId;
   quality: QualityLevel;
 }
 
@@ -101,9 +104,9 @@ export class ZenWorld {
     this.carView = new CarView(assets.cars[init.carId], init.color, q.shadows, skinDef(init.carId, init.skin));
     this.scene.add(this.carView.root, this.gauge.root);
     this.gaugeMax = vitessePratique(CARS[init.carId]);
-    this.smoke = new SmokeSystem(q.smokeMax, p.fumee);
+    this.smoke = new SmokeSystem(q.smokeMax, p.fumee, fumeeDef(init.fumee).style, q.sparkMax);
     this.skids = new SkidMarks(q.skidMax);
-    this.scene.add(this.smoke.mesh, this.skids.mesh);
+    this.scene.add(this.smoke.mesh, this.smoke.sparks, this.skids.mesh);
     this.appliquerPalette(p);
   }
 
@@ -138,7 +141,7 @@ export class ZenWorld {
     const u = (this.sky.material as THREE.ShaderMaterial).uniforms;
     (u.top.value as THREE.Color).set(p.skyTop);
     (u.bottom.value as THREE.Color).set(p.skyBottom);
-    ((this.smoke.mesh.material as THREE.MeshToonMaterial).color).set(p.fumee);
+    this.smoke.setCouleurDecor(p.fumee);
   }
 
   setQuality(level: QualityLevel): void {

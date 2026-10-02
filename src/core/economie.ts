@@ -1,8 +1,9 @@
 import type { CarId } from './physics/types';
 import { CAR_IDS } from './physics/cars';
 import type { Rng } from './math/rng';
-import { SKIN_DEFAUT, skinValide, type SkinId, type SkinsChoisies } from './skins';
-import { tirer, estDebloque, type Tirage } from './caisses';
+import { SKIN_DEFAUT, type SkinId, type SkinsChoisies } from './skins';
+import { FUMEE_DEFAUT, CLE_FUMEE, type FumeeId } from './fumees';
+import { tirer, estDebloque, idValide, defautDe, COLLECTIONS, type CleCollection, type Tirage } from './caisses';
 
 /** Toute l'économie du jeu au même endroit, pour l'ajuster facilement. */
 export const ECONOMIE = {
@@ -18,23 +19,23 @@ export const ECONOMIE = {
   remboursementDoublon: 1,
 } as const;
 
-/** Progression locale du joueur (clés, livrées gagnées) ; « unie » n'y figure pas, elle est toujours débloquée. */
+/** Progression locale du joueur (clés, livrées et fumées gagnées) ; « unie » et « classique » n'y figurent pas, toujours débloquées. */
 export interface Progression {
   cles: number;
-  debloques: Record<CarId, SkinId[]>;
+  debloques: Record<CleCollection, SkinId[]>;
   /** true quand la caisse offerte du premier lancement a déjà été créditée */
   caisseOfferte: boolean;
   /** nombre de caisses ouvertes */
   ouvertes: number;
 }
 
-const debloquesVides = (): Record<CarId, SkinId[]> => Object.fromEntries(CAR_IDS.map((c) => [c, [] as SkinId[]])) as Record<CarId, SkinId[]>;
+const debloquesVides = (): Record<CleCollection, SkinId[]> => Object.fromEntries(COLLECTIONS.map((c) => [c, [] as SkinId[]])) as Record<CleCollection, SkinId[]>;
 
 export const progressionVide = (): Progression => ({ cles: 0, debloques: debloquesVides(), caisseOfferte: false, ouvertes: 0 });
 
-/** Ajoute `skin` aux livrées débloquées de `car` (sans doublon, « unie » ignorée). */
-function avecDebloque(d: Record<CarId, SkinId[]>, car: CarId, skin: SkinId): Record<CarId, SkinId[]> {
-  if (skin === SKIN_DEFAUT || !skinValide(car, skin) || d[car].includes(skin)) return d;
+/** Ajoute `skin` aux objets débloqués de `car` (voiture ou `fumee` ; sans doublon, « unie » et « classique » ignorées). */
+function avecDebloque(d: Record<CleCollection, SkinId[]>, car: CleCollection, skin: SkinId): Record<CleCollection, SkinId[]> {
+  if (skin === defautDe(car) || !idValide(car, skin) || d[car].includes(skin)) return d;
   return { ...d, [car]: [...d[car], skin] };
 }
 
@@ -59,7 +60,7 @@ export function validerProgression(raw: unknown): Progression {
   p.caisseOfferte = o.caisseOfferte === true;
   const d = o.debloques;
   if (typeof d === 'object' && d !== null && !Array.isArray(d)) {
-    for (const car of CAR_IDS) {
+    for (const car of COLLECTIONS) {
       const l = (d as Record<string, unknown>)[car];
       if (Array.isArray(l)) for (const id of l) p.debloques = avecDebloque(p.debloques, car, id as SkinId);
     }
@@ -73,7 +74,13 @@ export function offrirCaisse(p: Progression): Progression {
   return { ...p, caisseOfferte: true, cles: p.cles + ECONOMIE.caissesOffertes * ECONOMIE.coutCaisse };
 }
 
-export const livreeDebloquee = (p: Progression, car: CarId, skin: SkinId): boolean => estDebloque(p.debloques, car, skin);
+export const livreeDebloquee = (p: Progression, car: CleCollection, skin: SkinId): boolean => estDebloque(p.debloques, car, skin);
+
+/** Fumée de pneus débloquée ? (« classique » l'est toujours.) */
+export const fumeeDebloquee = (p: Progression, id: FumeeId): boolean => estDebloque(p.debloques, CLE_FUMEE, id);
+
+/** Ramène la fumée choisie à « classique » si elle n'est pas débloquée. */
+export const fumeeAutorisee = (id: FumeeId, p: Progression): FumeeId => (fumeeDebloquee(p, id) ? id : FUMEE_DEFAUT);
 
 /** Ramène chaque livrée choisie à « unie » si elle n'est pas débloquée. */
 export function skinsAutorises(skins: SkinsChoisies, p: Progression): SkinsChoisies {

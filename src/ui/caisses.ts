@@ -1,11 +1,13 @@
 import { h } from './screens';
 import { CARS } from '../core/physics/cars';
+import type { CarId } from '../core/physics/types';
 import { RARETES, RARETE_IDS, formatPoids, type Rarete } from '../core/raretes';
 import { SKINS, accentSkin, couleurEffective } from '../core/skins';
+import { fumeeDef } from '../core/fumees';
 import { ECONOMIE, peutOuvrir, type Ouverture, type Progression } from '../core/economie';
-import { INDEX_GAGNANT, construireBande, tirerObjet, type Objet } from '../core/caisses';
+import { INDEX_GAGNANT, construireBande, estFumee, infoObjet, tirerObjet, type Objet } from '../core/caisses';
 import type { Rng } from '../core/math/rng';
-import { iconeCaisse, iconeCle, iconeVoiture } from './svg';
+import { iconeCaisse, iconeCle, iconeFumee, iconeVoiture } from './svg';
 import { DUREE_ROULETTE, DUREE_ROULETTE_REDUITE, defilementFinal, easeOutRoulette, indexSousRepere, nouvelRng } from './roulette';
 
 export interface AudioCaisses {
@@ -43,6 +45,15 @@ const cle = (n: number): string => `${n} clé${n > 1 ? 's' : ''}`;
 
 /** Carte de la roulette : barre de rareté, pastille de livrée, voiture et nom. */
 function carte(o: Objet, couleur: string): HTMLElement {
+  if (o.car === 'fumee') {
+    const f = fumeeDef(o.skin);
+    return h('div', { class: 'cs-carte', style: `--rc:${RARETES[o.rarete].couleur}` },
+      iconeFumee(f.style),
+      h('span', { class: 'cs-voit' }, 'Fumée'),
+      h('b', { class: 'cs-nom' }, f.nom),
+      h('i', { class: 'cs-barre' }),
+    );
+  }
   const def = SKINS[o.car].find((s) => s.id === o.skin)!;
   const base = couleurEffective(def, couleur);
   return h('div', { class: 'cs-carte', style: `--rc:${RARETES[o.rarete].couleur}` },
@@ -121,20 +132,22 @@ export function ecranCaisses(o: OptionsCaisses): HTMLElement {
   /** Fiche de révélation : lueur de la rareté, nouvelle livrée ou doublon, actions. */
   const reveler = (ou: Ouverture): void => {
     etat = 'revele';
-    const x = ou.tirage.objet, def = SKINS[x.car].find((s) => s.id === x.skin)!, r = RARETES[x.rarete];
+    const x = ou.tirage.objet, info = infoObjet(x), fumee = estFumee(x), r = RARETES[x.rarete];
+    const def = fumee ? null : SKINS[x.car as CarId].find((s) => s.id === x.skin)!;
     ecran.classList.add('revele');
     o.audio.reveal(x.rarete);
     o.onApercu?.(x);
     const p = o.progression();
     ecran.append(h('div', { class: `cs-revele r-${x.rarete}`, style: `--rc:${r.couleur}` },
       h('div', { class: 'cs-lueur' }),
-      h('div', { class: 'cs-fiche', role: 'dialog', 'aria-label': 'Livrée gagnée' },
+      h('div', { class: 'cs-fiche', role: 'dialog', 'aria-label': fumee ? 'Fumée gagnée' : 'Livrée gagnée' },
         h('span', { class: 'cs-rarete' }, r.nom),
-        h('h2', {}, ou.tirage.doublon ? `Doublon : +${ou.remboursement} clé${ou.remboursement > 1 ? 's' : ''}` : 'Nouvelle livrée !'),
-        h('p', { class: 'cs-obj' }, h('b', {}, def.nom), ` · ${CARS[x.car].nom}`),
-        h('p', { class: 'cs-desc petit' }, def.description),
-        h('p', { class: 'petit' }, ou.tirage.doublon ? 'Tu avais déjà cette livrée : une clé te revient.' : 'Elle est débloquée pour ton Garage.'),
-        def.couleurForcee && h('p', { class: 'petit' }, 'Couleur imposée par la livrée.'),
+        h('h2', {}, ou.tirage.doublon ? `Doublon : +${ou.remboursement} clé${ou.remboursement > 1 ? 's' : ''}` : fumee ? 'Nouvelle fumée !' : 'Nouvelle livrée !'),
+        h('p', { class: 'cs-obj' }, h('b', {}, info.nom), ` · ${fumee ? 'Fumée de pneus' : CARS[x.car as CarId].nom}`),
+        fumee && h('div', { class: 'fumee-info' }, iconeFumee(fumeeDef(x.skin).style, 'ico-fumee')),
+        h('p', { class: 'cs-desc petit' }, info.description),
+        h('p', { class: 'petit' }, ou.tirage.doublon ? (fumee ? 'Tu avais déjà cette fumée : une clé te revient.' : 'Tu avais déjà cette livrée : une clé te revient.') : (fumee ? 'Elle est débloquée pour tes dérapages.' : 'Elle est débloquée pour ton Garage.')),
+        def?.couleurForcee && h('p', { class: 'petit' }, 'Couleur imposée par la livrée.'),
         h('p', { class: 'cs-total' }, iconeCle(), `Tu as ${cle(p.cles)}`),
         h('div', { class: 'row' },
           h('button', { class: 'btn', onclick: () => o.onEquiper(x) }, 'Équiper'),

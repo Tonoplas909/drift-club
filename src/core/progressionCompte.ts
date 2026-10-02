@@ -1,8 +1,8 @@
 import type { CarId } from './physics/types';
 import { CAR_IDS } from './physics/cars';
 import { estRarete } from './raretes';
-import { SKIN_DEFAUT, skinValide, type SkinId } from './skins';
-import { estDebloque, type Objet } from './caisses';
+import type { SkinId } from './skins';
+import { COLLECTIONS, defautDe, estCollection, estDebloque, idValide, type CleCollection, type Objet } from './caisses';
 import { progressionVide, validerProgression, type GainCourse, type Progression } from './economie';
 
 /**
@@ -14,10 +14,10 @@ export interface ProgressionCompte { progression: Progression; importee: boolean
 /** Plafond de clés repris à l'import (le serveur applique le même). */
 export const PLAFOND_CLES_IMPORT = 30;
 
-/** Livrées au format du serveur : « voiture:skin » (« unie » n'y figure jamais). */
-export function debloquesVersLignes(d: Record<CarId, SkinId[]>): string[] {
+/** Objets au format du serveur : « voiture:skin » ou « fumee:id » (« unie » et « classique » n'y figurent jamais). */
+export function debloquesVersLignes(d: Record<CleCollection, SkinId[]>): string[] {
   const out: string[] = [];
-  for (const car of CAR_IDS) for (const s of d[car] ?? []) if (s !== SKIN_DEFAUT && skinValide(car, s)) out.push(`${car}:${s}`);
+  for (const car of COLLECTIONS) for (const s of d[car] ?? []) if (s !== defautDe(car) && idValide(car, s)) out.push(`${car}:${s}`);
   return out;
 }
 
@@ -33,7 +33,7 @@ export function lireProgressionCompte(ligne: unknown): ProgressionCompte | null 
   if (typeof ligne !== 'object' || ligne === null || Array.isArray(ligne)) return null;
   const o = ligne as Record<string, unknown>;
   if (typeof o.cles !== 'number' && typeof o.cles !== 'string') return null;
-  const debloques: Record<string, string[]> = Object.fromEntries(CAR_IDS.map((c) => [c, [] as string[]]));
+  const debloques: Record<string, string[]> = Object.fromEntries(COLLECTIONS.map((c) => [c, [] as string[]]));
   if (Array.isArray(o.debloques)) {
     for (const v of o.debloques) {
       if (typeof v !== 'string') continue;
@@ -45,14 +45,14 @@ export function lireProgressionCompte(ligne: unknown): ProgressionCompte | null 
   return { progression, importee: o.importee === true };
 }
 
-/** Livrée tirée par le serveur (`ouvrir_caisse`) ; null si la voiture, la livrée ou la rareté sont inconnues de cette version du jeu. */
+/** Objet tiré par le serveur (`ouvrir_caisse`) : livrée ou fumée ; null si la collection, l'objet ou la rareté sont inconnus de cette version du jeu. */
 export function lireObjetServeur(ligne: unknown): { objet: Objet; doublon: boolean; cles: number } | null {
   if (typeof ligne !== 'object' || ligne === null || Array.isArray(ligne)) return null;
   const o = ligne as Record<string, unknown>;
   const car = o.voiture, skin = o.skin, cles = Number(o.cles);
-  if (typeof car !== 'string' || !(CAR_IDS as string[]).includes(car)) return null;
-  if (!skinValide(car as CarId, skin) || skin === SKIN_DEFAUT || !estRarete(o.rarete) || !Number.isFinite(cles)) return null;
-  return { objet: { car: car as CarId, skin, rarete: o.rarete }, doublon: o.doublon === true, cles: Math.max(0, Math.floor(cles)) };
+  if (!estCollection(car)) return null;
+  if (!idValide(car, skin) || skin === defautDe(car) || !estRarete(o.rarete) || !Number.isFinite(cles)) return null;
+  return { objet: { car, skin, rarete: o.rarete }, doublon: o.doublon === true, cles: Math.max(0, Math.floor(cles)) };
 }
 
 /** Progression après une ouverture faite par le serveur : clés du serveur, livrée ajoutée sauf doublon. */

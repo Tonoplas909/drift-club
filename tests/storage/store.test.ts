@@ -42,6 +42,16 @@ describe('Store', () => {
     expect(l).toEqual(r);
     expect(l.skins.equilibree).toBeUndefined();
   });
+  it('fumée des pneus : aller-retour, valeur inconnue ou absente → « classique »', () => {
+    const kv = memoryKV(), st = new Store(kv);
+    expect(st.loadReglages(false).fumee).toBe('classique');
+    st.saveReglages({ ...defaultReglages(false), fumee: 'galaxie' });
+    expect(st.loadReglages(false).fumee).toBe('galaxie');
+    kv.setItem('driftclub.v1.reglages', JSON.stringify({ fumee: 'nimporte' }));
+    expect(st.loadReglages(false).fumee).toBe('classique');
+    kv.setItem('driftclub.v1.reglages', JSON.stringify({ voiture: 'turbo' }));
+    expect(st.loadReglages(false).fumee).toBe('classique');
+  });
   it('livrées : anciennes données sans champ « skins » → chargées, livrée par défaut', () => {
     const kv = memoryKV();
     kv.setItem('driftclub.v1.reglages', JSON.stringify({ mode: 'exigeant', voiture: 'turbo', couleur: '#3a6ff0', volume: 0.5, muet: true, qualite: 'haute', accelAuto: false, cameraLoin: true }));
