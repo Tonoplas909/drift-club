@@ -21,6 +21,7 @@ import { ChaseCamera, type ChaseConfig, type CameraTarget } from './camera';
 import { SpeedGauge, gaugeRatio } from './speedGauge';
 import { CARS } from '../core/physics/cars';
 import { skinDef, type SkinId } from '../core/skins';
+import { fumeeDef, type FumeeId } from '../core/fumees';
 import { vitessePratique } from '../core/physics/vitessePratique';
 import type { CamLibre } from '../debug/camLibre';
 
@@ -35,6 +36,8 @@ export interface WorldInit {
   color: string;
   /** livrée du modèle (défaut : unie) */
   skin?: SkinId;
+  /** fumée des pneus (défaut : classique, celle du décor) */
+  fumee?: FumeeId;
   quality: QualityLevel;
 }
 
@@ -122,9 +125,9 @@ export class World {
     this.carView = new CarView(assets.cars[init.carId], init.color, q.shadows, skinDef(init.carId, init.skin));
     this.scene.add(this.carView.root, this.gauge.root);
     this.gaugeMax = vitessePratique(CARS[init.carId]);
-    this.smoke = new SmokeSystem(q.smokeMax, p.fumee);
+    this.smoke = new SmokeSystem(q.smokeMax, p.fumee, fumeeDef(init.fumee).style, q.sparkMax);
     this.skids = new SkidMarks(q.skidMax);
-    this.scene.add(this.smoke.mesh, this.skids.mesh);
+    this.scene.add(this.smoke.mesh, this.smoke.sparks, this.skids.mesh);
   }
 
   setQuality(level: QualityLevel): void {

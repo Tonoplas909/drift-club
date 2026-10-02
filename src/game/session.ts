@@ -58,7 +58,7 @@ export class GameSession {
   constructor(private readonly level: PreparedLevel, private readonly deps: SessionDeps, private readonly cb: SessionCallbacks) {
     this.world = new World({
       renderer: deps.renderer, level: level.level, track: level.track, terrain: level.terrain, env: level.env,
-      assets: deps.assets, carId: deps.reglages.voiture, color: deps.reglages.couleur, skin: skinChoisie(deps.reglages.skins, deps.reglages.voiture), quality: deps.quality.level,
+      assets: deps.assets, carId: deps.reglages.voiture, color: deps.reglages.couleur, skin: skinChoisie(deps.reglages.skins, deps.reglages.voiture), fumee: deps.reglages.fumee, quality: deps.quality.level,
     });
     this.race = this.newRace();
     this.loop = new FixedStepLoop(() => this.simStep());

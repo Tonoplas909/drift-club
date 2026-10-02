@@ -1,6 +1,7 @@
 /** Petites icônes SVG en ligne (Garage, caisses, résultats) : balisage statique, aucune donnée saisie n'y entre sauf des couleurs #rrggbb validées. */
 
 import type { CarId } from '../core/physics/types';
+import type { FumeeStyle } from '../core/fumees';
 
 const enSpan = (classe: string, svg: string): HTMLSpanElement => {
   const s = document.createElement('span');
@@ -52,4 +53,55 @@ export function iconeVoiture(base: string, accent: string, modele: CarId = 'equi
 /** Caisse de livrées (coffre à cerclage doré). */
 export function iconeCaisse(classe = 'ico-caisse'): HTMLSpanElement {
   return enSpan(classe, '<svg viewBox="0 0 64 56" width="100%" height="100%"><path d="M6 24 H58 V50 a3 3 0 0 1 -3 3 H9 a3 3 0 0 1 -3 -3 Z" fill="#8a5a2b" stroke="#15131c" stroke-width="3" stroke-linejoin="round"/><path d="M4 12 a3 3 0 0 1 3 -3 H57 a3 3 0 0 1 3 3 V24 H4 Z" fill="#b57a3a" stroke="#15131c" stroke-width="3" stroke-linejoin="round"/><rect x="14" y="9" width="6" height="44" fill="#ffd23f" stroke="#15131c" stroke-width="2.4"/><rect x="44" y="9" width="6" height="44" fill="#ffd23f" stroke="#15131c" stroke-width="2.4"/><rect x="26" y="19" width="12" height="13" rx="2.5" fill="#ffd23f" stroke="#15131c" stroke-width="2.6"/><circle cx="32" cy="25" r="2" fill="#15131c"/></svg>');
+}
+
+const hexRgb = (h: string): [number, number, number] => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+const rgbHex = (c: number[]): string => '#' + c.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
+
+/** Couleur d'un dégradé de `couleurs` (#rrggbb) à la position t ∈ [0, 1]. */
+function couleurSur(couleurs: string[], t: number): string {
+  if (couleurs.length === 1) return couleurs[0];
+  const x = Math.min(1, Math.max(0, t)) * (couleurs.length - 1), i = Math.min(couleurs.length - 2, Math.floor(x)), f = x - i;
+  const a = hexRgb(couleurs[i]), b = hexRgb(couleurs[i + 1]);
+  return rgbHex(a.map((v, k) => v + (b[k] - v) * f));
+}
+
+/** Teinte de repère d'une fumée : sa couleur du milieu de vie (pastilles du Garage). */
+export function teinteFumee(style: FumeeStyle, decor = '#e9e6e1'): string {
+  if (style.arcEnCiel) return '#ff7ad9';
+  return style.couleurs.length === 0 ? decor : couleurSur(style.couleurs, 0.5);
+}
+
+/** Fond CSS d'une pastille de fumée : dégradé des couleurs (arc-en-ciel complet pour les fumées qui tournent). */
+export function fondFumee(style: FumeeStyle, decor = '#e9e6e1'): string {
+  if (style.arcEnCiel) return 'conic-gradient(#ff5d5d, #ffd93a, #6ee21a, #2fd0ff, #8a5cff, #ff5d5d)';
+  const c = style.couleurs.length === 0 ? [decor] : style.couleurs;
+  if (c.length === 1) return c[0];
+  return style.mode === 'alterne'
+    ? `linear-gradient(135deg, ${c.map((x, i) => `${x} ${(i / c.length) * 100}% ${((i + 1) / c.length) * 100}%`).join(', ')})`
+    : `linear-gradient(135deg, ${c.join(', ')})`;
+}
+
+/**
+ * Traînée de bouffées d'une fumée de pneus (remplace le dessin de voiture sur les cartes des caisses) :
+ * couleurs du style le long de la vie, lueur, paillettes ; l'arc-en-ciel tourne (animation CSS, coupée si mouvement réduit).
+ */
+export function iconeFumee(style: FumeeStyle, classe = 'ico-voiture', decor = '#e9e6e1'): HTMLSpanElement {
+  const xs = [9, 21, 33, 45, 56], rs = [4.6, 6.6, 8.2, 7.2, 5];
+  const n = style.couleurs.length;
+  const arc = ['#ff5d5d', '#ffb43a', '#f5e93a', '#4fd85a', '#3aa8ff'];
+  const puffs = xs.map((x, i) => {
+    const t = i / (xs.length - 1);
+    const c = style.arcEnCiel ? arc[i] : style.mode === 'alterne' && n > 0 ? style.couleurs[i % n] : style.couleurs.length === 0 ? decor : couleurSur(style.couleurs, t);
+    const trait = style.lueur ? 'none' : '#15131c';
+    return `<circle cx="${x}" cy="${21 - rs[i]}" r="${rs[i]}" fill="${hexOk(c, '#e9e6e1')}" stroke="${trait}" stroke-width="1.8"/>`;
+  }).join('');
+  const etoiles = style.paillettes
+    ? [[14, 6, 2.6, 0], [28, 3, 2, 1], [41, 5, 3, 2], [52, 9, 2.2, 3], [6, 15, 1.8, 4]].map(([x, y, r, k]) => {
+      const c = style.paillettes!.couleurs[k % style.paillettes!.couleurs.length];
+      return `<path class="fx-etincelle" style="animation-delay:${k * 0.23}s" d="M${x} ${y - r} L${x + r * 0.35} ${y - r * 0.35} L${x + r} ${y} L${x + r * 0.35} ${y + r * 0.35} L${x} ${y + r} L${x - r * 0.35} ${y + r * 0.35} L${x - r} ${y} L${x - r * 0.35} ${y - r * 0.35} Z" fill="${hexOk(c, '#ffffff')}"/>`;
+    }).join('')
+    : '';
+  const fx = (style.arcEnCiel ? ' fx-arc' : '') + (style.lueur ? ' fx-lueur' : '');
+  return enSpan(classe + fx, `<svg viewBox="0 0 64 30" width="100%" height="100%" preserveAspectRatio="xMidYMid meet"><rect x="2" y="23.2" width="60" height="2.6" rx="1.3" fill="#15131c" opacity=".35"/>${puffs}${etoiles}</svg>`);
 }

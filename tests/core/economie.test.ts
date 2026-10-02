@@ -71,23 +71,23 @@ describe('économie : ouverture', () => {
 describe('progression : validation et migration', () => {
   it('migration : les livrées déjà choisies restent débloquées, « unie » n\'est jamais stockée', () => {
     const p = progressionInitiale({ turbo: 'carbone', legere: 'unie', equilibree: 'touge' });
-    expect(p.debloques).toEqual({ equilibree: ['touge'], legere: [], turbo: ['carbone'], kei: [], muscle: [], rotative: [], break: [] });
+    expect(p.debloques).toEqual({ equilibree: ['touge'], legere: [], turbo: ['carbone'], kei: [], muscle: [], rotative: [], break: [], fumee: [] });
     expect(p.cles).toBe(0);
     expect(p.caisseOfferte).toBe(false);
-    expect(progressionInitiale(undefined).debloques).toEqual({ equilibree: [], legere: [], turbo: [], kei: [], muscle: [], rotative: [], break: [] });
+    expect(progressionInitiale(undefined).debloques).toEqual({ equilibree: [], legere: [], turbo: [], kei: [], muscle: [], rotative: [], break: [], fumee: [] });
   });
   it('validation : ids inconnus, doublons et types invalides écartés', () => {
     const p = validerProgression({ cles: 7.9, ouvertes: -3, caisseOfferte: true, debloques: { turbo: ['carbone', 'carbone', 'fantome', 42, 'unie'], legere: 'nope', velo: ['x'], equilibree: ['bande'] } });
     expect(p.cles).toBe(7);
     expect(p.ouvertes).toBe(0);
     expect(p.caisseOfferte).toBe(true);
-    expect(p.debloques).toEqual({ equilibree: [], legere: [], turbo: ['carbone'], kei: [], muscle: [], rotative: [], break: [] }); // « bande » n'existe que pour la Légère
+    expect(p.debloques).toEqual({ equilibree: [], legere: [], turbo: ['carbone'], kei: [], muscle: [], rotative: [], break: [], fumee: [] }); // « bande » n'existe que pour la Légère
     expect(validerProgression('n_importe_quoi')).toEqual(progressionVide());
     expect(validerProgression({ cles: 'beaucoup', caisseOfferte: 'oui' })).toEqual(progressionVide());
     expect(validerProgression({ cles: Infinity }).cles).toBe(0);
   });
   it('skinsAutorises : une livrée verrouillée retombe sur « unie »', () => {
-    const p = { ...progressionVide(), debloques: { equilibree: ['touge'], legere: [], turbo: [], kei: [], muscle: [], rotative: [], break: [] } };
+    const p = { ...progressionVide(), debloques: { equilibree: ['touge'], legere: [], turbo: [], kei: [], muscle: [], rotative: [], break: [], fumee: [] } };
     expect(skinsAutorises({ equilibree: 'touge', legere: 'bande', turbo: 'unie' }, p)).toEqual({ equilibree: 'touge', legere: 'unie', turbo: 'unie' });
     expect(skinsAutorises({}, p)).toEqual({});
   });

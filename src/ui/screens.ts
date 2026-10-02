@@ -8,8 +8,9 @@ import type { Reglages, Qualite } from '../storage/store';
 import { COULEURS } from './couleurs';
 import { accentSkin, choisirSkin, couleurEffective, skinChoisie, skinDef, skinsDe, type SkinId, type SkinsChoisies } from '../core/skins';
 import { RARETES } from '../core/raretes';
-import { ECONOMIE, livreeDebloquee, type GainCourse, type Progression } from '../core/economie';
-import { iconeCadenas, iconeCle } from './svg';
+import { FUMEES, fumeeDef, type FumeeId } from '../core/fumees';
+import { ECONOMIE, fumeeDebloquee, livreeDebloquee, type GainCourse, type Progression } from '../core/economie';
+import { fondFumee, iconeCadenas, iconeCle, iconeFumee } from './svg';
 import { formatScore, formatTime } from './format';
 
 export function levelSummary(data: unknown): { nom: string; longueur: number; ambiance: 'jour' | 'coucher'; theme: string } | null {
@@ -182,8 +183,10 @@ export class Screens {
   }
 
   garage(o: {
-    voiture: CarId; couleur: string; skins: SkinsChoisies; progression: Progression;
+    voiture: CarId; couleur: string; skins: SkinsChoisies; fumee: FumeeId; progression: Progression;
     onChange(voiture: CarId, couleur: string, skins: SkinsChoisies): void;
+    /** fumée de pneus choisie (débloquée) */
+    onFumee(id: FumeeId): void;
     /** aperçu 3D d'une livrée non enregistrée (verrouillée) ou retour à la livrée enregistrée */
     onApercu(voiture: CarId, couleur: string, skin: SkinId): void;
     onCaisses(): void; onRetour(): void;
@@ -191,9 +194,13 @@ export class Screens {
     let voiture = o.voiture, couleur = o.couleur, skins = o.skins;
     /** livrée verrouillée en cours d'aperçu (jamais enregistrée) */
     let apercu: SkinId | null = null;
-    const change = () => { apercu = null; o.onChange(voiture, couleur, skins); render(); };
+    let fumee = o.fumee;
+    /** fumée regardée (choisie, ou verrouillée en aperçu) ; null = on parle de la livrée */
+    let fumeeVue: FumeeId | null = null;
+    const change = () => { apercu = null; fumeeVue = null; o.onChange(voiture, couleur, skins); render(); };
     const render = () => {
       const choisie = skinChoisie(skins, voiture), affichee = apercu ?? choisie, def = skinDef(voiture, affichee);
+      const fv = fumeeVue !== null ? fumeeDef(fumeeVue) : null, fvLibre = fv !== null && fumeeDebloquee(o.progression, fv.id);
       const verrou = apercu !== null;
       const forcee = def.couleurForcee !== undefined;
       const defilement = this.root.querySelector('.garage-corps')?.scrollTop ?? 0; // la liste garde sa place au re-rendu
@@ -214,16 +221,37 @@ export class Screens {
             onclick: () => {
               if (libre) { skins = choisirSkin(skins, voiture, s.id); change(); return; }
               apercu = s.id; // aperçu seulement : rien n'est enregistré
+              fumeeVue = null;
               o.onApercu(voiture, couleur, s.id);
               render();
             },
           }, h('i', { style: `background:linear-gradient(135deg,${couleurEffective(s, couleur)} 50%,${accentSkin(s, couleur)} 50%)` }), s.nom, !libre && iconeCadenas());
         })),
+        h('h3', {}, 'Fumée des pneus'),
+        h('div', { class: 'skins fumees' }, ...FUMEES.map((f) => {
+          const libre = fumeeDebloquee(o.progression, f.id);
+          const classe = 'chip' + (libre ? '' : ' lock') + (libre && f.id === fumee ? ' on' : '') + (f.id === fumeeVue && !libre ? ' apercu' : '');
+          return h('button', {
+            class: classe, style: `--rc:${RARETES[f.rarete].couleur}`,
+            title: `${f.nom} · ${RARETES[f.rarete].nom}${libre ? '' : ' · verrouillée'} — ${f.description}`,
+            onclick: () => {
+              fumeeVue = f.id;
+              if (libre) { fumee = f.id; o.onFumee(f.id); }
+              render();
+            },
+          }, h('i', { style: `background:${fondFumee(f.style)}` }), f.nom, !libre && iconeCadenas());
+        })),
       );
       this.show(h('div', { class: 'screen garage' }, h('div', { class: 'panel side' },
         h('h2', {}, 'Garage'),
         corps,
-        h('div', { class: 'skin-info', style: `--rc:${RARETES[def.rarete].couleur}` },
+        fv ? h('div', { class: 'skin-info', style: `--rc:${RARETES[fv.rarete].couleur}` },
+          h('span', { class: 'cs-rarete' }, RARETES[fv.rarete].nom),
+          h('b', {}, `Fumée · ${fv.nom}`),
+          iconeFumee(fv.style, 'ico-fumee'),
+          h('span', { class: 'petit skin-desc' }, fv.description),
+          !fvLibre && h('span', { class: 'verrou' }, 'Verrouillée — à gagner dans une caisse'),
+        ) : h('div', { class: 'skin-info', style: `--rc:${RARETES[def.rarete].couleur}` },
           h('span', { class: 'cs-rarete' }, RARETES[def.rarete].nom),
           h('b', {}, def.nom),
           h('span', { class: 'petit skin-desc' }, def.description),

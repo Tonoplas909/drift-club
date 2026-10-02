@@ -2,8 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { mulberry32 } from '../../src/core/math/rng';
 import { RARETES, RARETE_IDS, formatPoids } from '../../src/core/raretes';
 import { SKINS, SKIN_DEFAUT } from '../../src/core/skins';
+import { FUMEES } from '../../src/core/fumees';
 import { CAR_IDS } from '../../src/core/physics/cars';
-import { catalogue, construireBande, objetsDeRarete, tirer, tirerObjet, tirerRarete, INDEX_GAGNANT, TAILLE_BANDE, estDebloque } from '../../src/core/caisses';
+import { catalogue, contenuCaisses, construireBande, objetsDeRarete, tirer, tirerObjet, tirerRarete, INDEX_GAGNANT, TAILLE_BANDE, estDebloque } from '../../src/core/caisses';
 
 describe('raretés', () => {
   it('les poids valent 100 % (79,9 / 16 / 3,2 / 0,64 / 0,26)', () => {
@@ -21,9 +22,9 @@ describe('raretés', () => {
 });
 
 describe('catalogue', () => {
-  it('toutes les livrées de toutes les voitures, sauf « unie »', () => {
+  it('toutes les livrées de toutes les voitures et toutes les fumées, sauf « unie » et « classique »', () => {
     const c = catalogue();
-    const attendu = CAR_IDS.reduce((n, car) => n + SKINS[car].length - 1, 0);
+    const attendu = CAR_IDS.reduce((n, car) => n + SKINS[car].length - 1, 0) + FUMEES.length - 1;
     expect(c).toHaveLength(attendu);
     expect(c.some((o) => o.skin === SKIN_DEFAUT)).toBe(false);
     expect(new Set(c.map((o) => `${o.car}/${o.skin}`)).size).toBe(c.length);
@@ -68,7 +69,7 @@ describe('tirer', () => {
     const rng = mulberry32(9);
     const t = tirer(rng, {});
     expect(t.doublon).toBe(false);
-    expect(SKINS[t.objet.car].find((s) => s.id === t.objet.skin)!.rarete).toBe(t.objet.rarete);
+    expect(contenuCaisses()[t.objet.car].find((s) => s.id === t.objet.skin)!.rarete).toBe(t.objet.rarete);
     const inv = { [t.objet.car]: [t.objet.skin] };
     expect(tirer(mulberry32(9), inv).doublon).toBe(true);
     expect(estDebloque(inv, t.objet.car, t.objet.skin)).toBe(true);

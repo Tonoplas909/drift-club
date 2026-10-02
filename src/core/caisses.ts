@@ -2,13 +2,36 @@ import type { CarId } from './physics/types';
 import { CAR_IDS } from './physics/cars';
 import type { Rng } from './math/rng';
 import { RARETES, RARETE_IDS, type Rarete } from './raretes';
-import { SKINS, SKIN_DEFAUT, type SkinId } from './skins';
+import { SKINS, SKIN_DEFAUT, skinDef, skinValide, type SkinId } from './skins';
+import { CLE_FUMEE, FUMEES, FUMEE_DEFAUT, fumeeDef, fumeeValide } from './fumees';
 
-/** Une livrée d'une voiture, telle qu'elle sort d'une caisse. */
-export interface Objet { car: CarId; skin: SkinId; rarete: Rarete }
+/** Collection d'objets des caisses : une voiture (ses livrées) ou `fumee` (les fumées de pneus). */
+export type CleCollection = CarId | typeof CLE_FUMEE;
 
-/** Livrées débloquées par voiture (« unie » l'est toujours, qu'elle figure ou non dans la liste). */
-export type Inventaire = Partial<Record<CarId, SkinId[]>>;
+/** Toutes les collections, dans l'ordre du catalogue. */
+export const COLLECTIONS: CleCollection[] = [...CAR_IDS, CLE_FUMEE];
+
+export const estCollection = (v: unknown): v is CleCollection => typeof v === 'string' && (COLLECTIONS as string[]).includes(v);
+
+/** Objet « par défaut » de la collection : toujours débloqué, absent des caisses (« unie », « classique »). */
+export const defautDe = (cle: CleCollection): SkinId => (cle === CLE_FUMEE ? FUMEE_DEFAUT : SKIN_DEFAUT);
+
+/** `id` existe-t-il dans la collection `cle` ? */
+export const idValide = (cle: CleCollection, id: unknown): id is SkinId => (cle === CLE_FUMEE ? fumeeValide(id) : skinValide(cle, id));
+
+/** Un objet des caisses : une livrée d'une voiture, ou une fumée (`car` vaut alors `fumee`), tel qu'il sort d'une caisse. */
+export interface Objet { car: CleCollection; skin: SkinId; rarete: Rarete }
+
+export const estFumee = (o: Pick<Objet, 'car'>): boolean => o.car === CLE_FUMEE;
+
+/** Nom et description d'un objet des caisses (livrée ou fumée). */
+export function infoObjet(o: Pick<Objet, 'car' | 'skin'>): { nom: string; description: string } {
+  const d = o.car === CLE_FUMEE ? fumeeDef(o.skin) : skinDef(o.car, o.skin);
+  return { nom: d.nom, description: d.description };
+}
+
+/** Objets débloqués par collection (« unie » et « classique » le sont toujours, qu'ils figurent ou non dans la liste). */
+export type Inventaire = Partial<Record<CleCollection, SkinId[]>>;
 
 export interface Tirage { objet: Objet; doublon: boolean }
 
@@ -16,12 +39,19 @@ export interface Tirage { objet: Objet; doublon: boolean }
 export const TAILLE_BANDE = 60;
 export const INDEX_GAGNANT = TAILLE_BANDE - 8;
 
-/** Contenu des caisses : toutes les livrées de toutes les voitures, sauf « unie », rangées par rareté. */
+/** Contenu des caisses par collection : les livrées de chaque voiture et les fumées, sans « unie » ni « classique ». */
+export function contenuCaisses(): Record<string, { id: string; rarete: Rarete }[]> {
+  const out: Record<string, { id: string; rarete: Rarete }[]> = {};
+  for (const car of CAR_IDS) out[car] = SKINS[car].filter((s) => s.id !== SKIN_DEFAUT).map((s) => ({ id: s.id, rarete: s.rarete }));
+  out[CLE_FUMEE] = FUMEES.filter((f) => f.id !== FUMEE_DEFAUT).map((f) => ({ id: f.id, rarete: f.rarete }));
+  return out;
+}
+
+/** Contenu des caisses : toutes les livrées de toutes les voitures et toutes les fumées, rangées par rareté. */
 function construireParRarete(): Record<Rarete, Objet[]> {
   const out = Object.fromEntries(RARETE_IDS.map((r) => [r, [] as Objet[]])) as Record<Rarete, Objet[]>;
-  for (const car of CAR_IDS) {
-    for (const s of SKINS[car]) if (s.id !== SKIN_DEFAUT) out[s.rarete].push({ car, skin: s.id, rarete: s.rarete });
-  }
+  const contenu = contenuCaisses();
+  for (const car of COLLECTIONS) for (const s of contenu[car]) out[s.rarete].push({ car, skin: s.id, rarete: s.rarete });
   return out;
 }
 
@@ -48,8 +78,8 @@ export function tirerObjet(rng: Rng): Objet {
   return liste[Math.min(liste.length - 1, Math.floor(rng() * liste.length))];
 }
 
-export const estDebloque = (inv: Inventaire, car: CarId, skin: SkinId): boolean =>
-  skin === SKIN_DEFAUT || (inv[car]?.includes(skin) ?? false);
+export const estDebloque = (inv: Inventaire, car: CleCollection, skin: SkinId): boolean =>
+  skin === defautDe(car) || (inv[car]?.includes(skin) ?? false);
 
 /** Ouverture d'une caisse : le tirage et s'il s'agit d'un doublon (déjà débloquée dans `inv`). */
 export function tirer(rng: Rng, inv: Inventaire): Tirage {

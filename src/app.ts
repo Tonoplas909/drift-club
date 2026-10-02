@@ -16,7 +16,9 @@ import { NIVEAUX_OFFICIELS, cleNiveauOfficiel } from './levels';
 import { Screens, levelSummary, type NiveauCarte } from './ui/screens';
 import { formatDistance } from './ui/format';
 import { skinChoisie, choisirSkin } from './core/skins';
-import { ECONOMIE, gagnerCourse, ouvrirCaisse, skinsAutorises, type GainCourse, type Progression } from './core/economie';
+import { estFumee } from './core/caisses';
+import type { CarId } from './core/physics/types';
+import { ECONOMIE, fumeeAutorisee, gagnerCourse, ouvrirCaisse, skinsAutorises, type GainCourse, type Progression } from './core/economie';
 import { appliquerOuvertureServeur, choisirProgression, doitImporter, gainServeur, type EtatProgressionCompte, type ProgressionActive } from './core/progressionCompte';
 import type { Objet } from './core/caisses';
 import type { Rng } from './core/math/rng';
@@ -166,7 +168,8 @@ export class App {
     const e = this.compte.etat;
     if (e.statut === 'connecte' && e.pseudo && !this.serviceProgAbsent && this.compteProg?.id !== e.id) return;
     const autorisees = skinsAutorises(this.reglages.skins, this.prog().progression);
-    if (JSON.stringify(autorisees) !== JSON.stringify(this.reglages.skins)) { this.reglages.skins = autorisees; this.save(); }
+    const fumee = fumeeAutorisee(this.reglages.fumee, this.prog().progression);
+    if (JSON.stringify(autorisees) !== JSON.stringify(this.reglages.skins) || fumee !== this.reglages.fumee) { this.reglages.skins = autorisees; this.reglages.fumee = fumee; this.save(); }
   }
 
   private memoriserCompteProg(e: EtatProgressionCompte): void {
@@ -355,7 +358,12 @@ export class App {
       voiture: this.reglages.voiture,
       couleur: this.reglages.couleur,
       skins: this.reglages.skins,
+      fumee: this.reglages.fumee,
       progression: this.prog().progression,
+      onFumee: (id) => {
+        this.reglages.fumee = fumeeAutorisee(id, this.prog().progression);
+        this.save();
+      },
       onChange: (voiture, couleur, skins) => {
         this.reglages.voiture = voiture;
         this.reglages.couleur = couleur;
@@ -409,8 +417,11 @@ export class App {
       couleur: () => this.reglages.couleur,
       onApercu: (x) => this.apercuCaisse(x),
       onEquiper: (x) => {
-        this.reglages.voiture = x.car;
-        this.reglages.skins = choisirSkin(this.reglages.skins, x.car, x.skin);
+        if (estFumee(x)) this.reglages.fumee = x.skin;
+        else {
+          this.reglages.voiture = x.car as CarId;
+          this.reglages.skins = choisirSkin(this.reglages.skins, x.car as CarId, x.skin);
+        }
         this.save();
         this.garage(retour);
       },
@@ -428,8 +439,8 @@ export class App {
   /** Montre la livrée gagnée dans le showroom, derrière la fiche de révélation ; `null` l'arrête. */
   private apercuCaisse(x: Objet | null): void {
     if (!this.showroom) return;
-    if (!x) { this.showroom.stop(); return; }
-    this.showroom.setCar(x.car, this.reglages.couleur, x.skin);
+    if (!x || estFumee(x)) { this.showroom.stop(); return; } // une fumée n'a pas d'aperçu 3D : la fiche la montre
+    this.showroom.setCar(x.car as CarId, this.reglages.couleur, x.skin);
     this.showroom.start();
   }
 

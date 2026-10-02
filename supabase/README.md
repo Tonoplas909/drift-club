@@ -34,7 +34,7 @@ La migration `0005` ajoute la progression dans le compte :
 - `ouvrir_caisse()` : paie 3 clés, tire la rareté (79,9 / 16 / 3,2 / 0,64 / 0,26 %, poids renormalisés si une rareté est vide) puis une livrée au hasard côté serveur ; un doublon rend 1 clé ; la ligne est verrouillée pendant l'appel (pas de double dépense) ;
 - `soumettre_score(...)` (même résultat qu'avant, plus `cles_gagnees`, `cles_record`, `cles`) : +1 clé par arrivée, +1 sur un record en ligne, sans clé si la précédente date de moins de 20 s.
 
-**Livrées** : `0006_catalogue_skins.sql` est **générée** depuis `src/core/skins.ts`. Après avoir ajouté ou retiré des livrées, relance `npx vite-node tools/gen-catalogue-sql.ts` puis colle le nouveau `0006` dans le SQL Editor (upsert et suppression, sans danger) ; sinon les nouvelles livrées ne sortent pas des caisses du compte. Un test échoue tant que le fichier n'est pas régénéré.
+**Livrées et fumées** : `0006_catalogue_skins.sql` est **générée** depuis `src/core/skins.ts` et `src/core/fumees.ts` (les fumées de pneus y sont des lignes `('fumee', id, rareté)`, tirées par les mêmes caisses). Après avoir ajouté ou retiré des livrées, relance `npx vite-node tools/gen-catalogue-sql.ts` puis colle le nouveau `0006` dans le SQL Editor (upsert et suppression, sans danger) ; sinon les nouvelles livrées ne sortent pas des caisses du compte. Un test échoue tant que le fichier n'est pas régénéré.
 
 La sécurité repose sur le RLS : la clé publiable est dans le code du jeu, mais elle ne permet que de lire les profils et scores, d'écrire son propre profil et d'appeler `soumettre_score`. Aucune écriture directe dans `scores` ni dans `niveaux_publics`.
 

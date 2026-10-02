@@ -64,7 +64,7 @@ export class ZenSession {
     this.route.toutFaire();
     this.world = new ZenWorld({
       renderer: d.renderer, route: this.route, assets: d.assets, carId: r.voiture, color: r.couleur,
-      skin: skinChoisie(r.skins, r.voiture), quality: d.quality.level,
+      skin: skinChoisie(r.skins, r.voiture), fumee: r.fumee, quality: d.quality.level,
     });
     this.world.troncons.appliquer(this.route.vider());
     this.sim = new ZenSim(this.route, CARS[r.voiture], MODES[r.mode]);
