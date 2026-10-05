@@ -14,7 +14,7 @@ La version affichée en bas à gauche des menus (« v0.4.3 ») vient de `package
 - Textes du jeu et commentaires en français.
 - `src/core/**` reste pur : pas de three.js, pas de DOM, pas de `Math.random`, `Date` ni `performance`.
 - `src/core/**` est déterministe au bit près (le serveur rejoue les courses pour vérifier les scores) : `sin`, `cos`, `tan`, `atan`, `atan2`, `exp`, `hypot` viennent de `src/core/math/dmath.ts`, jamais de `Math` (un test le vérifie). Pas de `-0` dans les commandes (voir `quantifier`).
-- Après un changement de `src/core` ou des niveaux officiels : `npx vite-node tools/gen-fonction.ts` (Edge Function `supabase/functions/verifier-course/course.js` et `src/online/empreinteSimulation.ts`, un test vérifie qu'ils sont à jour), et rappeler au propriétaire de redéployer la fonction.
+- Après un changement de `src/core` ou des niveaux officiels : `npx vite-node tools/gen-fonction.ts` (Edge Function `supabase/functions/verifier-course/course.js` et `src/online/empreinteSimulation.ts`, un test vérifie qu'ils sont à jour). Le push sur `main` redéploie la fonction juste après le site (job `fonction`, secret `SUPABASE_ACCESS_TOKEN`) ; si le secret manque, rappeler au propriétaire de la redéployer à la main.
 - Avant de pousser : `npx vitest run`, `npx tsc --noEmit`, `npm run build`.
 - Un push sur `main` lance les tests puis publie sur GitHub Pages.
 - Supabase : les migrations (`supabase/migrations/`) sont appliquées à la main par le propriétaire dans le SQL Editor ; le code client doit rester utilisable tant qu'elles ne sont pas passées.

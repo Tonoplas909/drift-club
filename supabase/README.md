@@ -54,7 +54,14 @@ Le jeu tourne dans le navigateur : n'importe qui peut y modifier la variable du 
 
 ### Déployer la fonction
 
-Une seule fois : installe la [CLI Supabase](https://supabase.com/docs/guides/cli), puis `supabase login`.
+**Automatiquement (recommandé)** : à chaque push sur `main`, GitHub Actions publie le site puis redéploie aussitôt la fonction (job `fonction` de `.github/workflows/deploy.yml`). Il faut une seule fois :
+
+1. Créer un jeton : [supabase.com/dashboard/account/tokens](https://supabase.com/dashboard/account/tokens) → **Generate new token** (nom : `github-drift-club`), copier la valeur.
+2. Sur GitHub : dépôt → **Settings → Secrets and variables → Actions → New repository secret**, nom `SUPABASE_ACCESS_TOKEN`, valeur : le jeton.
+
+Sans ce secret, le job affiche un avertissement et ne déploie rien.
+
+**À la main** : une seule fois, installe la [CLI Supabase](https://supabase.com/docs/guides/cli), puis `supabase login`.
 
 ```bash
 supabase functions deploy verifier-course --project-ref studzxweqmgpuhgsvxmi --no-verify-jwt --use-api
@@ -62,7 +69,7 @@ supabase functions deploy verifier-course --project-ref studzxweqmgpuhgsvxmi --n
 
 `--no-verify-jwt` est voulu : la fonction vérifie elle-même le jeton du joueur (sinon la requête CORS préalable du navigateur est refusée). Elle utilise les clés que Supabase lui fournit (`SUPABASE_URL`, clé secrète) : rien à configurer.
 
-**À chaque version qui touche la simulation** (`src/core`, niveaux officiels), il faut régénérer puis redéployer la fonction : `npx vite-node tools/gen-fonction.ts` (un test échoue tant que ce n'est pas fait), puis la commande ci-dessus. Le jeu envoie l'empreinte de sa simulation (`src/online/empreinteSimulation.ts`) ; si la fonction déployée n'a pas la même, le score est refusé avec « recharge la page » et reste enregistré en local.
+**À chaque version qui touche la simulation** (`src/core`, niveaux officiels), il faut régénérer puis redéployer la fonction : `npx vite-node tools/gen-fonction.ts` (un test échoue tant que ce n'est pas fait), puis le déploiement (automatique avec le secret, sinon la commande ci-dessus). Le jeu envoie l'empreinte de sa simulation (`src/online/empreinteSimulation.ts`) ; si la fonction déployée n'a pas la même, le score est refusé avec « recharge la page » et reste enregistré en local.
 
 Ordre de mise en place : 1) déployer la fonction, 2) coller `0008` (puis `0009`, toujours après la fonction de la même version). Tant que la fonction n'est pas déployée ou que `0008` n'est pas passée, le jeu se rabat sur l'ancien envoi (`soumettre_score`, non vérifié).
 

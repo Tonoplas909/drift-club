@@ -34,3 +34,22 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+  # Vérification des scores : redéploie l'Edge Function verifier-course juste après le site, pour que le jeu publié et
+  # la fonction rejouent les courses avec la même simulation. Il faut le secret SUPABASE_ACCESS_TOKEN (voir supabase/README.md) ;
+  # sans lui, l'étape est sautée avec un avertissement et la fonction se redéploie à la main.
+  fonction:
+    needs: deploy
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - if: env.SUPABASE_ACCESS_TOKEN == ''
+        run: 'echo "::warning::Secret SUPABASE_ACCESS_TOKEN absent, Edge Function verifier-course non redéployée (à faire à la main)."'
+      - if: env.SUPABASE_ACCESS_TOKEN != ''
+        uses: actions/checkout@v4
+      - if: env.SUPABASE_ACCESS_TOKEN != ''
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - if: env.SUPABASE_ACCESS_TOKEN != ''
+        run: supabase functions deploy verifier-course --project-ref studzxweqmgpuhgsvxmi --no-verify-jwt --use-api
