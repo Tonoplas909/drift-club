@@ -2,6 +2,7 @@ import type { Level, PointRoute, Barriere, CoteBarriere, TypeObjet } from '../le
 import { LIMITES } from '../level/types';
 import { clamp } from '../math/vec';
 import { aire, autoIntersection } from '../env/eau';
+import * as dm from '../math/dmath';
 
 export type CoteEdit = 'gauche' | 'droite' | 'ext';
 
@@ -218,7 +219,7 @@ export function nearestPoint(l: Level, x: number, z: number, maxDist: number): n
   let bestDist = Infinity;
   for (let i = 0; i < l.route.length; i++) {
     const p = l.route[i];
-    const d = Math.hypot(p.x - x, p.z - z);
+    const d = dm.hypot(p.x - x, p.z - z);
     if (d < bestDist) {
       bestDist = d;
       best = i;
@@ -244,7 +245,7 @@ export function nearestSegment(l: Level, x: number, z: number, maxDist: number):
     const t = clamp(((x - p1.x) * dx + (z - p1.z) * dz) / lenSq, 0, 1);
     const px = p1.x + t * dx;
     const pz = p1.z + t * dz;
-    const d = Math.hypot(px - x, pz - z);
+    const d = dm.hypot(px - x, pz - z);
 
     if (d < bestDist) {
       bestDist = d;
@@ -269,7 +270,7 @@ export function nearestObjet(l: Level, x: number, z: number, maxDist: number): n
   let bestDist = Infinity;
   for (let i = 0; i < l.objets.length; i++) {
     const o = l.objets[i];
-    const d = Math.hypot(o.x - x, o.z - z);
+    const d = dm.hypot(o.x - x, o.z - z);
     if (d < bestDist) {
       bestDist = d;
       best = i;

@@ -13,6 +13,17 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.4.4',
+    date: '05/10/2026',
+    titre: 'Classement anti-triche',
+    notes: [
+      'Les scores en ligne sont maintenant vérifiés : le serveur rejoue ta course à partir des commandes enregistrées pendant que tu conduis.',
+      'Course honnête : ton score est gardé tel quel. Score modifié dans le navigateur : c\'est le score de la course rejouée qui compte.',
+      'Une course qui ne va pas jusqu\'à l\'arrivée n\'entre plus au classement.',
+      'Si le serveur a corrigé ton score, l\'écran des résultats l\'indique.',
+    ],
+  },
+  {
     version: '0.4.3',
     date: '02/10/2026',
     titre: 'Fumées de pneus',

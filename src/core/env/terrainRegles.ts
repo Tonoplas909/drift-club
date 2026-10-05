@@ -1,5 +1,6 @@
 import { hash2 } from '../math/rng';
 import { smoothstep } from '../math/vec';
+import * as dm from '../math/dmath';
 
 /**
  * Modelage du terrain propre à un thème (données pures, lues par `Terrain`) : mer (pirate) et cratères (espace).
@@ -56,13 +57,13 @@ export function creuxCratere(r: RegleCratere, x: number, z: number, d: number, g
       const cx = (i + 0.15 + 0.7 * hash2(i, j, graine + 602)) * C;
       const cz = (j + 0.15 + 0.7 * hash2(i, j, graine + 603)) * C;
       const R = r.rayon[0] + r.rayon[1] * hash2(i, j, graine + 604);
-      const q = Math.hypot(x - cx, z - cz) / R;
+      const q = dm.hypot(x - cx, z - cz) / R;
       if (q >= 1.5) continue;
       const prof = r.creux * R;
       // cuvette en parabole, lèvre étroite juste au-delà du bord
       if (q < 1) dh -= prof * (1 - q * q);
       const l = (q - 1) / 0.16;
-      dh += 0.14 * prof * Math.exp(-l * l);
+      dh += 0.14 * prof * dm.exp(-l * l);
     }
   }
   return dh * eloigne;

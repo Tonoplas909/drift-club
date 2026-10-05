@@ -6,6 +6,7 @@ import { createCarState, copyCarState, stepCar } from '../physics/car';
 import { resolveCollisions, CRASH_IMPACT } from '../physics/collision';
 import { DEG } from '../math/vec';
 import { RECUL_MAX, RouteZen, type Troncon } from './route';
+import * as dm from '../math/dmath';
 
 /** Données affichées pendant une balade Zen (pas de score ni de chrono). */
 export interface HudZen {
@@ -51,7 +52,7 @@ export class ZenSim {
   constructor(readonly route: RouteZen, car: CarParams, assists: AssistParams, depart = S_DEPART) {
     this.ctx = { params: car, assists, ground: route.sol, onRoad: true };
     const sp = route.echantillon(depart);
-    this.car = createCarState(sp.x, sp.z, Math.atan2(sp.tx, sp.tz), route.sol.heightAt(sp.x, sp.z));
+    this.car = createCarState(sp.x, sp.z, dm.atan2(sp.tx, sp.tz), route.sol.heightAt(sp.x, sp.z));
     this.prevCar = copyCarState(this.car);
     this.progressIndex = Math.round(depart);
     this.progressS = depart;
@@ -132,7 +133,7 @@ export class ZenSim {
   placer(s: number): void {
     const idx = Math.max(this.route.dessinateur.debut, Math.round(s));
     const sp = this.route.echantillon(idx);
-    const fresh = createCarState(sp.x, sp.z, Math.atan2(sp.tx, sp.tz), this.route.sol.heightAt(sp.x, sp.z));
+    const fresh = createCarState(sp.x, sp.z, dm.atan2(sp.tx, sp.tz), this.route.sol.heightAt(sp.x, sp.z));
     fresh.wheelSpin = this.car.wheelSpin;
     Object.assign(this.car, fresh);
     copyCarState(this.car, this.prevCar);

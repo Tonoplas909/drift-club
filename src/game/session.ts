@@ -16,6 +16,7 @@ import { interpolatePose } from './pose';
 import type { Hud } from './hud';
 import type { PreparedLevel } from './prepare';
 import { camDepuisUrl, type CamLibre } from '../debug/camLibre';
+import { Enregistreur, quantifier } from '../core/replay/replay';
 
 export interface DebugHook {
   attach(car: CarParams, assists: AssistParams, cam: ChaseConfig): void;
@@ -54,6 +55,8 @@ export class GameSession {
   private pendingReplace = false;
   private finishDelay = -1;
   private camCfg: ChaseConfig;
+  /** commandes de chaque pas de la course en cours (envoyées au serveur pour vérifier le score) */
+  private enregistreur = new Enregistreur();
 
   constructor(private readonly level: PreparedLevel, private readonly deps: SessionDeps, private readonly cb: SessionCallbacks) {
     this.world = new World({
@@ -141,7 +144,9 @@ export class GameSession {
   };
 
   private simStep(): void {
-    const input = this.deps.input.state(this.deps.reglages.accelAuto);
+    // commandes quantifiées : la simulation voit exactement ce que le replay contiendra
+    const input = quantifier(this.deps.input.state(this.deps.reglages.accelAuto));
+    if (this.race.phase !== 'arrivee') this.enregistreur.ajouter(input, this.pendingReplace);
     const events = this.race.step(input, this.pendingReplace);
     this.pendingReplace = false;
     for (const e of events) this.handle(e);
@@ -175,6 +180,11 @@ export class GameSession {
     }
   }
 
+  /** Replay de la course terminée (null avant l'arrivée). */
+  replay(): Uint8Array | null {
+    return this.race.result ? this.enregistreur.octetsReplay() : null;
+  }
+
   /** vrai pendant la pause et sur l'écran des résultats */
   get enPause(): boolean {
     return this.paused;
@@ -195,6 +205,7 @@ export class GameSession {
 
   restart(): void {
     this.race = this.newRace();
+    this.enregistreur = new Enregistreur();
     this.finishDelay = -1;
     this.pendingReplace = false;
     this.world.resetEffects();

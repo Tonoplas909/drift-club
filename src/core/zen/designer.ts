@@ -2,6 +2,7 @@ import type { TrackSample } from '../track/buildTrack';
 import type { Environnement } from '../level/types';
 import { clamp, wrapAngle } from '../math/vec';
 import type { Regions } from './regions';
+import * as dm from '../math/dmath';
 
 /**
  * « Dessinateur » de la route infinie du mode Zen : enchaîne des morceaux (lignes droites, grandes courbes, virages,
@@ -189,7 +190,7 @@ export class Dessinateur {
   // --- génération
 
   private pousser(e: Etat, s: number): TrackSample {
-    const tx = Math.sin(e.psi), tz = Math.cos(e.psi);
+    const tx = dm.sin(e.psi), tz = dm.cos(e.psi);
     const sp: TrackSample = { x: e.x, y: e.y, z: e.z, tx, tz, nx: tz, nz: -tx, w: e.w, s, k: e.k, grade: e.g };
     this.ech.push(sp);
     return sp;
@@ -203,7 +204,7 @@ export class Dessinateur {
     for (let i = this.trace.length - 1; i >= 0 && this.trace[i].s > s - 1600; i--) { sx += this.trace[i].x; sz += this.trace[i].z; n++; }
     if (n < 25) return 0;
     const dx = e.x - sx / n, dz = e.z - sz / n;
-    return Math.atan2(dx, dz);
+    return dm.atan2(dx, dz);
   }
 
   private themeIci(): { poids: Record<TypeMorceau, number>; pente: number; largeur: [number, number] } {
@@ -334,8 +335,8 @@ export class Dessinateur {
         const u0 = j / n, u1 = (j + 1) / n;
         const kMid = seg.k0 + (seg.k1 - seg.k0) * (u0 + u1) / 2;
         const psiMid = e.psi + kMid * 0.5;
-        e.x += Math.sin(psiMid);
-        e.z += Math.cos(psiMid);
+        e.x += dm.sin(psiMid);
+        e.z += dm.cos(psiMid);
         e.psi = wrapAngle(e.psi + kMid);
         e.k = seg.k0 + (seg.k1 - seg.k0) * u1;
         this.profil(e, th.pente);

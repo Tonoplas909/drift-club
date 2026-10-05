@@ -681,7 +681,8 @@ export class App {
     } else {
       gains = zoneGains();
     }
-    const enLigne = this.envoyerScore(cur.prepared.key, r, gains, () => this.caisses(montrer));
+    const course = { replay: this.session.replay(), level: cur.prepared.level };
+    const enLigne = this.envoyerScore(cur.prepared.key, r, course, gains, () => this.caisses(montrer));
     const montrer = (): void => {
       gains?.majTotal(this.prog().progression.cles);
       this.screens.resultats({
@@ -700,7 +701,7 @@ export class App {
   }
 
   /** Bloc « classement en ligne » des résultats : envoi en tâche de fond, l'écran n'attend jamais le réseau. */
-  private envoyerScore(cle: string, r: RaceResult, gains: ZoneGains | null, onCaisses: () => void): HTMLElement | null {
+  private envoyerScore(cle: string, r: RaceResult, course: { replay: Uint8Array | null; level: Level }, gains: ZoneGains | null, onCaisses: () => void): HTMLElement | null {
     if (!cleEnLigne(cle)) { gains?.note('Pas de clé pour ce niveau : il n\'a pas de classement en ligne.'); return null; }
     const zone = zoneEnLigne();
     const e = this.compte.etat;
@@ -713,6 +714,8 @@ export class App {
       gains?.envoi();
       void this.classement.soumettreScore({
         niveau: cle, mode: this.reglages.mode, score: r.score, temps: r.time, voiture: this.reglages.voiture, meilleurDrift: r.bestDrift,
+        // replay : le serveur rejoue la course pour vérifier le score
+        ...(course.replay ? { course: { replay: course.replay, level: course.level } } : {}),
       }).then((res) => {
         zone.resultat(res);
         if (gains) this.clesApresEnvoi(res, e.id, gains, onCaisses);

@@ -13,6 +13,7 @@ import {
   type ScoreEvent, type ScoreParams, type ScoreState,
 } from '../scoring/score';
 import { clamp, DEG } from '../math/vec';
+import * as dm from '../math/dmath';
 
 export type RacePhase = 'compte' | 'course' | 'arrivee';
 
@@ -96,7 +97,7 @@ export class RaceSim {
     this.ctx = { params: cfg.car, assists: cfg.assists, ground: cfg.terrain, onRoad: true };
     const idx = Math.min(6, cfg.track.samples.length - 1);
     const s0 = cfg.track.samples[idx];
-    this.car = createCarState(s0.x, s0.z, Math.atan2(s0.tx, s0.tz), cfg.terrain.heightAt(s0.x, s0.z));
+    this.car = createCarState(s0.x, s0.z, dm.atan2(s0.tx, s0.tz), cfg.terrain.heightAt(s0.x, s0.z));
     this.prevCar = copyCarState(this.car);
     this.progressIndex = idx;
     this.progressS = s0.s;
@@ -210,7 +211,7 @@ export class RaceSim {
     const s = Math.max(0, this.maxProgressS - 5);
     const idx = Math.min(track.samples.length - 1, Math.round(s));
     const sp = track.samples[idx];
-    const fresh = createCarState(sp.x, sp.z, Math.atan2(sp.tx, sp.tz), this.config.terrain.heightAt(sp.x, sp.z));
+    const fresh = createCarState(sp.x, sp.z, dm.atan2(sp.tx, sp.tz), this.config.terrain.heightAt(sp.x, sp.z));
     fresh.wheelSpin = this.car.wheelSpin;
     Object.assign(this.car, fresh);
     copyCarState(this.car, this.prevCar);

@@ -94,8 +94,11 @@ export function zoneEnLigne(): ZoneEnLigne {
     envoi: () => el.replaceChildren(h('p', { class: 'sub' }, 'Envoi du score…')),
     resultat: (r) => {
       if (!r.ok) { el.replaceChildren(h('p', { class: 'msg err' }, `Score non envoyé : ${r.message}`)); return; }
-      const { ameliore, rang, total } = r.valeur;
+      const { ameliore, rang, total, verification } = r.valeur;
       el.replaceChildren(
+        ...(verification?.statut === 'corrige'
+          ? [h('p', { class: 'msg err' }, `Course rejouée par le serveur : score retenu ${formatScore(verification.score)}.`)]
+          : []),
         ...(ameliore ? [h('div', { class: 'badge' }, 'Nouveau record en ligne !')] : []),
         h('p', { class: 'rang' }, `Classement : ${rangFr(rang)} sur ${total}`),
         ...(ameliore ? [] : [h('p', { class: 'sub petit' }, 'Ton meilleur score en ligne est conservé.')]),

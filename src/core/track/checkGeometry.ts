@@ -1,4 +1,5 @@
 import type { TrackData } from './buildTrack';
+import * as dm from '../math/dmath';
 
 const MAX_PAR_TYPE = 5;
 
@@ -29,7 +30,7 @@ export function geometryProblems(track: TrackData): ProblemeGeometrie[] {
       const b = S[j];
       const thr = a.w + b.w + 4;
       if (b.s - a.s <= 2 * thr) continue;
-      if (Math.hypot(a.x - b.x, a.z - b.z) < thr) {
+      if (dm.hypot(a.x - b.x, a.z - b.z) < thr) {
         if (a.s - lastFlag > 30) {
           const msg = `La route se croise ou passe trop près d'elle-même (vers ${Math.round(a.s)} m et ${Math.round(b.s)} m).`;
           problems.push({

@@ -1,6 +1,7 @@
 import type { InputState } from '../input';
 import { clamp, lerp, smoothstep, wrapAngle, DEG } from '../math/vec';
 import type { CarState, StepContext } from './types';
+import * as dm from '../math/dmath';
 
 const G = 9.81;
 const GEAR_STEPS = [0, 0.2, 0.38, 0.56, 0.76];
@@ -21,18 +22,18 @@ export function copyCarState(src: CarState, dst?: CarState): CarState {
 }
 
 function tireForce(alpha: number, load: number, mu: number, B: number, C: number): number {
-  return -mu * load * Math.sin(C * Math.atan(B * alpha));
+  return -mu * load * dm.sin(C * dm.atan(B * alpha));
 }
 
 /** Avance la voiture d'un pas `dt` (modifie `car`). Déterministe. */
 export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: number): void {
   const p = ctx.params, as = ctx.assists;
   const m = p.mass, L = p.wheelbase, a = p.cgToFront, b = L - a;
-  const sinH = Math.sin(car.heading), cosH = Math.cos(car.heading);
+  const sinH = dm.sin(car.heading), cosH = dm.cos(car.heading);
   const vLong0 = car.vx * sinH + car.vz * cosH;
   const vLat0 = car.vx * cosH - car.vz * sinH;
-  const speed0 = Math.hypot(car.vx, car.vz);
-  const beta0 = speed0 > 1 ? Math.atan2(vLat0, vLong0) : 0;
+  const speed0 = dm.hypot(car.vx, car.vz);
+  const beta0 = speed0 > 1 ? dm.atan2(vLat0, vLong0) : 0;
 
   // Direction : butée dépendante de la vitesse (relâchée en glisse pour pouvoir contre-braquer), rampe asymétrique
   const dirIn = clamp(input.direction, -1, 1);
@@ -114,13 +115,13 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
   // Forces latérales
   const vAbs = Math.max(Math.abs(vLong0), 0.5);
   const dirSign = vLong0 >= 0 ? 1 : -1;
-  const alphaF = Math.atan2(vLat0 + car.yawRate * a, vAbs) - steer * dirSign;
-  const alphaR = Math.atan2(vLat0 - car.yawRate * b, vAbs);
+  const alphaF = dm.atan2(vLat0 + car.yawRate * a, vAbs) - steer * dirSign;
+  const alphaR = dm.atan2(vLat0 - car.yawRate * b, vAbs);
   const Fyf = tireForce(alphaF, Fzf, muF, p.tireB, p.tireC) * frontLat;
   const Fyr = tireForce(alphaR, Fzr, muR, p.tireB, p.tireC) * rearLat;
 
   // Somme des forces (repère voiture : x = avant, y = gauche) et couple
-  const cosD = Math.cos(steer), sinD = Math.sin(steer);
+  const cosD = dm.cos(steer), sinD = dm.sin(steer);
   const rolling = p.rollResist * (ctx.onRoad ? 1 : 4);
   const Fx = Frx + Ffx * cosD - Fyf * sinD - p.dragCoef * vLong0 * Math.abs(vLong0) - rolling * vLong0;
   const Fy = Fyr + Fyf * cosD + Ffx * sinD;
@@ -133,29 +134,29 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
   car.yawRate += (torque / (m * p.gyration * p.gyration)) * dt;
 
   // Basse vitesse : transition vers un modèle cinématique
-  const sp1 = Math.hypot(car.vx, car.vz);
+  const sp1 = dm.hypot(car.vx, car.vz);
   if (sp1 < 3) {
     const t = smoothstep(0.5, 3, sp1);
     const vl = car.vx * sinH + car.vz * cosH;
     const vt = car.vx * cosH - car.vz * sinH;
-    car.yawRate = lerp((vl * Math.tan(steer)) / L, car.yawRate, t);
+    car.yawRate = lerp((vl * dm.tan(steer)) / L, car.yawRate, t);
     const damp = (1 - t) * Math.min(1, 10 * dt);
     car.vx -= cosH * vt * damp;
     car.vz += sinH * vt * damp;
-    const flatGround = Math.hypot(grad.gx, grad.gz) < 0.03;
+    const flatGround = dm.hypot(grad.gx, grad.gz) < 0.03;
     if (flatGround && sp1 < 0.3 && input.gaz === 0 && input.frein === 0) { car.vx *= 0.9; car.vz *= 0.9; }
   }
 
   // Amortissement de lacet en travers (frottement des pneus) : adoucit l'entrée/sortie de glisse, sans plafonner
   const vl2 = car.vx * sinH + car.vz * cosH;
   const vt2 = car.vx * cosH - car.vz * sinH;
-  const sp2 = Math.hypot(car.vx, car.vz);
-  const beta2 = sp2 > 2 ? Math.atan2(vt2, vl2) : 0;
+  const sp2 = dm.hypot(car.vx, car.vz);
+  const beta2 = sp2 > 2 ? dm.atan2(vt2, vl2) : 0;
   car.yawRate -= car.yawRate * p.yawDamp * smoothstep(15 * DEG, 70 * DEG, Math.abs(beta2)) * dt;
 
   // Aide Arcade : le bouton Drift vise un angle de dérive et courbe la trajectoire.
   // Autorité bornée (pas de recalage forcé du lacet) et effacée au-delà de la cible : le joueur peut la déborder et partir en tête-à-queue.
-  const velAngle = sp2 > 0.5 ? Math.atan2(car.vx, car.vz) : car.heading;
+  const velAngle = sp2 > 0.5 ? dm.atan2(car.vx, car.vz) : car.heading;
   const pathRate = wrapAngle(velAngle - car.prevVelAngle) / dt;
   car.prevVelAngle = velAngle;
   if (arcadeDrift && vl2 > 5) {
@@ -170,7 +171,7 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
     const dYaw = clamp((rDesired - car.yawRate) * Math.min(1, 10 * dt) * authority, -as.arcadeYawAccel * dt, as.arcadeYawAccel * dt);
     car.yawRate += dYaw;
     const turn = dirIn * as.arcadePathRate * dt * authority;
-    const c = Math.cos(turn), s = Math.sin(turn);
+    const c = dm.cos(turn), s = dm.sin(turn);
     const nvx = car.vx * c + car.vz * s;
     const nvz = car.vz * c - car.vx * s;
     car.vx = nvx;
@@ -179,7 +180,7 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
 
   // Aide : vitesse conservée en drift
   if (as.speedRetention > 0 && Math.abs(beta2) > 15 * DEG && brake === 0) {
-    const ns = Math.hypot(car.vx, car.vz);
+    const ns = dm.hypot(car.vx, car.vz);
     if (ns < speed0 && ns > 0.1) {
       const k = (ns + (speed0 - ns) * as.speedRetention) / ns;
       car.vx *= k;
@@ -197,11 +198,11 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
   car.y = ctx.ground.heightAt(car.x, car.z);
 
   // Valeurs dérivées
-  const s2 = Math.sin(car.heading), c2 = Math.cos(car.heading);
+  const s2 = dm.sin(car.heading), c2 = dm.cos(car.heading);
   car.vLong = car.vx * s2 + car.vz * c2;
   car.vLat = car.vx * c2 - car.vz * s2;
-  car.speed = Math.hypot(car.vx, car.vz);
-  car.beta = car.speed > 1 ? Math.atan2(car.vLat, car.vLong) : 0;
+  car.speed = dm.hypot(car.vx, car.vz);
+  car.beta = car.speed > 1 ? dm.atan2(car.vLat, car.vLong) : 0;
   // accélération issue des forces (pas de la dérivée de vLong : la rotation du cap simulerait un freinage et fausserait le transfert de masse)
   const axNow = clamp(Fx / m, -15, 15);
   car.ax += (axNow - car.ax) * Math.min(1, 8 * dt);

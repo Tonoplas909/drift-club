@@ -1,9 +1,10 @@
 import { lerp } from '../math/vec';
+import * as dm from '../math/dmath';
 
 export interface P4 { x: number; y: number; z: number; l: number }
 
 function knot(t: number, a: P4, b: P4): number {
-  const d = Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z);
+  const d = dm.hypot(b.x - a.x, b.y - a.y, b.z - a.z);
   return t + Math.max(Math.sqrt(d), 1e-4);
 }
 
@@ -33,9 +34,9 @@ function ghost(a: P4, b: P4, c?: P4): P4 {
   if (!c) return lin;
   const tx = (-3 * a.x + 4 * b.x - c.x) / 2, tz = (-3 * a.z + 4 * b.z - c.z) / 2;
   const cx = b.x - a.x, cz = b.z - a.z;
-  const tl = Math.hypot(tx, tz), cl = Math.hypot(cx, cz);
+  const tl = dm.hypot(tx, tz), cl = dm.hypot(cx, cz);
   if (tl < 1e-6 || cl < 1e-6) return lin;
-  if ((tx * cx + tz * cz) / (tl * cl) < Math.cos(Math.PI / 6)) return lin;
+  if ((tx * cx + tz * cz) / (tl * cl) < dm.cos(Math.PI / 6)) return lin;
   return { x: a.x - (tx / tl) * cl, y: lin.y, z: a.z - (tz / tl) * cl, l: a.l };
 }
 
@@ -59,7 +60,7 @@ export function sampleRoute(points: P4[], step: number): { samples: (P4 & { s: n
   const cum = new Float64Array(dense.length);
   for (let i = 1; i < dense.length; i++) {
     const a = dense[i - 1], b = dense[i];
-    cum[i] = cum[i - 1] + Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z);
+    cum[i] = cum[i - 1] + dm.hypot(b.x - a.x, b.y - a.y, b.z - a.z);
   }
   const total = cum[dense.length - 1];
   const pointS = pointDense.map((i) => cum[i]);

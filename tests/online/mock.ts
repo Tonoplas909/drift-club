@@ -35,6 +35,7 @@ export function faussClient(rep: Partial<Record<string, Rep | (() => Rep | Promi
       upsert: (...a: unknown[]) => builder(`${table}.upsert`, a),
     }),
     rpc: (...a: unknown[]) => r(`rpc.${String(a[0])}`, a),
+    functions: { invoke: (...a: unknown[]) => r(`functions.${String(a[0])}`, a) },
   };
   return {
     client: client as unknown as SupabaseClient,

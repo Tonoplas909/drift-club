@@ -9,6 +9,7 @@ import { CERCLES_MULTIPLES, COLLIDER_RADIUS, SANS_COLLISION, SOLID_DISTANCE, VAR
 import { THEMES, type Essence } from './themes';
 import { jusquAuBout } from '../track/terrain';
 import { batimentDe, boiteDe } from './ville';
+import * as dm from '../math/dmath';
 
 /** Au-dessus de ce seuil, le masque de forêt vaut « forêt » (`min` : plancher du thème, ex. parcs rares en ville). */
 export function forestThreshold(densite: number, min = 0): number {
@@ -20,7 +21,7 @@ interface Emprise { x: number; z: number; ex: number; ez: number; fx: number; fz
 
 /** Emprise d'un objet de cap `rot` (convention ψ : x local = (cos ψ, −sin ψ), z local = (sin ψ, cos ψ)). */
 function empriseDe(x: number, z: number, rot: number, w: number, d: number): Emprise {
-  return { x, z, ex: Math.cos(rot), ez: -Math.sin(rot), fx: Math.sin(rot), fz: Math.cos(rot), hw: w / 2, hd: d / 2, r: Math.hypot(w, d) / 2 };
+  return { x, z, ex: dm.cos(rot), ez: -dm.sin(rot), fx: dm.sin(rot), fz: dm.cos(rot), hw: w / 2, hd: d / 2, r: dm.hypot(w, d) / 2 };
 }
 
 /** Sommets d'une emprise (dans l'ordre : autour du rectangle). */
@@ -51,7 +52,7 @@ function pourtour(e: Emprise, pas: number): [number, number][] {
   const v = sommets(e), out: [number, number][] = [];
   for (let k = 0; k < 4; k++) {
     const [ax, az] = v[k], [bx, bz] = v[(k + 1) % 4];
-    const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / pas));
+    const n = Math.max(1, Math.ceil(dm.hypot(bx - ax, bz - az) / pas));
     for (let j = 0; j < n; j++) out.push([ax + ((bx - ax) * j) / n, az + ((bz - az) * j) / n]);
   }
   return out;
@@ -145,7 +146,7 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
   /** Pente du terrain en (x, z) (dénivelé / mètre). */
   const pente = (x: number, z: number): number => {
     const g = terrain.gradientAt(x, z);
-    return Math.hypot(g.gx, g.gz);
+    return dm.hypot(g.gx, g.gz);
   };
   const posés: { x: number; z: number; r: number }[] = [];
   const add = (item: EnvItem): void => {
@@ -153,14 +154,14 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
     env.items.push(item);
     const box = boiteDe(item.kind, item.variant);
     if (theme.bord.sansChevauchement) {
-      posés.push({ x: item.x, z: item.z, r: box ? (Math.hypot(box[0], box[1]) / 2) * item.scale : COLLIDER_RADIUS[item.kind] * item.scale });
+      posés.push({ x: item.x, z: item.z, r: box ? (dm.hypot(box[0], box[1]) / 2) * item.scale : COLLIDER_RADIUS[item.kind] * item.scale });
     }
     if (!item.solid || SANS_COLLISION.has(item.kind)) return;
     const multi = CERCLES_MULTIPLES[item.kind];
     if (multi) {
       // plusieurs piliers (torii) : un cercle par pilier, décalé selon l'axe x local
       for (const c of multi) {
-        env.circles.push({ x: item.x + Math.cos(item.rot) * c.dx * item.scale, z: item.z - Math.sin(item.rot) * c.dx * item.scale, r: c.r * item.scale });
+        env.circles.push({ x: item.x + dm.cos(item.rot) * c.dx * item.scale, z: item.z - dm.sin(item.rot) * c.dx * item.scale, r: c.r * item.scale });
       }
     } else if (box) {
       // emprise rectangulaire : 4 segments (bâtiments, voitures garées, abribus…)
@@ -194,7 +195,7 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
         const bx = c.x + c.nx * side * (c.w + 0.8), bz = c.z + c.nz * side * (c.w + 0.8);
         env.segments.push({ ax, az, bx, bz });
         const mx = (ax + bx) / 2, mz = (az + bz) / 2;
-        env.barriers.push({ x: mx, y: terrain.heightAt(mx, mz), z: mz, rot: Math.atan2(bx - ax, bz - az), len: Math.hypot(bx - ax, bz - az) });
+        env.barriers.push({ x: mx, y: terrain.heightAt(mx, mz), z: mz, rot: dm.atan2(bx - ax, bz - az), len: dm.hypot(bx - ax, bz - az) });
         const covered = side > 0 ? leftCovered : rightCovered;
         for (let k = i; k <= j; k++) covered[k] = 1;
       }
@@ -205,7 +206,7 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
   for (const o of manual) {
     const rot = o.rot * DEG;
     if (o.type === 'barriere') {
-      const dx = Math.sin(rot) * 2, dz = Math.cos(rot) * 2;
+      const dx = dm.sin(rot) * 2, dz = dm.cos(rot) * 2;
       env.segments.push({ ax: o.x - dx, az: o.z - dz, bx: o.x + dx, bz: o.z + dz });
       env.barriers.push({ x: o.x, y: terrain.heightAt(o.x, o.z), z: o.z, rot, len: 4 });
       continue;
@@ -228,7 +229,7 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
           const off = sp.w + 2.2;
           const x = sp.x + sp.nx * side * off, z = sp.z + sp.nz * side * off;
           if (!chevron || nearManual(x, z, 2)) continue;
-          add({ kind: chevron, variant: 0, x, y: terrain.heightAt(x, z), z, rot: Math.atan2(-side * sp.nx, -side * sp.nz), scale: 1, solid: true, manual: false });
+          add({ kind: chevron, variant: 0, x, y: terrain.heightAt(x, z), z, rot: dm.atan2(-side * sp.nx, -side * sp.nz), scale: 1, solid: true, manual: false });
         }
         for (let k = Math.max(0, runStart - 10); k < Math.min(S.length, i + 10); k++) tightZone[k] = 1;
       }
@@ -246,7 +247,7 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
       const off = sp.w + 1.6;
       const x = sp.x + sp.nx * side * off, z = sp.z + sp.nz * side * off;
       if (nearManual(x, z, 2)) continue;
-      add({ kind: borne, variant: 0, x, y: terrain.heightAt(x, z), z, rot: Math.atan2(sp.tx, sp.tz), scale: 1, solid: true, manual: false });
+      add({ kind: borne, variant: 0, x, y: terrain.heightAt(x, z), z, rot: dm.atan2(sp.tx, sp.tz), scale: 1, solid: true, manual: false });
     }
   }
 
@@ -268,15 +269,15 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
         const scale = eMin + eAmp * scaleR;
         if (theme.bord.sansChevauchement) {
           const box = boiteDe(ex.kind, variant);
-          const r = (box ? Math.hypot(box[0], box[1]) / 2 : COLLIDER_RADIUS[ex.kind]) * scale;
+          const r = (box ? dm.hypot(box[0], box[1]) / 2 : COLLIDER_RADIUS[ex.kind]) * scale;
           if (posés.some((p) => (p.x - x) * (p.x - x) + (p.z - z) * (p.z - z) < (p.r + r + 0.5) * (p.r + r + 0.5))) continue;
         }
         // cap : aléatoire, ou le long de la route (+x local vers l'extérieur, sens aléatoire pour `routeSym`)
         const ori = ex.orientation ?? 'libre';
-        const alongRoad = Math.atan2(sp.tx, sp.tz) + (side > 0 ? 0 : Math.PI);
+        const alongRoad = dm.atan2(sp.tx, sp.tz) + (side > 0 ? 0 : Math.PI);
         const rot = ori === 'libre' ? rotR * Math.PI * 2
           : ori === 'route' ? alongRoad
-          : ori === 'travers' ? Math.atan2(side * sp.nx, side * sp.nz)
+          : ori === 'travers' ? dm.atan2(side * sp.nx, side * sp.nz)
           : alongRoad + (rotR < 0.5 ? 0 : Math.PI);
         add({ kind: ex.kind, variant, x, y: terrain.heightAt(x, z), z, rot, scale, solid: true, manual: false });
       }
@@ -345,7 +346,7 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
           const sp = S[Math.min(S.length - 1, Math.round(s + b.w / 2))];
           const off = sp.w + bat.recul + decale + offR * amplitude + b.d / 2;
           const x = sp.x + sp.nx * side * off, z = sp.z + sp.nz * side * off;
-          const ok = pick < proba && poser(kind, variant, x, z, Math.atan2(-sp.tz, sp.tx));
+          const ok = pick < proba && poser(kind, variant, x, z, dm.atan2(-sp.tz, sp.tx));
           s += ok ? b.w + bat.ecart[0] + bat.ecart[1] * gapR : 5;
         }
       }
@@ -409,7 +410,7 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
       if (garder && !garder(x, z)) continue;
       if (inCorridor(x, z, 4, d) || nearManual(x, z, 4) || surEau(x, z, 6)) continue;
       const g = terrain.gradientAt(x, z);
-      const slope = Math.hypot(g.gx, g.gz);
+      const slope = dm.hypot(g.gx, g.gz);
       const p = (roc.base + roc.pente * smoothstep(0.25, 0.8, slope)) * (0.5 + densite / 2);
       if (pick >= p) continue;
       const kind: DecorKind = kindR < roc.partHauts ? roc.haut : roc.normal;
@@ -455,7 +456,7 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
           const cible = mer.niveau + (rive.min + rive.max) / 2;
           let trouve = false;
           for (let k = 0; k < 90 && !trouve; k++) {
-            const g = terrain.gradientAt(x, z), gl = Math.hypot(g.gx, g.gz);
+            const g = terrain.gradientAt(x, z), gl = dm.hypot(g.gx, g.gz);
             if (gl < 1e-3) break;
             dirx = -g.gx / gl; dirz = -g.gz / gl;
             x += dirx * 1.5; z += dirz * 1.5;
@@ -472,11 +473,11 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
         const scale = eMin + eAmp * scaleR;
         const ori = rive ? rule.orientation ?? 'libre' : rule.orientation === 'quart' ? 'quart' : 'libre';
         const rot = ori === 'quart' ? Math.round(rotR * 4) * (Math.PI / 2)
-          : ori === 'aval' ? Math.atan2(dirx, dirz)
-          : ori === 'rive' ? Math.atan2(-dirz, dirx) + (rotR - 0.5) * 0.6
+          : ori === 'aval' ? dm.atan2(dirx, dirz)
+          : ori === 'rive' ? dm.atan2(-dirz, dirx) + (rotR - 0.5) * 0.6
           : rotR * Math.PI * 2;
         const box = boiteDe(rule.kind, variant);
-        const r = (box ? Math.hypot(box[0], box[1]) / 2 : COLLIDER_RADIUS[rule.kind]) * scale;
+        const r = (box ? dm.hypot(box[0], box[1]) / 2 : COLLIDER_RADIUS[rule.kind]) * scale;
         if (nearManual(x, z, r + 2) || (rive ? surLac(x, z, 6) : surEau(x, z, 6))) continue;
         const pt = pente(x, z);
         if (rule.penteMax !== undefined && pt > rule.penteMax) continue;

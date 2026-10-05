@@ -2,6 +2,7 @@ import type { Level } from '../level/types';
 import { clamp, wrapAngle } from '../math/vec';
 import { sampleRoute, type P4 } from './spline';
 import { SampleGrid } from './grid';
+import * as dm from '../math/dmath';
 
 export interface TrackSample {
   x: number; y: number; z: number;
@@ -49,7 +50,7 @@ export function buildTrack(level: Level): TrackData {
   for (let i = 0; i < n; i++) {
     const a = samples[Math.max(0, i - 1)], b = samples[Math.min(n - 1, i + 1)];
     const dx = b.x - a.x, dz = b.z - a.z;
-    const len = Math.hypot(dx, dz) || 1;
+    const len = dm.hypot(dx, dz) || 1;
     const sp = samples[i];
     sp.tx = dx / len; sp.tz = dz / len;
     sp.nx = sp.tz; sp.nz = -sp.tx;
@@ -58,7 +59,7 @@ export function buildTrack(level: Level): TrackData {
   }
 
   // Courbure : variation de cap sur ±2 échantillons, puis moyenne glissante sur 5
-  const heading = samples.map((sp) => Math.atan2(sp.tx, sp.tz));
+  const heading = samples.map((sp) => dm.atan2(sp.tx, sp.tz));
   const rawK = new Float64Array(n);
   for (let i = 0; i < n; i++) {
     const i0 = Math.max(0, i - 2), i1 = Math.min(n - 1, i + 2);

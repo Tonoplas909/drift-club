@@ -1,5 +1,8 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Fournisseur } from './client';
 import { messageErreur, MSG_INDISPONIBLE } from './erreurs';
+import { EMPREINTE_SIMULATION } from './empreinteSimulation';
+import { compresserReplay, versBase64 } from '../core/replay/replay';
 
 export type Resultat<T> = { ok: true; valeur: T } | { ok: false; message: string };
 
@@ -22,6 +25,16 @@ export interface ScoreEnvoye {
   temps: number;
   voiture: string;
   meilleurDrift: number;
+  /** replay de la course (vérifiée par le serveur) et, pour un niveau perso, son contenu */
+  course?: { replay: Uint8Array; level?: unknown };
+}
+
+/** Résultat de la vérification du score par le serveur (course rejouée). */
+export interface Verification {
+  /** conforme : le score envoyé est gardé ; corrige : le serveur a gardé le score de la course rejouée */
+  statut: 'conforme' | 'corrige';
+  /** score enregistré */
+  score: number;
 }
 
 export interface RangEnLigne {
@@ -35,6 +48,8 @@ export interface RangEnLigne {
   clesRecord?: number;
   /** total de clés du compte après l'envoi */
   cles?: number;
+  /** absent si le score a été envoyé sans vérification (serveur pas encore équipé) */
+  verification?: Verification;
 }
 
 /** Place du joueur connecté sur un niveau (meilleur score tous modes). */
@@ -56,34 +71,82 @@ const premiere = (data: unknown): Record<string, unknown> | null => {
   return l && typeof l === 'object' ? (l as Record<string, unknown>) : null;
 };
 
+/** Ligne renvoyée par `soumettre_score` (ou par la vérification, qui renvoie les mêmes colonnes). */
+function lireRang(data: unknown): RangEnLigne | null {
+  const l = premiere(data);
+  if (!l) return null;
+  const valeur: RangEnLigne = { ameliore: l.ameliore === true, rang: nombre(l.rang), total: nombre(l.total) };
+  // colonnes ajoutées par la migration 0005 (progression du compte) : absentes des anciens serveurs
+  if (l.cles_gagnees !== undefined && l.cles_gagnees !== null && Number.isFinite(nombre(l.cles_gagnees))) {
+    valeur.clesGagnees = nombre(l.cles_gagnees);
+    valeur.clesRecord = nombre(l.cles_record ?? 0);
+    if (Number.isFinite(nombre(l.cles))) valeur.cles = nombre(l.cles);
+  }
+  return valeur;
+}
+
 /** Envoi des scores et lecture du classement (fonctions SQL `soumettre_score` et `classement_niveau`). */
 export class ClassementService {
   constructor(private readonly fournisseur: Fournisseur) {}
 
+  /**
+   * Envoie un score. Avec un replay, la course est vérifiée par l'Edge Function `verifier-course`, qui la rejoue ;
+   * si la fonction n'est pas (encore) déployée, on retombe sur l'ancienne fonction SQL `soumettre_score`.
+   */
   async soumettreScore(s: ScoreEnvoye): Promise<Resultat<RangEnLigne>> {
     if (!cleEnLigne(s.niveau)) return { ok: false, message: "Ce niveau n'a pas de classement en ligne." };
     try {
       const client = await this.fournisseur();
       if (!client) return { ok: false, message: MSG_INDISPONIBLE };
+      if (s.course) {
+        const r = await this.envoyerCourse(client, s, s.course);
+        if (r !== 'indisponible') return r;
+      }
       const score = Math.round(s.score);
       const { data, error } = await client.rpc('soumettre_score', {
         p_niveau: s.niveau, p_mode: s.mode, p_score: score, p_temps: s.temps, p_voiture: s.voiture,
         p_meilleur_drift: Math.min(Math.round(s.meilleurDrift), score),
       });
-      if (error) return { ok: false, message: messageErreur(error) };
-      const l = premiere(data);
-      if (!l) return { ok: false, message: 'Réponse inattendue du classement.' };
-      const valeur: RangEnLigne = { ameliore: l.ameliore === true, rang: nombre(l.rang), total: nombre(l.total) };
-      // colonnes ajoutées par la migration 0005 (progression du compte) : absentes des anciens serveurs
-      if (l.cles_gagnees !== undefined && l.cles_gagnees !== null && Number.isFinite(nombre(l.cles_gagnees))) {
-        valeur.clesGagnees = nombre(l.cles_gagnees);
-        valeur.clesRecord = nombre(l.cles_record ?? 0);
-        if (Number.isFinite(nombre(l.cles))) valeur.cles = nombre(l.cles);
+      if (error) {
+        // fonction SQL fermée (migration 0008) alors que la vérification ne répond pas
+        if ((error as { code?: unknown }).code === '42501') return { ok: false, message: "La vérification des scores ne répond pas : score gardé en local. Réessaie plus tard." };
+        return { ok: false, message: messageErreur(error) };
       }
-      return { ok: true, valeur };
+      const valeur = lireRang(data);
+      return valeur ? { ok: true, valeur } : { ok: false, message: 'Réponse inattendue du classement.' };
     } catch (e) {
       return { ok: false, message: messageErreur(e) };
     }
+  }
+
+  /** Envoi vérifié ; 'indisponible' si la fonction ou son SQL ne sont pas installés (on passe à l'ancien envoi). */
+  private async envoyerCourse(client: SupabaseClient, s: ScoreEnvoye, c: { replay: Uint8Array; level?: unknown }): Promise<Resultat<RangEnLigne> | 'indisponible'> {
+    const compresse = await compresserReplay(c.replay);
+    const corps = {
+      version: EMPREINTE_SIMULATION, niveau: s.niveau, mode: s.mode, voiture: s.voiture,
+      score: s.score, temps: s.temps, meilleurDrift: s.meilleurDrift,
+      replay: versBase64(compresse ?? c.replay), compression: compresse ? 'deflate-raw' : 'aucune',
+      ...(c.level !== undefined && s.niveau.startsWith('perso:') ? { level: c.level } : {}),
+    };
+    const { data, error } = await client.functions.invoke('verifier-course', { body: corps });
+    if (error) {
+      // hors ligne : inutile d'essayer l'ancien envoi
+      const nom = (error as { name?: unknown }).name;
+      if (nom === 'FunctionsFetchError') return { ok: false, message: MSG_INDISPONIBLE };
+      return 'indisponible';
+    }
+    const d = data && typeof data === 'object' ? (data as Record<string, unknown>) : null;
+    if (!d) return 'indisponible';
+    if (d.ok !== true) {
+      if (d.code === 'indisponible') return 'indisponible';
+      return { ok: false, message: typeof d.message === 'string' && d.message ? d.message : 'Score refusé par le serveur.' };
+    }
+    const valeur = lireRang(d);
+    if (!valeur) return { ok: false, message: 'Réponse inattendue du classement.' };
+    if ((d.statut === 'conforme' || d.statut === 'corrige') && Number.isFinite(nombre(d.score))) {
+      valeur.verification = { statut: d.statut, score: nombre(d.score) };
+    }
+    return { ok: true, valeur };
   }
 
   /** Classement d'un niveau, tous modes confondus. */

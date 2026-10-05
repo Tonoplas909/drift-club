@@ -2,6 +2,7 @@ import type { CircleCollider, SegmentCollider } from '../env/types';
 import { SampleGrid } from '../track/grid';
 import { clamp } from '../math/vec';
 import type { CarParams, CarState } from './types';
+import * as dm from '../math/dmath';
 
 export const CRASH_IMPACT = 2.5;
 const RESTITUTION = 0.3;
@@ -20,7 +21,7 @@ export function buildCollisionWorld(env: { circles: CircleCollider[]; segments: 
   const segmentGrid = new SampleGrid(CELL);
   env.circles.forEach((c, i) => circleGrid.add(i, c.x, c.z));
   env.segments.forEach((s, i) => {
-    const len = Math.hypot(s.bx - s.ax, s.bz - s.az);
+    const len = dm.hypot(s.bx - s.ax, s.bz - s.az);
     const n = Math.max(1, Math.ceil(len / (CELL / 2)));
     for (let k = 0; k <= n; k++) {
       const t = k / n;
@@ -70,7 +71,7 @@ export function resolveCollisions(car: CarState, params: CarParams, world: Colli
   let impact = 0;
 
   for (const o of [off, 0, -off]) {
-    const fx = Math.sin(car.heading), fz = Math.cos(car.heading);
+    const fx = dm.sin(car.heading), fz = dm.cos(car.heading);
     let cx = car.x + fx * o, cz = car.z + fz * o;
 
     visitStamp++;
@@ -80,7 +81,7 @@ export function resolveCollisions(car: CarState, params: CarParams, world: Colli
       circVisited[i] = visitStamp;
       const c = world.circles[i];
       const dx = cx - c.x, dz = cz - c.z;
-      const d = Math.hypot(dx, dz);
+      const d = dm.hypot(dx, dz);
       const pen = rc + c.r - d;
       if (pen <= 0) continue;
       const nx = d > 1e-6 ? dx / d : -fx;
@@ -101,7 +102,7 @@ export function resolveCollisions(car: CarState, params: CarParams, world: Colli
       const t = len2 > 1e-9 ? clamp(((cx - s.ax) * ex + (cz - s.az) * ez) / len2, 0, 1) : 0;
       const qx = s.ax + ex * t, qz = s.az + ez * t;
       const dx = cx - qx, dz = cz - qz;
-      const d = Math.hypot(dx, dz);
+      const d = dm.hypot(dx, dz);
       const pen = rc - d;
       if (pen <= 0) continue;
       let nx: number, nz: number;

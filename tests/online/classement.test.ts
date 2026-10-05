@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { ClassementService, cleEnLigne } from '../../src/online/classement';
 import { MSG_INDISPONIBLE } from '../../src/online/erreurs';
 import { faussClient } from './mock';
+import { EMPREINTE_SIMULATION } from '../../src/online/empreinteSimulation';
+import { decompresserReplay, depuisBase64 } from '../../src/core/replay/replay';
 
 const score = { niveau: 'off:premiers-virages', mode: 'semi', score: 1234.6, temps: 61.25, voiture: 'turbo', meilleurDrift: 5000 };
 
@@ -40,6 +42,56 @@ describe('ClassementService.soumettreScore', () => {
     expect(await new ClassementService(async () => null).soumettreScore(score)).toEqual({ ok: false, message: MSG_INDISPONIBLE });
     const v = faussClient({ 'rpc.soumettre_score': { data: [], error: null } });
     expect((await new ClassementService(v.fournisseur).soumettreScore(score)).ok).toBe(false);
+  });
+});
+
+describe('ClassementService.soumettreScore : course vérifiée par le serveur', () => {
+  const replay = Uint8Array.from([1, 5, 255, 0, 127, 0, 3, 0, 0, 127, 1]);
+  const avecCourse = { ...score, course: { replay, level: { format: 1 } } };
+  const ligne = { ameliore: true, rang: 1, total: 4, cles_gagnees: 2, cles_record: 1, cles: 9 };
+
+  it('envoie score et replay compressé à verifier-course ; renvoie rang, clés et verdict', async () => {
+    const m = faussClient({ 'functions.verifier-course': { data: { ok: true, statut: 'conforme', score: 1235, ...ligne }, error: null } });
+    const r = await new ClassementService(m.fournisseur).soumettreScore(avecCourse);
+    expect(r).toEqual({ ok: true, valeur: { ameliore: true, rang: 1, total: 4, clesGagnees: 2, clesRecord: 1, cles: 9, verification: { statut: 'conforme', score: 1235 } } });
+    expect(m.appels.map((a) => a.nom)).toEqual(['functions.verifier-course']);
+    const corps = (m.appels[0].args[1] as { body: Record<string, unknown> }).body;
+    expect(corps).toMatchObject({ version: EMPREINTE_SIMULATION, niveau: 'off:premiers-virages', mode: 'semi', voiture: 'turbo', score: 1234.6, temps: 61.25, meilleurDrift: 5000, compression: 'deflate-raw' });
+    expect(corps.level).toBeUndefined(); // niveau officiel : le serveur l'a déjà
+    expect(await decompresserReplay(depuisBase64(corps.replay as string)!, 1000)).toEqual(replay);
+  });
+  it('niveau perso : son contenu part avec la course ; score corrigé par le serveur', async () => {
+    const m = faussClient({ 'functions.verifier-course': { data: { ok: true, statut: 'corrige', score: 800, ...ligne, ameliore: false }, error: null } });
+    const r = await new ClassementService(m.fournisseur).soumettreScore({ ...avecCourse, niveau: 'perso:abc' });
+    expect(r.ok && r.valeur.verification).toEqual({ statut: 'corrige', score: 800 });
+    expect((m.appels[0].args[1] as { body: Record<string, unknown> }).body.level).toEqual({ format: 1 });
+  });
+  it('refus du serveur (version, course invalide) : message, pas de repli', async () => {
+    const m = faussClient({ 'functions.verifier-course': { data: { ok: false, code: 'version', message: 'Recharge la page.' }, error: null } });
+    expect(await new ClassementService(m.fournisseur).soumettreScore(avecCourse)).toEqual({ ok: false, message: 'Recharge la page.' });
+    expect(m.appels).toHaveLength(1);
+  });
+  it('fonction pas encore déployée ou SQL 0008 absent : repli sur soumettre_score', async () => {
+    for (const rep of [
+      { data: null, error: { name: 'FunctionsHttpError', message: 'Edge Function returned a non-2xx status code' } },
+      { data: { ok: false, code: 'indisponible', message: 'pas installé' }, error: null },
+    ]) {
+      const m = faussClient({ 'functions.verifier-course': rep, 'rpc.soumettre_score': { data: [{ ameliore: false, rang: 2, total: 3 }], error: null } });
+      expect(await new ClassementService(m.fournisseur).soumettreScore(avecCourse)).toEqual({ ok: true, valeur: { ameliore: false, rang: 2, total: 3 } });
+      expect(m.appels.map((a) => a.nom)).toEqual(['functions.verifier-course', 'rpc.soumettre_score']);
+    }
+  });
+  it('hors ligne : pas de repli ; soumettre_score fermée (0008) et fonction muette : message clair', async () => {
+    const h = faussClient({ 'functions.verifier-course': { data: null, error: { name: 'FunctionsFetchError', message: 'Failed to send a request' } } });
+    expect(await new ClassementService(h.fournisseur).soumettreScore(avecCourse)).toEqual({ ok: false, message: MSG_INDISPONIBLE });
+    expect(h.appels).toHaveLength(1);
+    const f = faussClient({
+      'functions.verifier-course': { data: null, error: { name: 'FunctionsRelayError', message: 'relay' } },
+      'rpc.soumettre_score': { data: null, error: { code: '42501', message: 'permission denied for function soumettre_score' } },
+    });
+    const r = await new ClassementService(f.fournisseur).soumettreScore(avecCourse);
+    expect(r.ok).toBe(false);
+    expect(!r.ok && r.message).toMatch(/vérification des scores ne répond pas/);
   });
 });
 

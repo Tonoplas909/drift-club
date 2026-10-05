@@ -1,6 +1,7 @@
 import { LIMITES, ENVIRONNEMENTS } from './types';
 import type { Level, PointRoute, Barriere, ObjetPlace, Ambiance, CoteBarriere, TypeObjet, Environnement, PlanEau } from './types';
 import { aire, autoIntersection } from '../env/eau';
+import * as dm from '../math/dmath';
 
 export type ResultatValidation = { ok: true; level: Level } | { ok: false; erreurs: string[] };
 
@@ -60,7 +61,7 @@ export function validateLevel(raw: unknown): ResultatValidation {
     let longueur = 0;
     for (let i = 1; i < route.length; i++) {
       const a = route[i - 1], b = route[i];
-      const d = Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z);
+      const d = dm.hypot(b.x - a.x, b.y - a.y, b.z - a.z);
       longueur += d;
       if (d < LIMITES.ecartMin || d > LIMITES.ecartMax) {
         e.push(`route[${i}] : distance au point précédent hors limites (${LIMITES.ecartMin}–${LIMITES.ecartMax} m).`);
