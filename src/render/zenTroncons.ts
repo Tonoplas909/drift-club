@@ -10,7 +10,7 @@ import { ambianceA } from '../core/zen/regions';
 import type { RouteZen, Troncon, EvenementRoute } from '../core/zen/route';
 import type { Assets } from './assets';
 import { decorDuTheme } from './themes';
-import { buildDecor, materiauxDecor, type MateriauxDecor } from './decor';
+import { buildDecor, DecorVisible, materiauxDecor, type MateriauxDecor } from './decor';
 import { buildRoad, type RoadTextures } from './road';
 import { chunkStep, geometrieMorceau, materiauTerrain } from './terrainMesh';
 import { PALETTES_THEMES, epauleDe, melangerPalettes, type Palette } from './palettes';
@@ -30,7 +30,8 @@ export function paletteZen(route: RouteZen, s: number): Palette {
 
 interface Tuile { cle: number; ix: number; iz: number; n: number; d: number; mesh: THREE.Mesh | null }
 
-interface Visuel { groupe: THREE.Group; tuiles: Set<number> }
+/** `tris` : objets du décor réellement dessinés, un par groupe de décor (voir DecorVisible) */
+interface Visuel { groupe: THREE.Group; tuiles: Set<number>; tris: DecorVisible[] }
 
 const cleTuile = (ix: number, iz: number): number => (ix + 32768) * 65536 + (iz + 32768);
 
@@ -92,7 +93,7 @@ export class TronconsZen {
       epaule: (sp) => cEp.copy(epauleDe(paletteZen(this.route, sp.s + t.debut))),
     }));
     this.racine.add(groupe);
-    const v: Visuel = { groupe, tuiles: new Set() };
+    const v: Visuel = { groupe, tuiles: new Set(), tris: [] };
     this.visuels.set(t.n, v);
     // décor : un groupe instancié par thème, chacun à son tour (tâches courtes, une par image au plus)
     for (const p of t.parties ?? []) {
@@ -100,7 +101,9 @@ export class TronconsZen {
         if (this.visuels.get(t.n) !== v) return;
         const t1 = performance.now();
         const decor = decorDuTheme(this.assets, p.theme, t.ambiance);
-        groupe.add(buildDecor(p.env, this.assets, this.quality, this.ombres(), decor, this.matDecor));
+        const g = buildDecor(p.env, this.assets, this.quality, this.ombres(), decor, this.matDecor);
+        groupe.add(g);
+        v.tris.push(new DecorVisible(g));
         this.mesures.troncons.push(performance.now() - t1);
       });
     }
@@ -160,6 +163,11 @@ export class TronconsZen {
     }
     const i = this.attente.indexOf(tu);
     if (i >= 0) this.attente.splice(i, 1);
+  }
+
+  /** Ne dessine que les objets du décor dans le champ de la caméra et en deçà du brouillard (voir DecorVisible). */
+  trierDecor(camera: THREE.Camera, brume: number, voitureX: number, voitureZ: number, tout: boolean): void {
+    for (const v of this.visuels.values()) if (v.groupe.visible) for (const t of v.tris) t.mettreAJour(camera, brume, voitureX, voitureZ, tout);
   }
 
   /** Construit un groupe de décor en attente, sinon le morceau de terrain en attente le plus proche de (x, z) ; false s'il n'y a rien à faire. */

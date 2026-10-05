@@ -229,6 +229,7 @@ export class ZenWorld {
     this.sun.position.set(pose.x + d[0] * 80, pose.y + d[1] * 80, pose.z + d[2] * 80);
     this.sun.target.position.set(pose.x, pose.y, pose.z);
     this.troncons.visibilite(cam.x, cam.z, QUALITY[this.quality].fogFar + 150, this.camLibre !== null);
+    this.troncons.trierDecor(this.camera, this.fog.far, pose.x, pose.z, this.camLibre !== null);
   }
 
   render(): void {

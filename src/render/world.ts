@@ -14,7 +14,7 @@ import { createSky } from './sky';
 import { Eau } from './eau';
 import { buildRoad, createRoadTextures } from './road';
 import { buildTerrain, buildMountains } from './terrainMesh';
-import { buildDecor } from './decor';
+import { buildDecor, DecorVisible } from './decor';
 import { CarView, type CarPose } from './carView';
 import { SmokeSystem, SkidMarks } from './effects';
 import { ChaseCamera, type ChaseConfig, type CameraTarget } from './camera';
@@ -44,6 +44,8 @@ export interface WorldInit {
 export class World {
   readonly scene = new THREE.Scene();
   readonly camera = new THREE.PerspectiveCamera(60, 1, 0.1, 2500);
+  /** objets du décor réellement dessinés à chaque image (champ de la caméra, brouillard) */
+  readonly decorVisible: DecorVisible;
   private readonly chase = new ChaseCamera(this.camera);
   private readonly palette: Palette;
   private readonly sun: THREE.DirectionalLight;
@@ -114,6 +116,8 @@ export class World {
     const meteo = THEMES_VISUELS[level.environnement].meteo;
     const theme = THEMES_VISUELS[level.environnement];
     if (theme.scintillement) this.scintille = new Scintillement(decorGroupe, theme.scintillement);
+    // après Scintillement : les modèles aux instances colorées une à une ne sont pas triés
+    this.decorVisible = new DecorVisible(decorGroupe);
     if (meteo) {
       this.snow = new Snowfall(meteo.nombre, 5, meteo.type === 'petales'
         ? { couleur: 0xffb3cc, taille: 0.17, vitesse: [0.6, 1.2], derive: 1.8, petale: true, nom: 'petales' }
@@ -192,6 +196,8 @@ export class World {
     const d = this.palette.sunDir;
     this.sun.position.set(pose.x + d[0] * 80, pose.y + d[1] * 80, pose.z + d[2] * 80);
     this.sun.target.position.set(pose.x, pose.y, pose.z);
+
+    this.decorVisible.mettreAJour(this.camera, this.palette.brume * QUALITY[this.quality].fogFar, pose.x, pose.z, this.camLibre !== null);
 
     const maxD = QUALITY[this.quality].fogFar + 150;
     const cx = this.camera.position.x, cz = this.camera.position.z;

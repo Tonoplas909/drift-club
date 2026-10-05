@@ -13,6 +13,15 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.4.12',
+    date: '05/10/2026',
+    titre: 'Plus fluide',
+    notes: [
+      'Le décor n\'est plus dessiné quand il est derrière la caméra ou perdu dans le brouillard : jusqu\'à dix fois moins de travail pour la carte graphique sur les niveaux boisés.',
+      'Plus d\'images par seconde, surtout sur téléphone et ordinateur portable ; le décor à l\'écran ne change pas.',
+    ],
+  },
+  {
     version: '0.4.11',
     date: '05/10/2026',
     titre: 'Correctif : son du moteur',
