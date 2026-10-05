@@ -31,15 +31,6 @@ describe('ProgressionEnLigne.charger', () => {
   });
 });
 
-describe('ProgressionEnLigne.importerLocale', () => {
-  it('envoie les livrées « voiture:skin » (sans « unie ») et les clés', async () => {
-    const m = faussClient({ 'rpc.importer_progression_locale': { data: [{ ...ligne, cles: 9, importee: true }], error: null } });
-    const r = await new ProgressionEnLigne(m.fournisseur).importerLocale(local);
-    expect(m.appels[0].args).toEqual(['importer_progression_locale', { p_debloques: ['equilibree:rayures', 'turbo:flammes'], p_cles: 9 }]);
-    expect(r).toMatchObject({ ok: true, valeur: { importee: true, progression: { cles: 9 } } });
-  });
-});
-
 describe('ProgressionEnLigne.ouvrirCaisse', () => {
   it('renvoie la livrée tirée par le serveur', async () => {
     const m = faussClient({ 'rpc.ouvrir_caisse': { data: [{ voiture: 'legere', skin: 'bande', rarete: 'commune', doublon: true, cles: 1 }], error: null } });

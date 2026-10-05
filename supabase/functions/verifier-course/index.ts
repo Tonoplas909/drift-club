@@ -5,7 +5,8 @@
 //   * score rejoué proche du score envoyé  → on garde le score envoyé (statut « conforme ») ;
 //   * score envoyé trop éloigné            → on garde le score rejoué (statut « corrige ») ;
 //   * course qui n'atteint pas l'arrivée   → rien n'est enregistré.
-// Puis elle appelle enregistrer_score_verifie() (migration 0008), réservée à la clé secrète du serveur.
+// Puis elle appelle enregistrer_score_verifie() (migrations 0008 et 0009), réservée à la clé secrète du serveur.
+// Une même course (même replay) n'est enregistrée qu'une fois : renvoyer un replay ne rapporte plus de clés.
 //
 // Déploiement : voir supabase/README.md (supabase functions deploy verifier-course --no-verify-jwt).
 // Le jeton du joueur est vérifié ici (auth/v1/user), d'où --no-verify-jwt (sinon la requête CORS préalable est refusée).
@@ -66,15 +67,21 @@ Deno.serve(async (req: Request) => {
   if (!rep.ok) return json(rep);
 
   const v = rep.verdict;
-  const r = await fetch(`${URL_PROJET}/rest/v1/rpc/enregistrer_score_verifie`, {
-    method: 'POST',
-    headers: enTetesServeur(),
-    body: JSON.stringify({
-      p_joueur: id, p_niveau: rep.niveau, p_mode: rep.mode, p_voiture: rep.voiture,
-      p_score: v.score, p_temps: v.temps, p_meilleur_drift: Math.min(v.meilleurDrift, v.score),
-      p_statut: v.statut, p_score_annonce: Math.round(Number(corps.score)), p_score_rejoue: v.scoreRejoue,
-    }),
+  const params = {
+    p_joueur: id, p_niveau: rep.niveau, p_mode: rep.mode, p_voiture: rep.voiture,
+    p_score: v.score, p_temps: v.temps, p_meilleur_drift: Math.min(v.meilleurDrift, v.score),
+    p_statut: v.statut, p_score_annonce: Math.round(Number(corps.score)), p_score_rejoue: v.scoreRejoue,
+  };
+  const appeler = (corpsRpc: Record<string, unknown>): Promise<Response> => fetch(`${URL_PROJET}/rest/v1/rpc/enregistrer_score_verifie`, {
+    method: 'POST', headers: enTetesServeur(), body: JSON.stringify(corpsRpc),
   });
+  // empreinte du replay : une même course ne rapporte qu'une fois (migration 0009)
+  let r = await appeler({ ...params, p_empreinte_replay: rep.empreinteReplay });
+  if (!r.ok && r.status === 404) {
+    // 0009 pas encore appliquée : ancienne signature (sans refus des doublons)
+    const err = await r.clone().json().catch(() => ({}));
+    if (err?.code === 'PGRST202') r = await appeler(params);
+  }
   if (!r.ok) {
     const err = await r.json().catch(() => ({}));
     // fonction SQL absente : migration 0008 pas encore appliquée, le jeu se rabat sur l'ancien envoi

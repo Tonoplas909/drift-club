@@ -7,12 +7,10 @@ import { progressionVide, validerProgression, type GainCourse, type Progression 
 
 /**
  * Progression stockée dans le compte en ligne (serveur) : mêmes données que la progression locale,
- * plus l'indicateur « la progression de l'appareil a déjà été reprise ».
+ * plus l'indicateur `importee` (ancienne reprise de la progression de l'appareil, supprimée en 0.4.5 : un compte
+ * ne reprend plus rien de l'appareil, dont le contenu est modifiable par le joueur).
  */
 export interface ProgressionCompte { progression: Progression; importee: boolean }
-
-/** Plafond de clés repris à l'import (le serveur applique le même). */
-export const PLAFOND_CLES_IMPORT = 30;
 
 /** Objets au format du serveur : « voiture:skin » ou « fumee:id » (« unie » et « classique » n'y figurent jamais). */
 export function debloquesVersLignes(d: Record<CleCollection, SkinId[]>): string[] {
@@ -21,12 +19,6 @@ export function debloquesVersLignes(d: Record<CleCollection, SkinId[]>): string[
   return out;
 }
 
-/** Contenu envoyé à `importer_progression_locale` : livrées débloquées et clés de l'appareil. */
-export const donneesImport = (p: Progression): { debloques: string[]; cles: number } =>
-  ({ debloques: debloquesVersLignes(p.debloques), cles: Math.max(0, Math.floor(p.cles)) });
-
-/** L'import de l'appareil ne se fait qu'une fois par compte : seulement si le serveur ne l'a pas encore marqué. */
-export const doitImporter = (c: ProgressionCompte | null): boolean => c !== null && !c.importee;
 
 /** Lit une ligne `progressions` du serveur (ids inconnus de cette version du jeu ignorés) ; null si elle est inutilisable. */
 export function lireProgressionCompte(ligne: unknown): ProgressionCompte | null {

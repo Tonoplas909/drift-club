@@ -2,7 +2,7 @@ import type { Fournisseur } from './client';
 import { messageErreur, MSG_INDISPONIBLE } from './erreurs';
 import type { Progression } from '../core/economie';
 import type { Objet } from '../core/caisses';
-import { donneesImport, lireObjetServeur, lireProgressionCompte, type ProgressionCompte } from '../core/progressionCompte';
+import { lireObjetServeur, lireProgressionCompte, type ProgressionCompte } from '../core/progressionCompte';
 
 /** Pourquoi un appel a échoué : `absent` = le SQL de la progression n'est pas installé, `reseau` = injoignable. */
 export type RaisonEchec = 'absent' | 'reseau' | 'autre';
@@ -26,7 +26,7 @@ const INDISPONIBLE: EchecProgression = { ok: false, message: MSG_INDISPONIBLE, r
 const INATTENDU: EchecProgression = { ok: false, message: 'Réponse inattendue du serveur.', raison: 'autre' };
 
 /**
- * Progression du compte (clés, livrées) : fonctions SQL `ma_progression`, `importer_progression_locale` et `ouvrir_caisse`.
+ * Progression du compte (clés, livrées) : fonctions SQL `ma_progression` et `ouvrir_caisse`.
  * Le serveur fait foi ; le client ne fait que lire et demander. Chaque méthode échoue en douceur (message français).
  */
 export class ProgressionEnLigne {
@@ -35,12 +35,6 @@ export class ProgressionEnLigne {
   /** Lit la progression du compte (créée avec les 3 clés offertes à la première demande). */
   async charger(): Promise<ResultatProgression<ProgressionCompte>> {
     return this.appelerLigne('ma_progression', {});
-  }
-
-  /** Reprend UNE fois la progression de l'appareil (le serveur borne et ignore les appels suivants) ; renvoie l'état du compte. */
-  async importerLocale(p: Progression): Promise<ResultatProgression<ProgressionCompte>> {
-    const { debloques, cles } = donneesImport(p);
-    return this.appelerLigne('importer_progression_locale', { p_debloques: debloques, p_cles: cles });
   }
 
   /** Ouvre une caisse : le serveur paie 3 clés, tire la livrée et la débloque ; l'écran n'a plus qu'à l'animer. */

@@ -19,7 +19,7 @@ import { skinChoisie, choisirSkin } from './core/skins';
 import { estFumee } from './core/caisses';
 import type { CarId } from './core/physics/types';
 import { ECONOMIE, fumeeAutorisee, gagnerCourse, ouvrirCaisse, skinsAutorises, type GainCourse, type Progression } from './core/economie';
-import { appliquerOuvertureServeur, choisirProgression, doitImporter, gainServeur, type EtatProgressionCompte, type ProgressionActive } from './core/progressionCompte';
+import { appliquerOuvertureServeur, choisirProgression, gainServeur, type EtatProgressionCompte, type ProgressionActive } from './core/progressionCompte';
 import type { Objet } from './core/caisses';
 import type { Rng } from './core/math/rng';
 import type { RaceResult } from './core/race/race';
@@ -178,21 +178,16 @@ export class App {
   }
 
   /**
-   * Lit la progression du compte (créée avec les 3 clés offertes la première fois) et, si l'appareil n'a jamais été repris,
-   * y verse UNE fois la progression locale. Ne lève jamais ; hors ligne on garde la dernière valeur connue, en lecture seule.
+   * Lit la progression du compte (créée avec les 3 clés offertes la première fois). La progression locale n'y est jamais
+   * versée (elle est modifiable dans le navigateur). Ne lève jamais ; hors ligne on garde la dernière valeur connue, en lecture seule.
    */
   private async synchroProgression(): Promise<void> {
     const e = this.compte.etat;
     if (e.statut !== 'connecte' || !e.pseudo) return;
     const id = e.id, jeton = ++this.jetonSynchro;
     const actuel = (): boolean => jeton === this.jetonSynchro;
-    let r = await this.progressionEnLigne.charger();
+    const r = await this.progressionEnLigne.charger();
     if (!actuel()) return;
-    if (r.ok && doitImporter(r.valeur)) {
-      const i = await this.progressionEnLigne.importerLocale(this.progression);
-      if (!actuel()) return;
-      if (i.ok) r = i;
-    }
     if (!r.ok) { this.echecSynchro(id, r); return; }
     this.serviceProgAbsent = false;
     this.memoriserCompteProg({ id, progression: r.valeur.progression, importee: r.valeur.importee, synchro: 'ok' });

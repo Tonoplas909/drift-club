@@ -13,6 +13,16 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.4.5',
+    date: '05/10/2026',
+    titre: 'Clés gagnées en jouant',
+    notes: [
+      'Les clés du compte ne se gagnent plus qu\'en terminant de vraies courses : renvoyer deux fois la même course ne rapporte rien.',
+      'Pas de clé plus vite qu\'on ne joue : entre deux gains, au moins la durée de la course.',
+      'La progression du jeu sans connexion n\'est plus versée dans un compte : un compte part de ses 3 clés offertes et progresse en jouant.',
+    ],
+  },
+  {
     version: '0.4.4',
     date: '05/10/2026',
     titre: 'Classement anti-triche',

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-  appliquerOuvertureServeur, choisirProgression, debloquesVersLignes, donneesImport, doitImporter, gainServeur,
-  lireObjetServeur, lireProgressionCompte, PLAFOND_CLES_IMPORT, type EtatProgressionCompte,
+  appliquerOuvertureServeur, choisirProgression, debloquesVersLignes, gainServeur,
+  lireObjetServeur, lireProgressionCompte, type EtatProgressionCompte,
 } from '../../src/core/progressionCompte';
 import { progressionVide, skinsAutorises, type Progression } from '../../src/core/economie';
 import { INDEX_GAGNANT, TAILLE_BANDE, construireBande } from '../../src/core/caisses';
@@ -29,22 +29,12 @@ describe('lecture de la progression du serveur', () => {
   });
 });
 
-describe('import de la progression locale', () => {
-  it('envoie les livrées au format serveur et les clés', () => {
-    expect(donneesImport(local)).toEqual({ debloques: ['equilibree:rayures', 'turbo:flammes'], cles: 7 });
+describe('format serveur des objets débloqués', () => {
+  it('livrées « voiture:skin », jamais « unie » ni une livrée inconnue', () => {
+    expect(debloquesVersLignes(local.debloques)).toEqual(['equilibree:rayures', 'turbo:flammes']);
     expect(debloquesVersLignes(progressionVide().debloques)).toEqual([]);
-  });
-  it("n'envoie jamais « unie » ni une livrée inconnue", () => {
     const p = { ...local, debloques: { equilibree: ['unie', 'rayures', 'nimporte'], legere: [], turbo: [], kei: [], muscle: [], rotative: [], break: [], fumee: [] } };
     expect(debloquesVersLignes(p.debloques)).toEqual(['equilibree:rayures']);
-  });
-  it("n'a lieu qu'une fois : seulement si le serveur ne l'a pas marqué", () => {
-    expect(doitImporter(null)).toBe(false);
-    expect(doitImporter({ progression: compteProg, importee: false })).toBe(true);
-    expect(doitImporter({ progression: compteProg, importee: true })).toBe(false);
-  });
-  it('le plafond client est le même que celui du SQL (30 clés)', () => {
-    expect(PLAFOND_CLES_IMPORT).toBe(30);
   });
 });
 

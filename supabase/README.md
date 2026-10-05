@@ -9,6 +9,7 @@ Le jeu utilise Supabase pour les comptes (email + mot de passe), le classement e
 3. Fais de même avec [`migrations/0003_niveaux_publics.sql`](migrations/0003_niveaux_publics.sql) (niveaux en ligne, voir plus bas).
 4. Fais de même avec [`migrations/0004_mes_places.sql`](migrations/0004_mes_places.sql) (place du joueur dans chaque niveau), puis avec [`migrations/0005_progression_compte.sql`](migrations/0005_progression_compte.sql), [`migrations/0007_nouvelles_voitures.sql`](migrations/0007_nouvelles_voitures.sql) (La Kei, La Muscle, La Rotative et Le Break acceptées au classement) et enfin [`migrations/0006_catalogue_skins.sql`](migrations/0006_catalogue_skins.sql) (clés et livrées dans le compte, voir plus bas). **Ne relance pas `0002` ni `0005` après `0007`** (ils remettraient l'ancienne liste de voitures ; `0007` est sans danger à relancer) : `0005` change le résultat de `soumettre_score` (colonnes de clés ajoutées).
 5. **Vérification des scores (anti-triche)** : déploie d'abord l'Edge Function `verifier-course` (voir [« Vérification des scores »](#vérification-des-scores) plus bas), PUIS colle [`migrations/0008_scores_verifies.sql`](migrations/0008_scores_verifies.sql). **Ne relance plus `0002`, `0005` ni `0007` après `0008`** : ils rouvriraient `soumettre_score` aux joueurs.
+   Puis, **après avoir redéployé la fonction de la version 0.4.5**, colle [`migrations/0009_cles_en_jouant.sql`](migrations/0009_cles_en_jouant.sql) : une même course ne rapporte qu'une fois, pas de clé plus vite qu'on ne joue, reprise de la progression locale fermée. Si tu relances `0008`, relance `0009` juste après.
 6. Clique sur **Run** après chaque collage. Chaque script peut être relancé sans danger (il est idempotent), sauf la remarque ci-dessus.
 
 Il crée :
@@ -31,7 +32,7 @@ La migration `0005` ajoute la progression dans le compte :
 - `catalogue_skins(voiture, id, rarete)` : les livrées qui sortent des caisses (« unie » exclue), lisible par tout le monde ; remplie par `0006` ;
 - `progressions` : une ligne par joueur (clés, livrées `voiture:skin`, caisses ouvertes…), lisible par son propriétaire seulement, **aucune écriture directe** ;
 - `ma_progression()` : renvoie la ligne, créée à la première demande avec les 3 clés offertes ;
-- `importer_progression_locale(debloques, cles)` : reprend **une seule fois** la progression de l'appareil (livrées du catalogue seulement, 30 clés au plus) ;
+- `importer_progression_locale(debloques, cles)` : reprenait **une seule fois** la progression de l'appareil (livrées du catalogue, 30 clés au plus) ; **fermée par `0009`** (le contenu de l'appareil est modifiable par le joueur : un compte ne gagne plus rien qu'en jouant) ;
 - `ouvrir_caisse()` : paie 3 clés, tire la rareté (79,9 / 16 / 3,2 / 0,64 / 0,26 %, poids renormalisés si une rareté est vide) puis une livrée au hasard côté serveur ; un doublon rend 1 clé ; la ligne est verrouillée pendant l'appel (pas de double dépense) ;
 - `soumettre_score(...)` (même résultat qu'avant, plus `cles_gagnees`, `cles_record`, `cles`) : +1 clé par arrivée, +1 sur un record en ligne, sans clé si la précédente date de moins de 20 s.
 
@@ -47,7 +48,7 @@ Le jeu tourne dans le navigateur : n'importe qui peut y modifier la variable du 
 - La simulation est déterministe : `src/core` n'utilise que des calculs identiques au bit près dans tous les navigateurs (`src/core/math/dmath.ts` remplace `Math.sin`, `Math.atan2`, `Math.hypot`…). La fonction rejoue donc la course avec le même code que le jeu (`course.js`) et retrouve le même score.
 - **Score rejoué proche du score envoyé** (écart ≤ 1 % ou 100 points, ≤ 0,5 s) : le score envoyé est gardé, le joueur voit exactement son score. **Écart plus grand** : c'est le score rejoué qui est enregistré, et l'écran des résultats le dit. **Course qui n'atteint pas l'arrivée** (replay tronqué, inventé…) : rien n'est enregistré. Réglages : `TOLERANCE` dans `src/core/replay/verifier.ts`.
 - Niveaux officiels : embarqués dans la fonction. Niveaux perso : le jeu envoie le contenu du niveau, la fonction vérifie qu'il correspond à son empreinte (la clé `perso:…`).
-- Chaque course vérifiée est notée dans la table **`verifications`** (score annoncé, score rejoué, score retenu). Une ligne `corrige` avec un score annoncé bien plus haut que le score rejoué signale une tentative de triche.
+- Chaque course vérifiée est notée dans la table **`verifications`** (score annoncé, score rejoué, score retenu, empreinte du replay). Avec `0009`, **une même course n'est enregistrée qu'une fois** (tous joueurs confondus) et les clés ne se gagnent pas plus vite qu'on ne joue : entre deux gains, au moins la durée de la course (et 20 s). Une ligne `corrige` avec un score annoncé bien plus haut que le score rejoué signale une tentative de triche.
 - Courses de plus de 10 minutes refusées (temps de calcul du serveur borné).
 - Il reste possible de « tricher » en programmant un pilote automatique qui conduit vraiment : il faut alors réellement réussir la course.
 
@@ -63,7 +64,7 @@ supabase functions deploy verifier-course --project-ref studzxweqmgpuhgsvxmi --n
 
 **À chaque version qui touche la simulation** (`src/core`, niveaux officiels), il faut régénérer puis redéployer la fonction : `npx vite-node tools/gen-fonction.ts` (un test échoue tant que ce n'est pas fait), puis la commande ci-dessus. Le jeu envoie l'empreinte de sa simulation (`src/online/empreinteSimulation.ts`) ; si la fonction déployée n'a pas la même, le score est refusé avec « recharge la page » et reste enregistré en local.
 
-Ordre de mise en place : 1) déployer la fonction, 2) coller `0008`. Tant que la fonction n'est pas déployée ou que `0008` n'est pas passée, le jeu se rabat sur l'ancien envoi (`soumettre_score`, non vérifié).
+Ordre de mise en place : 1) déployer la fonction, 2) coller `0008` (puis `0009`, toujours après la fonction de la même version). Tant que la fonction n'est pas déployée ou que `0008` n'est pas passée, le jeu se rabat sur l'ancien envoi (`soumettre_score`, non vérifié).
 
 ## 2. Réglages d'authentification recommandés
 
@@ -82,7 +83,7 @@ Ces adresses servent aux liens des emails (confirmation d'inscription, mot de pa
 
 ## 3. Limites à connaître
 
-- **Progression du compte** : tout passe par des fonctions du serveur, mais deux points restent basés sur la confiance. (1) L'import unique de la progression de l'appareil : le serveur ne peut pas vérifier ce que contenait l'appareil, il se contente de le borner (livrées du catalogue, 30 clés, une fois par compte) ; chaque nouveau compte peut donc reprendre une fois une progression locale, éventuellement modifiée. (2) Sans la vérification des scores (`0008`), quelqu'un qui envoie de faux scores gagne des clés, au plus 2 par 20 s (soit environ 360 clés par heure, une caisse toutes les 30 s) ; avec elle, il faut vraiment finir la course. Pour corriger un compte : **Table Editor → progressions**.
+- **Progression du compte** : tout passe par des fonctions du serveur, mais deux points restent basés sur la confiance. (1) Avant `0009`, l'import unique de la progression de l'appareil laissait chaque nouveau compte reprendre une progression locale modifiée (toutes les livrées du catalogue, 30 clés) ; `0009` le ferme. (2) Sans la vérification des scores (`0008`), quelqu'un qui envoie de faux scores gagne des clés, au plus 2 par 20 s (soit environ 360 clés par heure, une caisse toutes les 30 s) ; avec `0008` et `0009`, il faut vraiment finir des courses, chacune une seule fois, et on ne gagne pas plus vite qu'en jouant. Reste possible : un pilote automatique programmé qui conduit vraiment. La progression locale (jeu sans connexion) reste modifiable dans le navigateur, mais elle ne quitte jamais l'appareil. Pour corriger un compte : **Table Editor → progressions**.
 
 - L'expéditeur d'emails intégré à Supabase est **limité en débit** (quelques emails par heure pour tout le projet) : beaucoup d'inscriptions ou de « mot de passe oublié » d'un coup seront refusées. Pour un vrai lancement, configure un SMTP personnalisé (Authentication → SMTP Settings).
 - **Avant la migration `0008`** (ou si l'Edge Function n'est pas déployée), le score est calculé dans le navigateur et le serveur ne peut pas le vérifier : `soumettre_score` refuse seulement les valeurs absurdes. Avec `0008` et l'Edge Function, les scores sont rejoués par le serveur (voir plus haut). Pour retirer un score : **Table Editor → scores**.

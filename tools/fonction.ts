@@ -4,21 +4,27 @@ import { build } from 'esbuild';
 
 const racine = new URL('..', import.meta.url).pathname;
 
-/** Code de `supabase/functions/verifier-course/course.js` et empreinte de la simulation qu'il contient. */
+const paquet = async (entree: string): Promise<string> => (await build({
+  absWorkingDir: racine,
+  entryPoints: [entree],
+  bundle: true,
+  format: 'esm',
+  platform: 'neutral',
+  target: 'es2022',
+  charset: 'utf8',
+  legalComments: 'none',
+  write: false,
+})).outputFiles[0].text;
+
+/**
+ * Code de `supabase/functions/verifier-course/course.js` et empreinte de la simulation qu'il contient.
+ * L'empreinte ne porte que sur src/serveur/simulation.ts (simulation, niveaux) : le jeu et la fonction doivent
+ * rejouer les courses à l'identique, pas forcément traiter les requêtes de la même façon.
+ */
 export async function empaqueter(): Promise<{ code: string; empreinte: string }> {
-  const r = await build({
-    absWorkingDir: racine,
-    entryPoints: ['src/serveur/course.ts'],
-    bundle: true,
-    format: 'esm',
-    platform: 'neutral',
-    target: 'es2022',
-    charset: 'utf8',
-    legalComments: 'none',
-    write: false,
-  });
-  const corps = r.outputFiles[0].text;
-  const hash = new Uint8Array(await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(corps)));
+  const corps = await paquet('src/serveur/course.ts');
+  const simulation = await paquet('src/serveur/simulation.ts');
+  const hash = new Uint8Array(await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(simulation)));
   const empreinte = Array.from(hash.slice(0, 8), (b) => b.toString(16).padStart(2, '0')).join('');
   const code = '// Généré par tools/gen-fonction.ts depuis src/serveur/course.ts (simulation et niveaux officiels) : ne pas modifier.\n'
     + '// @ts-nocheck\n'

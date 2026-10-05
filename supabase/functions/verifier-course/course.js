@@ -6182,6 +6182,10 @@ function verifierCourse(n, voiture, mode, replay, annonce) {
 // src/serveur/course.ts
 var MAX_BASE64 = 6e5;
 var MAX_OCTETS = PAS_MAX * 6 + 16;
+async function sha256(o) {
+  const h = new Uint8Array(await globalThis.crypto.subtle.digest("SHA-256", new Uint8Array(o)));
+  return Array.from(h, (b) => b.toString(16).padStart(2, "0")).join("");
+}
 var refus = (code, message) => ({ ok: false, code, message });
 var estObjet = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
 var nombreFini = (v) => typeof v === "number" && Number.isFinite(v);
@@ -6217,9 +6221,9 @@ async function traiterCourse(corps, empreinteServeur) {
   const mode = d.mode, voiture = d.voiture;
   const verdict = verifierCourse(prep.prepared, voiture, mode, octets, { score: d.score, temps: d.temps, meilleurDrift: d.meilleurDrift });
   if (verdict.statut === "refuse") return refus("refuse", verdict.raison);
-  return { ok: true, verdict, niveau: d.niveau, mode, voiture };
+  return { ok: true, verdict, niveau: d.niveau, mode, voiture, empreinteReplay: await sha256(octets) };
 }
 export {
   traiterCourse
 };
-export const EMPREINTE = 'dd309f0fd03382d9';
+export const EMPREINTE = '695035644a481b23';

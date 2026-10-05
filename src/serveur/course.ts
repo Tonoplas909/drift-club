@@ -5,14 +5,11 @@
  * `supabase/functions/verifier-course/course.js`. Il ne dépend ni du DOM ni de Deno : le même code tourne
  * dans les tests.
  */
-import { NIVEAUX_OFFICIELS } from '../levels';
-import { prepareLevel } from '../game/prepare';
-import { empreinteNiveau } from '../core/level/fingerprint';
-import { CAR_IDS } from '../core/physics/cars';
-import { MODE_IDS } from '../core/physics/assists';
+import {
+  NIVEAUX_OFFICIELS, prepareLevel, empreinteNiveau, CAR_IDS, MODE_IDS, depuisBase64, decompresserReplay, verifierCourse, PAS_MAX,
+} from './simulation';
 import type { CarId, ModeId } from '../core/physics/types';
-import { depuisBase64, decompresserReplay } from '../core/replay/replay';
-import { verifierCourse, PAS_MAX, type Verdict } from '../core/replay/verifier';
+import type { Verdict } from '../core/replay/verifier';
 
 /** Ce que le jeu envoie à la fin d'une course. */
 export interface DemandeCourse {
@@ -32,12 +29,21 @@ export interface DemandeCourse {
 }
 
 export type ReponseCourse =
-  | { ok: true; verdict: Exclude<Verdict, { statut: 'refuse' }>; niveau: string; mode: ModeId; voiture: CarId }
+  | {
+    ok: true; verdict: Exclude<Verdict, { statut: 'refuse' }>; niveau: string; mode: ModeId; voiture: CarId;
+    /** SHA-256 du replay décompressé : une même course ne peut être enregistrée qu'une fois */
+    empreinteReplay: string;
+  }
   | { ok: false; code: 'version' | 'demande' | 'refuse'; message: string };
 
 /** Taille maximale du replay envoyé (base64) et une fois décompressé. */
 const MAX_BASE64 = 600_000;
 const MAX_OCTETS = PAS_MAX * 6 + 16;
+
+async function sha256(o: Uint8Array): Promise<string> {
+  const h = new Uint8Array(await globalThis.crypto.subtle.digest('SHA-256', new Uint8Array(o)));
+  return Array.from(h, (b) => b.toString(16).padStart(2, '0')).join('');
+}
 
 const refus = (code: 'version' | 'demande' | 'refuse', message: string): ReponseCourse => ({ ok: false, code, message });
 const estObjet = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -81,5 +87,5 @@ export async function traiterCourse(corps: unknown, empreinteServeur: string): P
   const mode = d.mode as ModeId, voiture = d.voiture as CarId;
   const verdict = verifierCourse(prep.prepared, voiture, mode, octets, { score: d.score, temps: d.temps, meilleurDrift: d.meilleurDrift });
   if (verdict.statut === 'refuse') return refus('refuse', verdict.raison);
-  return { ok: true, verdict, niveau: d.niveau, mode, voiture };
+  return { ok: true, verdict, niveau: d.niveau, mode, voiture, empreinteReplay: await sha256(octets) };
 }

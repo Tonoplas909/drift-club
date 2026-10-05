@@ -31,7 +31,13 @@ describe('traiterCourse (Edge Function verifier-course)', () => {
     expect(await traiterCourse(await demande(), 'v1')).toEqual({
       ok: true, niveau: 'off:col-du-torii', mode: 'arcade', voiture: 'turbo',
       verdict: { statut: 'conforme', score: r.score, temps: r.time, meilleurDrift: r.bestDrift, scoreRejoue: r.score, tempsRejoue: r.time },
+      empreinteReplay: expect.stringMatching(/^[0-9a-f]{64}$/),
     });
+  });
+  it("empreinte du replay : la même course, compressée ou non, a la même empreinte (refus des doublons côté SQL)", async () => {
+    const a = await traiterCourse(await demande(), 'v1');
+    const b = await traiterCourse(await demande({ replay: versBase64(course.replay), compression: 'aucune' }), 'v1');
+    expect(a.ok && b.ok && a.empreinteReplay).toBe(b.ok && b.empreinteReplay);
   });
   it('replay non compressé accepté ; score gonflé corrigé', async () => {
     const rep = await traiterCourse(await demande({ replay: versBase64(course.replay), compression: 'aucune', score: 1_500_000 }), 'v1');
