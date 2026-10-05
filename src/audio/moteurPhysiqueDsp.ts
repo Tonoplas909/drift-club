@@ -16,7 +16,9 @@
  * moyenne 0,125, décalait chaque cylindre : allumages irréguliers) ; l'irrégularité est un réglage du profil.
  *
  * La classe ne dépend de RIEN d'extérieur (ni import, ni variable du module) : `sourceWorkletMoteur` recopie son
- * code source dans l'AudioWorklet, où elle tourne sur le fil audio.
+ * code source dans l'AudioWorklet, où elle tourne sur le fil audio. D'où des champs `declare` initialisés dans le
+ * constructeur : un champ de classe ordinaire est réécrit à la compilation en appel à une fonction utilitaire du
+ * paquet (`__publicField`, minifiée), absente du module (un test compile et exécute ce code comme en production).
  */
 
 /** Réglages d'un moteur (longueurs en échantillons à 44,1 kHz). */
@@ -50,43 +52,57 @@ export interface ProfilMoteur {
 interface Guide { haut: Float32Array; bas: Float32Array; i: number; n: number; refG: number; refD: number; sortieG: number; sortieD: number }
 
 export class MoteurPhysiqueDSP {
-  private readonly cyl: { bloc: Guide; adm: Guide; ech: Guide; col: Guide }[] = [];
-  private readonly ligne: Guide;
-  private readonly sil: Guide[];
-  private readonly sortie: Guide;
-  private readonly invN: number;
-  private readonly dt: number;
-  private readonly allumage: number;
-  private readonly irregularite: number;
-  private readonly rotatif: { recouvrement: number; brap: number } | null;
+  declare private readonly cyl: { bloc: Guide; adm: Guide; ech: Guide; col: Guide }[];
+  declare private readonly ligne: Guide;
+  declare private readonly sil: Guide[];
+  declare private readonly sortie: Guide;
+  declare private readonly invN: number;
+  declare private readonly dt: number;
+  declare private readonly allumage: number;
+  declare private readonly irregularite: number;
+  declare private readonly rotatif: { recouvrement: number; brap: number } | null;
   /** rotatif : force de la combustion en cours de chaque chambre, numéro de son dernier cycle, gaz résiduels accumulés */
-  private readonly force: Float64Array;
-  private readonly cyclePrec: Float64Array;
+  declare private readonly force: Float64Array;
+  declare private readonly cyclePrec: Float64Array;
   /** cycles écoulés, sans repli (le bruit du vilebrequin ne doit pas faire compter deux fois un passage) */
-  private cycles = 0;
-  private residus = 0;
+  declare private cycles: number;
+  declare private residus: number;
   /** rotatif : série de combustions ratées en cours (jusqu'à ce que la chambre se soit vidée de ses gaz brûlés) */
-  private enRate = false;
+  declare private enRate: boolean;
   /** rotatif : combustions renforcées restantes après une série de ratés (le carburant imbrûlé s'enflamme : le « BRAP ») */
-  private claques = 0;
-  private derive = 0;
-  private readonly mix: { admission: number; bloc: number; sortie: number };
+  declare private claques: number;
+  declare private derive: number;
+  declare private readonly mix: { admission: number; bloc: number; sortie: number };
   /** le niveau grandit avec le nombre de cylindres : ramené à peu près au même pour tous les moteurs */
-  private readonly norme: number;
-  private tour = 0;
-  private filtreAdm = 0;
-  private filtreVil = 0;
-  private filtreBloc = 0;
-  private silG = 0;
-  private silD = 0;
+  declare private readonly norme: number;
+  declare private tour: number;
+  declare private filtreAdm: number;
+  declare private filtreVil: number;
+  declare private filtreBloc: number;
+  declare private silG: number;
+  declare private silD: number;
   /** filtres anti-composante continue (le modèle dérive vers une valeur moyenne non nulle) : entrée et sortie précédentes */
-  private readonly dc = new Float64Array(6);
-  private readonly rDc: number;
-  private readonly aAdm: number;
-  private readonly aVil: number;
-  private readonly aBloc: number;
+  declare private readonly dc: Float64Array;
+  declare private readonly rDc: number;
+  declare private readonly aAdm: number;
+  declare private readonly aVil: number;
+  declare private readonly aBloc: number;
 
   constructor(p: ProfilMoteur, frequence: number) {
+    // (champs déclarés avec `declare` et initialisés ici : aucun champ de classe dans le code compilé, voir l'en-tête)
+    this.cyl = [];
+    this.cycles = 0;
+    this.residus = 0;
+    this.enRate = false;
+    this.claques = 0;
+    this.derive = 0;
+    this.tour = 0;
+    this.filtreAdm = 0;
+    this.filtreVil = 0;
+    this.filtreBloc = 0;
+    this.silG = 0;
+    this.silD = 0;
+    this.dc = new Float64Array(6);
     const echelle = frequence / 44100;
     const guide = (longueur: number, refG: number, refD: number): Guide => {
       const n = Math.max(1, Math.round(longueur * echelle));

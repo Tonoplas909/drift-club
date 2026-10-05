@@ -13,6 +13,15 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.4.11',
+    date: '05/10/2026',
+    titre: 'Correctif : son du moteur',
+    notes: [
+      'Le moteur était muet depuis la 0.4.10 : il se fait de nouveau entendre, avec le nouveau son.',
+      'Si le nouveau moteur ne peut pas fonctionner sur ton appareil, le jeu repasse tout seul sur l\'ancien son au lieu de rester silencieux.',
+    ],
+  },
+  {
     version: '0.4.10',
     date: '05/10/2026',
     titre: 'Nouveau son moteur',

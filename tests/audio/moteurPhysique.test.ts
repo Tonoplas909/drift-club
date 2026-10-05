@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { build } from 'esbuild';
 import { MoteurPhysiqueDSP } from '../../src/audio/moteurPhysiqueDsp';
 import { CLARTE_MOTEUR, NOM_PROCESSEUR, PROFILS_MOTEUR, sourceWorkletMoteur } from '../../src/audio/moteurPhysique';
 import { coupurePhysique } from '../../src/audio/voices';
@@ -102,6 +103,28 @@ describe('moteur physique (modèle d\'Antonio-R1)', () => {
     expect(max).toBeGreaterThan(0.05);
     p.port.onmessage?.({ data: 'stop' });
     expect(p.process([], sortie, { rpm: new Float32Array([4000]), gaz: new Float32Array([1]) })).toBe(false);
+  });
+
+  it('compilé comme en production (minifié, cible des navigateurs du jeu), le module tourne SEUL : aucune dépendance au paquet', async () => {
+    // régression : les champs de classe étaient réécrits en appels à `__publicField` (minifié en « M »), absent de l'AudioWorklet
+    const r = await build({
+      stdin: { contents: "export { sourceWorkletMoteur } from './src/audio/moteurPhysique';", resolveDir: new URL('../..', import.meta.url).pathname, loader: 'ts' },
+      bundle: true, write: false, minify: true, format: 'iife', globalName: 'paquet',
+      target: ['es2020', 'edge88', 'firefox78', 'chrome87', 'safari14'], // cible par défaut de `vite build`
+    });
+    const source = new Function(`${r.outputFiles[0].text}; return paquet.sourceWorkletMoteur();`)() as string;
+    let Classe: (new (o: { processorOptions: unknown }) => { process(e: unknown, s: Float32Array[][], p: Record<string, Float32Array>): boolean }) | null = null;
+    class AudioWorkletProcessor { port = { onmessage: null }; }
+    // portée vide : seules les globales d'un AudioWorkletGlobalScope sont fournies
+    new Function('AudioWorkletProcessor', 'registerProcessor', 'sampleRate', `"use strict";${source}`)(
+      AudioWorkletProcessor, (_: string, c: typeof Classe) => { Classe = c; }, SR);
+    for (const car of CAR_IDS) {
+      const p = new Classe!({ processorOptions: PROFILS_MOTEUR[car] });
+      const sortie = [[new Float32Array(128)]];
+      let max = 0;
+      for (let k = 0; k < 300; k++) { p.process([], sortie, { rpm: new Float32Array([3000]), gaz: new Float32Array([1]) }); for (const v of sortie[0][0]) max = Math.max(max, Math.abs(v)); }
+      expect(max, car).toBeGreaterThan(0.05);
+    }
   });
 
   it('passe-bas de la chaîne : sourd en décélération, s\'ouvre avec le régime et la charge', () => {

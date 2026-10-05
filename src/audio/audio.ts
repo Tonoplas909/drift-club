@@ -94,7 +94,17 @@ export class AudioEngine {
 
   private creerVoixMoteur(env: Env, out: AudioNode, car: CarId): EngineVoice {
     const noeud = this.physiqueOk ? creerNoeudMoteur(env.ctx, car) : null;
-    return new EngineVoice(env, out, car, noeud);
+    const voix = new EngineVoice(env, out, car, noeud);
+    if (noeud) {
+      // le module plante (navigateur inattendu…) : plus jamais de moteur muet, on repasse à la voix synthétique
+      noeud.onprocessorerror = () => {
+        this.physiqueOk = false;
+        if (this.moteur !== voix) return;
+        voix.stop(env.ctx.currentTime);
+        this.moteur = this.veutMoteur ? new EngineVoice(env, out, car, null) : null;
+      };
+    }
+    return voix;
   }
 
   /** Onglet caché : fondu puis suspension du contexte ; retour : reprise. */
