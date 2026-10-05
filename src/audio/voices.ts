@@ -11,9 +11,12 @@ import {
   smoothAsym, soufflageDeclenche, surfaceLevel, ventLevel, type CarSound,
 } from './params';
 import { soufflage } from './shots';
+import { CLARTE_MOTEUR } from './moteurPhysique';
 
 /** Niveau de sortie du moteur avant le bus (le mixage relatif se règle ici et dans `bus.ts`). */
 const NIVEAU_MOTEUR = 0.2;
+/** Niveau du moteur physique avant la chaîne commune (ramené à celui de la voix synthétique). */
+const NIVEAU_PHYSIQUE = 0.31;
 const NIVEAU_PNEUS = 0.45;
 const NIVEAU_SURFACE = 0.12;
 const NIVEAU_VENT = 0.1;
@@ -35,12 +38,23 @@ function lfo(env: Env, freq: number, profondeur: number, cibles: AudioParam[], t
   return o;
 }
 
+/** Régime minimal donné au moteur physique (au ralenti, sous ce seuil il cale). */
+const RPM_RALENTI_PHYSIQUE = 750;
+
+/** Passe-bas du moteur physique : sourd en décélération, s'ouvre avec le régime et l'accélérateur (`clarte` : voir CLARTE_MOTEUR). */
+export function coupurePhysique(rpm: number, charge: number, clarte = 1): number {
+  return Math.min(7000, (700 + rpm * 0.3 + 2200 * clamp(charge, 0, 1)) * clarte);
+}
+
 export class EngineVoice {
   private readonly p: CarSound;
-  private readonly oscs: { sawA: OscillatorNode; sawB: OscillatorNode; sub: OscillatorNode; h2: OscillatorNode; h3: OscillatorNode };
-  private readonly gains: { sub: GainNode; h2: GainNode; h3: GainNode; noise: GainNode };
+  /** voix synthétique d'origine (sans AudioWorklet) */
+  private readonly oscs: { sawA: OscillatorNode; sawB: OscillatorNode; sub: OscillatorNode; h2: OscillatorNode; h3: OscillatorNode } | null = null;
+  private readonly gains: { sub: GainNode; h2: GainNode; h3: GainNode; noise: GainNode } | null = null;
+  /** moteur physique (AudioWorklet, voir moteurPhysique.ts) : remplace les oscillateurs quand il est disponible */
+  private readonly physique: { noeud: AudioWorkletNode; rpm: AudioParam; gaz: AudioParam } | null = null;
   private readonly lp: BiquadFilterNode;
-  private readonly noiseBp: BiquadFilterNode;
+  private readonly noiseBp: BiquadFilterNode | null = null;
   private readonly charge: GainNode;
   private readonly creux: GainNode;
   private readonly lim: GainNode;
@@ -51,31 +65,60 @@ export class EngineVoice {
   private boost = 0;
   private gear = 0;
   private dernierSouffle = -10;
+  private readonly clarte: number;
 
-  constructor(private readonly env: Env, private readonly out: AudioNode, car: CarId) {
+  constructor(private readonly env: Env, private readonly out: AudioNode, car: CarId, noeudPhysique: AudioWorkletNode | null = null) {
     const ctx = env.ctx;
     const p = this.p = CAR_SOUND[car];
+    this.clarte = CLARTE_MOTEUR[car];
     const mix = ctx.createGain(); mix.gain.value = 0.45;
-    const mk = (type: OscillatorType, detune = 0): OscillatorNode => {
-      const o = ctx.createOscillator(); o.type = type; o.detune.value = detune; o.frequency.value = 60;
-      o.start();
-      this.sources.push(o);
-      return o;
-    };
-    const sawA = mk('sawtooth', -p.detune), sawB = mk('sawtooth', p.detune);
-    const sub = mk('triangle'), h2 = mk('triangle'), h3 = mk('sine');
-    this.oscs = { sawA, sawB, sub, h2, h3 };
-    const gSaw = ctx.createGain(); gSaw.gain.value = p.saw;
-    sawA.connect(gSaw); sawB.connect(gSaw); gSaw.connect(mix);
-    const g = (o: OscillatorNode, v: number): GainNode => { const n = ctx.createGain(); n.gain.value = v; o.connect(n); n.connect(mix); return n; };
-    this.gains = { sub: g(sub, p.sub), h2: g(h2, p.upper * 0.6), h3: g(h3, p.upper * 0.4), noise: ctx.createGain() };
-    // léger vibrato lent : le moteur « vit » sans jamais sonner mécanique
-    this.sources.push(lfo(env, 5.3, 3, [sawA.detune, sawB.detune, sub.detune, h2.detune, h3.detune]));
-
-    this.lp = ctx.createBiquadFilter(); this.lp.type = 'lowpass'; this.lp.frequency.value = 600; this.lp.Q.value = p.q;
-    const shaper = ctx.createWaveShaper(); shaper.curve = saturationCurve(1025, p.drive); shaper.oversample = '4x';
     const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 28; hp.Q.value = 0.5;
     const tonalite = ctx.createBiquadFilter(); tonalite.type = 'lowpass'; tonalite.frequency.value = 3400; tonalite.Q.value = 0.4;
+    this.lp = ctx.createBiquadFilter(); this.lp.type = 'lowpass'; this.lp.frequency.value = 600; this.lp.Q.value = p.q;
+    if (noeudPhysique) {
+      // moteur physique : éclairci ou assombri selon la charge ; une saturation légère ajoute des harmoniques
+      // dans les médiums pour que le grondement reste audible sur les petits haut-parleurs (téléphones)
+      const rpm = noeudPhysique.parameters.get('rpm'), gaz = noeudPhysique.parameters.get('gaz');
+      if (rpm && gaz) {
+        this.physique = { noeud: noeudPhysique, rpm, gaz };
+        this.lp.Q.value = 0.7; this.lp.frequency.value = 2500;
+        tonalite.frequency.value = 7000;
+        const niveau = ctx.createGain(); niveau.gain.value = NIVEAU_PHYSIQUE;
+        const grain = ctx.createWaveShaper(); grain.curve = saturationCurve(1025, 1 + 0.8 * p.drive); grain.oversample = '2x';
+        // bosse de présence (résonance d'échappement) : le « mordant » du moteur, plus haut pour les petits moteurs
+        const presence = ctx.createBiquadFilter(); presence.type = 'peaking';
+        presence.frequency.value = 700 * this.clarte; presence.Q.value = 0.8; presence.gain.value = 9;
+        noeudPhysique.connect(niveau); niveau.connect(grain); grain.connect(presence); presence.connect(this.lp); this.lp.connect(hp); hp.connect(tonalite);
+      }
+    }
+    if (!this.physique) {
+      // voix synthétique d'origine : deux dents de scie désaccordées, sous-harmonique et harmoniques, saturation
+      const mk = (type: OscillatorType, detune = 0): OscillatorNode => {
+        const o = ctx.createOscillator(); o.type = type; o.detune.value = detune; o.frequency.value = 60;
+        o.start();
+        this.sources.push(o);
+        return o;
+      };
+      const sawA = mk('sawtooth', -p.detune), sawB = mk('sawtooth', p.detune);
+      const sub = mk('triangle'), h2 = mk('triangle'), h3 = mk('sine');
+      this.oscs = { sawA, sawB, sub, h2, h3 };
+      const gSaw = ctx.createGain(); gSaw.gain.value = p.saw;
+      sawA.connect(gSaw); sawB.connect(gSaw); gSaw.connect(mix);
+      const g = (o: OscillatorNode, v: number): GainNode => { const n = ctx.createGain(); n.gain.value = v; o.connect(n); n.connect(mix); return n; };
+      this.gains = { sub: g(sub, p.sub), h2: g(h2, p.upper * 0.6), h3: g(h3, p.upper * 0.4), noise: ctx.createGain() };
+      // léger vibrato lent : le moteur « vit » sans jamais sonner mécanique
+      this.sources.push(lfo(env, 5.3, 3, [sawA.detune, sawB.detune, sub.detune, h2.detune, h3.detune]));
+
+      const shaper = ctx.createWaveShaper(); shaper.curve = saturationCurve(1025, p.drive); shaper.oversample = '4x';
+      mix.connect(this.lp); this.lp.connect(shaper); shaper.connect(hp); hp.connect(tonalite);
+
+      // combustion : bruit rose passe-bande, suit le régime
+      const noise = bruit(env, 'pink', 0.3);
+      this.sources.push(noise);
+      this.noiseBp = ctx.createBiquadFilter(); this.noiseBp.type = 'bandpass'; this.noiseBp.frequency.value = 500; this.noiseBp.Q.value = 0.9;
+      noise.connect(this.noiseBp); this.noiseBp.connect(this.gains.noise); this.gains.noise.connect(tonalite);
+    }
+
     this.charge = ctx.createGain(); this.charge.gain.value = 0;
     this.creux = ctx.createGain();
     this.lim = ctx.createGain();
@@ -85,13 +128,6 @@ export class EngineVoice {
     limOsc.start();
     this.sources.push(limOsc);
     this.fondu = ctx.createGain(); this.fondu.gain.value = 0;
-    mix.connect(this.lp); this.lp.connect(shaper); shaper.connect(hp); hp.connect(tonalite);
-
-    // combustion : bruit rose passe-bande, suit le régime
-    const noise = bruit(env, 'pink', 0.3);
-    this.sources.push(noise);
-    this.noiseBp = ctx.createBiquadFilter(); this.noiseBp.type = 'bandpass'; this.noiseBp.frequency.value = 500; this.noiseBp.Q.value = 0.9;
-    noise.connect(this.noiseBp); this.noiseBp.connect(this.gains.noise); this.gains.noise.connect(tonalite);
 
     tonalite.connect(this.charge); this.charge.connect(this.creux); this.creux.connect(this.lim); this.lim.connect(this.fondu);
     const sortie = ctx.createGain(); sortie.gain.value = NIVEAU_MOTEUR;
@@ -115,19 +151,27 @@ export class EngineVoice {
   /** `t` : temps du contexte ; `dt` : temps écoulé depuis le dernier appel. */
   update(t: number, dt: number, rpm: number, throttle: number, gear: number): void {
     const T = engineTargets(this.p, rpm, throttle);
-    const o = this.oscs;
-    o.sawA.frequency.setTargetAtTime(T.freq, t, 0.03);
-    o.sawB.frequency.setTargetAtTime(T.freq, t, 0.03);
-    o.sub.frequency.setTargetAtTime(T.freq / 2, t, 0.03);
-    o.h2.frequency.setTargetAtTime(T.freq * 2, t, 0.03);
-    o.h3.frequency.setTargetAtTime(T.freq * 3, t, 0.03);
-    this.lp.frequency.setTargetAtTime(T.cutoff, t, 0.05);
     this.charge.gain.setTargetAtTime(T.gain, t, 0.06);
-    this.gains.sub.gain.setTargetAtTime(T.sub, t, 0.08);
-    this.gains.h2.gain.setTargetAtTime(T.upper * 0.6, t, 0.08);
-    this.gains.h3.gain.setTargetAtTime(T.upper * 0.4, t, 0.08);
-    this.gains.noise.gain.setTargetAtTime(T.noiseGain, t, 0.08);
-    this.noiseBp.frequency.setTargetAtTime(T.noiseFreq, t, 0.06);
+    if (this.physique) {
+      // le modèle physique reçoit le vrai régime : les cylindres et les tubes font le timbre
+      this.physique.rpm.setTargetAtTime(Math.max(RPM_RALENTI_PHYSIQUE, rpm), t, 0.03);
+      this.physique.gaz.setTargetAtTime(T.load, t, 0.05);
+      this.lp.frequency.setTargetAtTime(coupurePhysique(rpm, T.load, this.clarte), t, 0.05);
+    }
+    const o = this.oscs, gn = this.gains;
+    if (o && gn && this.noiseBp) {
+      o.sawA.frequency.setTargetAtTime(T.freq, t, 0.03);
+      o.sawB.frequency.setTargetAtTime(T.freq, t, 0.03);
+      o.sub.frequency.setTargetAtTime(T.freq / 2, t, 0.03);
+      o.h2.frequency.setTargetAtTime(T.freq * 2, t, 0.03);
+      o.h3.frequency.setTargetAtTime(T.freq * 3, t, 0.03);
+      this.lp.frequency.setTargetAtTime(T.cutoff, t, 0.05);
+      gn.sub.gain.setTargetAtTime(T.sub, t, 0.08);
+      gn.h2.gain.setTargetAtTime(T.upper * 0.6, t, 0.08);
+      gn.h3.gain.setTargetAtTime(T.upper * 0.4, t, 0.08);
+      gn.noise.gain.setTargetAtTime(T.noiseGain, t, 0.08);
+      this.noiseBp.frequency.setTargetAtTime(T.noiseFreq, t, 0.06);
+    }
 
     // changement de rapport : le couple se coupe un instant, puis revient
     if (this.gear !== 0 && gear !== this.gear && gear > 0) {
@@ -165,7 +209,10 @@ export class EngineVoice {
     this.fondu.gain.setTargetAtTime(0, t, 0.05);
     const fin = t + 0.5;
     for (const s of this.sources) { try { s.stop(fin); } catch { /* déjà arrêté */ } }
-    this.sources[0].onended = () => { this.fondu.disconnect(); this.turbo?.g.disconnect(); this.turbo?.gn.disconnect(); };
+    this.sources[0].onended = () => {
+      this.fondu.disconnect(); this.turbo?.g.disconnect(); this.turbo?.gn.disconnect();
+      if (this.physique) { this.physique.noeud.port.postMessage('stop'); this.physique.noeud.disconnect(); }
+    };
   }
 }
 

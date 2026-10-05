@@ -1,5 +1,6 @@
 /**
- * Moteur audio du jeu (Web Audio, tout est synthétisé, aucun fichier).
+ * Moteur audio du jeu (Web Audio, tout est synthétisé, aucun fichier). Le moteur des voitures est un modèle physique
+ * qui tourne dans un AudioWorklet (`moteurPhysique.ts`), avec repli sur la voix synthétique d'origine.
  * Les fabriques de voix (`voices.ts`, `shots.ts`) et le bus (`bus.ts`) fonctionnent aussi sur un OfflineAudioContext :
  * c'est ainsi que `tools/audio-preview` rend des WAV pour vérification sans écouter dans un navigateur.
  */
@@ -10,6 +11,7 @@ import { createBus, createEnv, peutJouer, type Bus, type Env } from './bus';
 import { volumeToGain } from './params';
 import * as sons from './shots';
 import { AmbianceVoice, EngineVoice, TyreVoice } from './voices';
+import { chargerMoteurPhysique, creerNoeudMoteur } from './moteurPhysique';
 
 export { engineFrequency, screechGain } from './params';
 
@@ -19,6 +21,8 @@ export interface EngineExtra { gear?: number; onRoad?: boolean }
 export interface AudioOptions {
   /** contexte imposé (rendu hors ligne) : sinon un AudioContext est créé au premier geste de l'utilisateur */
   context?: BaseAudioContext;
+  /** faux : voix synthétique d'origine même si l'AudioWorklet est disponible (comparaisons dans tools/audio-preview) */
+  physique?: boolean;
 }
 
 /** Vrai pour un AudioContext temps réel, faux pour un rendu hors ligne. */
@@ -41,8 +45,15 @@ export class AudioEngine {
   private dernierChoc = -10;
   private dernierTic = -10;
   private cache = false;
+  /** moteur physique (AudioWorklet) prêt pour ce contexte ; sinon voix synthétique d'origine */
+  private physiqueOk = false;
+  /** promesse du chargement du module (attendue par le rendu hors ligne) */
+  physiquePret: Promise<boolean> = Promise.resolve(false);
+
+  private readonly physiqueVoulu: boolean;
 
   constructor(opts: AudioOptions = {}) {
+    this.physiqueVoulu = opts.physique ?? true;
     if (opts.context) this.creer(opts.context);
   }
 
@@ -68,7 +79,22 @@ export class AudioEngine {
     this.bus = createBus(ctx);
     this.env = createEnv(ctx);
     this.bus.volume.gain.value = this.muted ? 0 : volumeToGain(this.volume);
+    this.physiquePret = (this.physiqueVoulu ? chargerMoteurPhysique(ctx) : Promise.resolve(false)).catch(() => false).then((ok) => {
+      if (this.ctx !== ctx) return ok;
+      this.physiqueOk = ok;
+      // une course a déjà démarré avec la voix synthétique : on passe au moteur physique
+      if (ok && this.moteur && this.veutMoteur && this.env) {
+        this.moteur.stop(ctx.currentTime);
+        this.moteur = this.creerVoixMoteur(this.env, this.bus!.drive, this.voiture);
+      }
+      return ok;
+    });
     if (this.veutMoteur) this.startEngine(this.voiture);
+  }
+
+  private creerVoixMoteur(env: Env, out: AudioNode, car: CarId): EngineVoice {
+    const noeud = this.physiqueOk ? creerNoeudMoteur(env.ctx, car) : null;
+    return new EngineVoice(env, out, car, noeud);
   }
 
   /** Onglet caché : fondu puis suspension du contexte ; retour : reprise. */
@@ -100,7 +126,7 @@ export class AudioEngine {
     const bus = this.bus, env = this.env;
     if (!bus || !env) return;
     if (this.moteur) return;
-    this.moteur = new EngineVoice(env, bus.drive, car);
+    this.moteur = this.creerVoixMoteur(env, bus.drive, car);
     this.pneus ??= new TyreVoice(env, bus.drive);
     this.ambiance ??= new AmbianceVoice(env, bus.drive);
     this.dernierT = -1;

@@ -49,7 +49,9 @@ function simuler(car: CarId, dur: number, plan: (t: number) => InputState, surRo
   return frames;
 }
 
-export const SCENARIOS = ['moteur-equilibree', 'moteur-legere', 'moteur-turbo', 'drift', 'evenements', 'caisse'] as const;
+export const SCENARIOS = [
+  'moteur-equilibree', 'moteur-legere', 'moteur-turbo', 'moteur-kei', 'moteur-muscle', 'moteur-rotative', 'moteur-break', 'drift', 'evenements', 'caisse',
+] as const;
 export type Scenario = (typeof SCENARIOS)[number];
 
 /** Pas d'horloge du rendu : multiple du quantum de rendu (128 échantillons) proche de 60 Hz. */
@@ -101,6 +103,8 @@ export async function rendre(nom: Scenario, make: (ctx: OfflineAudioContext) => 
   const ctx = new OfflineAudioContext(1, Math.ceil(p.dur * SR), SR);
   const a = make(ctx);
   a.unlock();
+  // moteur physique : le module AudioWorklet se charge avant le début du rendu
+  await (a as { physiquePret?: Promise<boolean> }).physiquePret;
   a.setVolume(volume);
   p.init?.(a);
   const evts = [...(p.events ?? [])].sort((x, y) => x[0] - y[0]);

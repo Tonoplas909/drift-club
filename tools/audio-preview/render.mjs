@@ -21,8 +21,8 @@ window.__scenarios = SCENARIOS;
 window.__voix = VOIX_SEULES;
 window.__rendreVoix = async (nom) => b64(await rendreVoix(nom));
 window.__rendre = async (nom, variante) => {
-  const make = variante === 'neuf'
-    ? (ctx) => new Neuf({ context: ctx })
+  const make = variante === 'neuf' || variante === 'synthe'
+    ? (ctx) => new Neuf({ context: ctx, physique: variante === 'neuf' })
     : (ctx) => { window.AudioContext = function () { return ctx; }; return new Ancien(); };
   return b64(await rendre(nom, make, 1));
 };`;
@@ -41,14 +41,18 @@ function wav(f32, sr = 44100) {
 const pw = await import(pathToFileURL(process.env.PLAYWRIGHT ?? 'playwright-core/index.mjs').href);
 const navigateur = await pw.chromium.launch({ executablePath: process.env.CHROME ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required'] });
 const page = await navigateur.newPage();
-await page.setContent('<html><body></body></html>');
+// page servie depuis localhost : contexte sécurisé, sans quoi l'AudioWorklet (moteur physique) n'existe pas
+const { createServer } = await import('node:http');
+const serveur = createServer((_, rep) => { rep.setHeader('Content-Type', 'text/html'); rep.end('<html><body></body></html>'); });
+await new Promise((ok) => serveur.listen(0, '127.0.0.1', ok));
+await page.goto(`http://localhost:${serveur.address().port}/`);
 await page.addScriptTag({ content: js });
 const liste = process.env.SCENARIOS ? process.env.SCENARIOS.split(',') : await page.evaluate(() => window.__scenarios);
-for (const variante of old ? ['neuf', 'ancien'] : ['neuf']) {
+for (const variante of old ? ['neuf', 'ancien'] : process.env.SYNTHE ? ['neuf', 'synthe'] : ['neuf']) {
   for (const nom of liste) {
     const b = await page.evaluate(([n, v]) => window.__rendre(n, v), [nom, variante]);
     const f32 = new Float32Array(Buffer.from(b, 'base64').buffer.slice(0));
-    const fichier = resolve(sortie, `${variante === 'neuf' ? '' : 'avant-'}${nom}.wav`);
+    const fichier = resolve(sortie, `${variante === 'neuf' ? '' : variante === 'synthe' ? 'synthe-' : 'avant-'}${nom}.wav`);
     writeFileSync(fichier, wav(f32));
     console.log(fichier, f32.length);
   }
@@ -60,3 +64,4 @@ if (process.env.VOIX) {
   }
 }
 await navigateur.close();
+serveur.close();

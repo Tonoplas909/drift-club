@@ -13,6 +13,16 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.4.10',
+    date: '05/10/2026',
+    titre: 'Nouveau son moteur',
+    notes: [
+      'Le bruit du moteur est maintenant simulé physiquement : cylindres, admission, échappement et silencieux, comme un vrai moteur.',
+      'Chaque voiture a son moteur : trois cylindres rageur pour la Kei, six en ligne pour la Turbo, V8 qui gronde pour la Muscle, birotor pour la Rotative…',
+      'Le moteur s\'assombrit quand tu lâches l\'accélérateur et s\'ouvre à pleine charge ; turbo, rupteur et passages de rapports sont conservés.',
+    ],
+  },
+  {
     version: '0.4.9',
     date: '05/10/2026',
     titre: 'Toutes les roulettes en même temps',
