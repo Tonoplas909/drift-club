@@ -38,6 +38,13 @@ export interface ProfilMoteur {
   niveau?: number;
   /** écart d'allumage d'un cylindre au suivant, en fraction du cycle (0 : allumages réguliers ; V8 « borborygme » : ~0,03) */
   irregularite?: number;
+  /**
+   * Moteur rotatif à lumières agrandies (RX-7, RX-8 préparées) : pas de soupapes mais des lumières qui s'ouvrent
+   * d'un coup et se chevauchent (`recouvrement`, fraction du cycle). Au ralenti, les gaz brûlés repassent à
+   * l'admission : une combustion sur quelques-unes rate à moitié, par groupes (le « brap brap »). `brap` (0..1) :
+   * intensité de ces ratés au ralenti, qui s'effacent avec le régime et l'accélérateur.
+   */
+  rotatif?: { recouvrement: number; brap: number };
 }
 
 interface Guide { haut: Float32Array; bas: Float32Array; i: number; n: number; refG: number; refD: number; sortieG: number; sortieD: number }
@@ -51,6 +58,18 @@ export class MoteurPhysiqueDSP {
   private readonly dt: number;
   private readonly allumage: number;
   private readonly irregularite: number;
+  private readonly rotatif: { recouvrement: number; brap: number } | null;
+  /** rotatif : force de la combustion en cours de chaque chambre, numéro de son dernier cycle, gaz résiduels accumulés */
+  private readonly force: Float64Array;
+  private readonly cyclePrec: Float64Array;
+  /** cycles écoulés, sans repli (le bruit du vilebrequin ne doit pas faire compter deux fois un passage) */
+  private cycles = 0;
+  private residus = 0;
+  /** rotatif : série de combustions ratées en cours (jusqu'à ce que la chambre se soit vidée de ses gaz brûlés) */
+  private enRate = false;
+  /** rotatif : combustions renforcées restantes après une série de ratés (le carburant imbrûlé s'enflamme : le « BRAP ») */
+  private claques = 0;
+  private derive = 0;
   private readonly mix: { admission: number; bloc: number; sortie: number };
   /** le niveau grandit avec le nombre de cylindres : ramené à peu près au même pour tous les moteurs */
   private readonly norme: number;
@@ -88,6 +107,9 @@ export class MoteurPhysiqueDSP {
     this.dt = 1 / frequence;
     this.allumage = p.allumage;
     this.irregularite = p.irregularite ?? 0;
+    this.rotatif = p.rotatif ?? null;
+    this.force = new Float64Array(p.cylindres).fill(1);
+    this.cyclePrec = new Float64Array(p.cylindres);
     this.mix = p.mix;
     this.norme = (p.niveau ?? 1) / (0.25 * Math.pow(p.cylindres, 1.25));
     // passe-bas du premier ordre (coefficient pour la fréquence du contexte)
@@ -129,8 +151,15 @@ export class MoteurPhysiqueDSP {
     const PI4 = 4 * Math.PI;
     const n = this.cyl.length, invSil = 1 / this.sil.length;
     for (let k = 0; k < sortie.length; k++) {
-      const r = rpm.length > 1 ? rpm[k] : rpm[0];
+      let r = rpm.length > 1 ? rpm[k] : rpm[0];
       const g = Math.min(1, Math.max(0, gaz.length > 1 ? gaz[k] : gaz[0]));
+      // rotatif : les ratés n'existent qu'au ralenti, gaz relâchés
+      const ralenti = this.rotatif ? this.rotatif.brap * Math.min(1, Math.max(0, (3200 - r) / 2000)) * (1 - 0.85 * g) : 0;
+      if (ralenti > 0) {
+        // le ralenti « chasse » un peu (±4 %), au rythme lent des ratés
+        this.derive += 0.0004 * ((Math.random() - 0.5) - 0.002 * this.derive);
+        r *= 1 + 0.04 * ralenti * Math.max(-1, Math.min(1, this.derive * 8));
+      }
       // souffle d'admission (bruit filtré) et légère irrégularité du vilebrequin
       this.filtreAdm += this.aAdm * (2 * Math.random() - 1 - this.filtreAdm);
       const souffle = r < 25 ? 0 : this.filtreAdm * (0.5 + 0.5 * g);
@@ -142,16 +171,40 @@ export class MoteurPhysiqueDSP {
         const cy = this.cyl[c];
         let x = (this.tour + c * (this.invN + this.irregularite + this.filtreVil)) % 1;
         if (x < 0) x += 1;
-        const soupEch = x > 0.75 ? -Math.sin(PI4 * x) : 0;
-        const soupAdm = x < 0.25 ? Math.sin(PI4 * x) : 0;
+        let soupEch: number, soupAdm: number;
+        if (this.rotatif) {
+          // lumières : ouverture brutale, fermeture progressive ; l'admission s'ouvre avant la fin de l'échappement
+          const rec = this.rotatif.recouvrement;
+          soupEch = x > 0.7 ? Math.min(1, (x - 0.7) / 0.015) * (x > 0.97 ? (1 - x) / 0.03 : 1) : 0;
+          soupAdm = x < 0.28 ? Math.min(1, x / 0.01) * (x > 0.22 ? (0.28 - x) / 0.06 : 1) : x > 1 - rec ? (x - (1 - rec)) / rec : 0;
+          // nouvelle combustion pour cette chambre : sa force dépend des gaz résiduels laissés par les précédentes
+          // les gaz brûlés s'accumulent sur une salve de bonnes combustions (≈ 6 à 10), puis quelques ratés d'affilée
+          // vidangent la chambre : « BRAP… BRAP… », environ trois salves par seconde au ralenti
+          const cycle = Math.floor(this.cycles + c * (this.invN + this.irregularite));
+          if (cycle !== this.cyclePrec[c]) {
+            this.cyclePrec[c] = cycle;
+            if (ralenti <= 0) { this.enRate = false; this.residus = 0; this.claques = 0; }
+            else if (!this.enRate && this.residus > 1) this.enRate = true;
+            else if (this.enRate && this.residus < 0.3 + 0.2 * Math.random()) { this.enRate = false; this.claques = 2; }
+            const rate = this.enRate;
+            if (rate) this.force[c] = 0.04 + 0.16 * Math.random();
+            else if (this.claques > 0) { this.force[c] = 1.5 + 0.4 * Math.random(); this.claques--; }
+            else this.force[c] = 0.9 + 0.35 * Math.random();
+            this.residus = Math.max(0, this.residus + (rate ? -0.17 : (0.08 + 0.08 * Math.random()) * ralenti));
+          }
+        } else {
+          soupEch = x > 0.75 ? -Math.sin(PI4 * x) : 0;
+          soupAdm = x < 0.25 ? Math.sin(PI4 * x) : 0;
+        }
         const piston = Math.cos(PI4 * x);
-        const feu = x < 0.5 * this.allumage ? Math.sin(2 * Math.PI * (x / this.allumage)) : 0;
+        const feu = x < 0.5 * this.allumage ? Math.sin(2 * Math.PI * (x / this.allumage)) * this.force[c] : 0;
         // les soupapes ouvrent (réflexion 0,01) ou ferment (0,95) les tubes
         const refAdm = 0.01 * soupAdm + 0.95 * (1 - soupAdm);
         const refEch = 0.01 * soupEch + 0.95 * (1 - soupEch);
         cy.adm.refD = refAdm; cy.bloc.refG = refAdm;
         cy.ech.refG = refEch; cy.bloc.refD = refEch;
-        const amplitude = piston * 1.5 + feu * 5 * charge;
+        // rotatif : un rotor tourne au lieu d'aller et venir (mouvement plus doux), la combustion domine même gaz relâchés
+        const amplitude = this.rotatif ? piston * 0.4 + feu * 5 * Math.max(charge, 0.75) : piston * 1.5 + feu * 5 * charge;
         const colG = cy.col.sortieG, blocG = cy.bloc.sortieG, blocD = cy.bloc.sortieD, admD = cy.adm.sortieD;
         this.pas(cy.col, cy.ech.sortieD, ligneG);
         this.pas(cy.ech, blocD, colG);
@@ -162,6 +215,7 @@ export class MoteurPhysiqueDSP {
         versLigne += cy.col.sortieD;
       }
       this.tour += this.dt * r / 120;
+      this.cycles += this.dt * r / 120;
       if (this.tour > 1) this.tour -= 1;
       // ligne droite → silencieux (chambres en parallèle) → sortie
       this.pas(this.ligne, versLigne, this.silG);

@@ -23,8 +23,9 @@ export const PROFILS_MOTEUR: Record<CarId, ProfilMoteur> = {
   kei: { cylindres: 3, admission: 50, echappement: 44, collecteur: 42, ligne: 60, silencieux: [6, 9, 12], action: 0.07, sortie: 3, allumage: 0.014, mix: { admission: 0.45, bloc: 0.35, sortie: 1 }, niveau: 0.45 },
   // V8 : tubes longs, gros silencieux, combustion plus longue
   muscle: { cylindres: 8, admission: 140, echappement: 150, collecteur: 150, ligne: 210, silencieux: [16, 24, 32, 40], action: 0.1, sortie: 8, allumage: 0.022, irregularite: 0.03, mix: MIX, niveau: 1.29 },
-  // birotor : deux allumages par tour comme un quatre cylindres, tubes très courts et combustion longue (le « brap »)
-  rotative: { cylindres: 4, admission: 58, echappement: 52, collecteur: 50, ligne: 88, silencieux: [8, 12, 18, 22], action: 0.06, sortie: 4, allumage: 0.03, mix: { admission: 0.35, bloc: 0.6, sortie: 1 }, niveau: 0.56 },
+  // birotor préparé façon RX-7 / RX-8 : deux combustions par tour (comme un quatre cylindres), lumières agrandies
+  // qui se chevauchent : ralenti haché « brap brap », hurlement régulier dans les tours
+  rotative: { cylindres: 4, admission: 58, echappement: 52, collecteur: 50, ligne: 88, silencieux: [8, 12, 18, 22], action: 0.06, sortie: 4, allumage: 0.03, rotatif: { recouvrement: 0.12, brap: 1 }, mix: { admission: 0.35, bloc: 0.6, sortie: 1 }, niveau: 1.75 },
   // quatre cylindres de break : placide, un peu étouffé
   break: { cylindres: 4, admission: 112, echappement: 110, collecteur: 112, ligne: 150, silencieux: [12, 18, 24, 30], action: 0.1, sortie: 6, allumage: 0.017, mix: MIX, niveau: 0.74 },
 };

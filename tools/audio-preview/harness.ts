@@ -50,7 +50,8 @@ function simuler(car: CarId, dur: number, plan: (t: number) => InputState, surRo
 }
 
 export const SCENARIOS = [
-  'moteur-equilibree', 'moteur-legere', 'moteur-turbo', 'moteur-kei', 'moteur-muscle', 'moteur-rotative', 'moteur-break', 'drift', 'evenements', 'caisse',
+  'moteur-equilibree', 'moteur-legere', 'moteur-turbo', 'moteur-kei', 'moteur-muscle', 'moteur-rotative', 'moteur-break',
+  'ralenti-rotative', 'ralenti-equilibree', 'drift', 'evenements', 'caisse',
 ] as const;
 export type Scenario = (typeof SCENARIOS)[number];
 
@@ -65,6 +66,22 @@ function plan(nom: Scenario): Plan {
     const dur = 11;
     const fr = simuler(car, dur, (t) => inp({ gaz: t >= 2 && t < 8 ? 1 : 0 }));
     return { dur, init: (a) => a.startEngine(car), tick: (a, t) => { const f = fr[Math.min(fr.length - 1, Math.floor(t * 60))]; a.updateEngine(f.rpm, f.throttle, f.slip, f.speed, { gear: f.gear, onRoad: f.onRoad }); } };
+  }
+  if (nom.startsWith('ralenti-')) {
+    // ralenti avec deux coups de gaz : le « brap brap » de la Rotative, comparé à un moteur classique
+    const car = nom.slice(8) as CarId;
+    const dur = 10;
+    // régime piloté directement (au point mort) : 950 tr/min, montée rapide gaz à fond, retombée gaz relâchés
+    const coups: [number, number][] = [[3.5, 0.4], [6.5, 0.7]];
+    let rpm = 950;
+    return {
+      dur, init: (a) => a.startEngine(car),
+      tick: (a, t) => {
+        const gaz = coups.some(([d, l]) => t >= d && t < d + l) ? 1 : 0;
+        rpm += gaz ? (6500 - rpm) * 0.12 : (950 - rpm) * 0.05;
+        a.updateEngine(rpm, gaz, 0, 0, { gear: 0, onRoad: true });
+      },
+    };
   }
   if (nom === 'drift') {
     const dur = 11;

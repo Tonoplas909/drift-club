@@ -11,7 +11,7 @@ import {
   smoothAsym, soufflageDeclenche, surfaceLevel, ventLevel, type CarSound,
 } from './params';
 import { soufflage } from './shots';
-import { CLARTE_MOTEUR } from './moteurPhysique';
+import { CLARTE_MOTEUR, PROFILS_MOTEUR } from './moteurPhysique';
 
 /** Niveau de sortie du moteur avant le bus (le mixage relatif se règle ici et dans `bus.ts`). */
 const NIVEAU_MOTEUR = 0.2;
@@ -84,7 +84,8 @@ export class EngineVoice {
         this.lp.Q.value = 0.7; this.lp.frequency.value = 2500;
         tonalite.frequency.value = 7000;
         const niveau = ctx.createGain(); niveau.gain.value = NIVEAU_PHYSIQUE;
-        const grain = ctx.createWaveShaper(); grain.curve = saturationCurve(1025, 1 + 0.8 * p.drive); grain.oversample = '2x';
+        // (rotatif : saturation plus légère, pour garder le contraste des « brap » au ralenti)
+        const grain = ctx.createWaveShaper(); grain.curve = saturationCurve(1025, PROFILS_MOTEUR[car].rotatif ? 1.15 : 1 + 0.8 * p.drive); grain.oversample = '2x';
         // bosse de présence (résonance d'échappement) : le « mordant » du moteur, plus haut pour les petits moteurs
         const presence = ctx.createBiquadFilter(); presence.type = 'peaking';
         presence.frequency.value = 700 * this.clarte; presence.Q.value = 0.8; presence.gain.value = 9;

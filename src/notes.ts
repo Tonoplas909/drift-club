@@ -18,7 +18,8 @@ export const NOTES: NoteVersion[] = [
     titre: 'Nouveau son moteur',
     notes: [
       'Le bruit du moteur est maintenant simulé physiquement : cylindres, admission, échappement et silencieux, comme un vrai moteur.',
-      'Chaque voiture a son moteur : trois cylindres rageur pour la Kei, six en ligne pour la Turbo, V8 qui gronde pour la Muscle, birotor pour la Rotative…',
+      'Chaque voiture a son moteur : trois cylindres rageur pour la Kei, six en ligne pour la Turbo, V8 qui gronde pour la Muscle…',
+      'La Rotative a un vrai moteur rotatif préparé façon RX-7 : ralenti haché « brap brap », puis hurlement régulier dans les tours.',
       'Le moteur s\'assombrit quand tu lâches l\'accélérateur et s\'ouvre à pleine charge ; turbo, rupteur et passages de rapports sont conservés.',
     ],
   },

@@ -59,6 +59,27 @@ describe('moteur physique (modèle d\'Antonio-R1)', () => {
     }
   });
 
+  it('Rotative : ralenti haché « brap brap » (ratés par salves), hurlement régulier dans les tours', () => {
+    expect(PROFILS_MOTEUR.rotative.rotatif).toBeDefined();
+    /** part de combustions faibles et nombre de trous par seconde, mesurés sur l'enveloppe à la fréquence de combustion */
+    const haché = (car: keyof typeof PROFILS_MOTEUR, rpm: number, gaz: number) => {
+      const x = rendre(car, rpm, gaz, 6).subarray(SR);
+      const n = Math.round(SR * 60 / (2 * rpm)), k = Math.floor(x.length / n);
+      const e = Array.from({ length: k }, (_, i) => rms(x, i * n, (i + 1) * n));
+      const med = [...e].sort((a, b) => a - b)[Math.floor(k / 2)];
+      const faible = e.map((v) => v < 0.6 * med);
+      let trous = 0; for (let i = 1; i < k; i++) if (faible[i] && !faible[i - 1]) trous++;
+      return { faibles: faible.filter(Boolean).length / k, trousParSeconde: trous / 5 };
+    };
+    const ralenti = haché('rotative', 950, 0);
+    expect(ralenti.faibles).toBeGreaterThan(0.08);
+    expect(ralenti.trousParSeconde).toBeGreaterThan(2);
+    expect(ralenti.trousParSeconde).toBeLessThan(8);
+    // un moteur classique ne « brappe » pas, et la Rotative non plus pied au plancher
+    expect(haché('equilibree', 950, 0).faibles).toBeLessThan(0.03);
+    expect(haché('rotative', 3500, 1).faibles).toBeLessThan(0.03);
+  });
+
   it('garde-fou : un profil instable est remis au silence au lieu de saturer', () => {
     const d = new MoteurPhysiqueDSP({ ...PROFILS_MOTEUR.muscle, action: 0.15 }, SR);
     const out = new Float32Array(SR * 4);
