@@ -13,6 +13,14 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.4.7',
+    date: '05/10/2026',
+    titre: 'Mises à jour sans coupure du classement',
+    notes: [
+      'Le serveur qui vérifie les scores se met à jour en même temps que le jeu : presque plus de message « recharge la page » juste après une mise à jour.',
+    ],
+  },
+  {
     version: '0.4.6',
     date: '05/10/2026',
     titre: 'Pas de points en repassant',
