@@ -42,6 +42,8 @@ import { panneauEnLigne } from './ui/enligne';
 import { ecranCompte } from './ui/compte';
 import { ecranClassement, zoneEnLigne, textePlace } from './ui/classement';
 import { ecranCaisses, type ResultatOuverture } from './ui/caisses';
+import { MiseAJour, lireVersionPubliee } from './online/miseAJour';
+import { BUILD_ID } from './version';
 import { zoneGains, type ZoneGains } from './ui/gains';
 
 /** D'où vient la course : `index` ≥ 0 pour un niveau officiel, `retour` ramène à l'écran d'origine. */
@@ -81,6 +83,17 @@ export class App {
   private readonly classement = new ClassementService(clientParDefaut);
   private readonly niveauxEnLigne = new NiveauxEnLigneService(clientParDefaut);
   private readonly progressionEnLigne = new ProgressionEnLigne(clientParDefaut);
+  private readonly miseAJour = new MiseAJour({
+    actuel: BUILD_ID,
+    lire: () => lireVersionPubliee(import.meta.env.BASE_URL),
+    peutRecharger: () => this.peutRecharger(),
+    recharger: () => { this.screens.loading('Mise à jour du jeu…'); location.reload(); },
+    memoire: {
+      lire: () => { try { return sessionStorage.getItem('driftclub.maj'); } catch { return null; } },
+      ecrire: (v) => { try { sessionStorage.setItem('driftclub.maj', v); } catch { /* stockage bloqué */ } },
+    },
+    maintenant: () => Date.now(),
+  });
 
   constructor(private readonly debug: DebugHook | null = null) {}
 
@@ -121,11 +134,34 @@ export class App {
     document.addEventListener('visibilitychange', () => { if (document.hidden && this.session) this.pauseRace(); });
     $('app').append(Object.assign(document.createElement('div'), { className: 'portrait', textContent: 'Tourne ton téléphone en mode paysage' }));
 
+    this.surveillerMisesAJour();
+
     // comptes en ligne : hors ligne le jeu reste jouable, `demarrer` ne lève jamais
     this.compte.onChange((e) => this.compteChange(e));
     void this.compte.demarrer();
 
     await this.chargerModeles();
+  }
+
+  /**
+   * Nouvelle version publiée : le jeu se recharge tout seul au prochain moment sans risque (voir `peutRecharger`).
+   * Vérifié 30 s après le lancement, puis toutes les 5 min et au retour sur l'onglet (rien en développement).
+   */
+  private surveillerMisesAJour(): void {
+    if (BUILD_ID === 'local') return;
+    const verifier = (): void => { void this.miseAJour.verifier().then(() => this.miseAJour.appliquer()); };
+    window.setTimeout(verifier, 30_000);
+    window.setInterval(verifier, 5 * 60_000);
+    window.setInterval(() => this.miseAJour.appliquer(), 3000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) verifier(); });
+  }
+
+  /** Recharger maintenant ne fait rien perdre : pas de course (ni résultats), pas d'éditeur, pas de caisses, pas de saisie en cours. */
+  private peutRecharger(): boolean {
+    const actif = document.activeElement as HTMLElement | null;
+    const saisie = !!actif && (actif.tagName === 'INPUT' || actif.tagName === 'TEXTAREA' || actif.isContentEditable);
+    return this.assets !== null && this.session === null && this.editeur === null && !saisie
+      && !document.querySelector('.screen.caisses, [role="dialog"], dialog[open]');
   }
 
   private async chargerModeles(): Promise<void> {
@@ -713,6 +749,8 @@ export class App {
         ...(course.replay ? { course: { replay: course.replay, level: course.level } } : {}),
       }).then((res) => {
         zone.resultat(res);
+        // échec (par exemple jeu et serveur de versions différentes) : une mise à jour est peut-être publiée
+        if (!res.ok) void this.miseAJour.verifier();
         if (gains) this.clesApresEnvoi(res, e.id, gains, onCaisses);
       });
     }

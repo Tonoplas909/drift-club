@@ -54,7 +54,7 @@ export async function traiterCourse(corps: unknown, empreinteServeur: string): P
   if (!estObjet(corps)) return refus('demande', 'Demande invalide.');
   const d = corps as Partial<DemandeCourse>;
   if (d.version !== empreinteServeur) {
-    return refus('version', "Le jeu et le serveur de scores n'ont pas la même version : recharge la page pour envoyer tes scores.");
+    return refus('version', "Le jeu vient d'être mis à jour : il se recharge tout seul au retour au menu. Ce score reste enregistré sur l'appareil.");
   }
   if (typeof d.niveau !== 'string' || !/^(off|perso):[A-Za-z0-9_-]{1,80}$/.test(d.niveau)) return refus('demande', 'Niveau invalide.');
   if (typeof d.mode !== 'string' || !(MODE_IDS as string[]).includes(d.mode)) return refus('demande', 'Mode invalide.');

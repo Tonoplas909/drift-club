@@ -13,6 +13,15 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.4.8',
+    date: '05/10/2026',
+    titre: 'Caisses par lots et mises à jour automatiques',
+    notes: [
+      'Caisses : nouveau bouton « Ouvrir ×N » pour ouvrir jusqu\'à 10 caisses d\'un coup. La roulette s\'arrête sur la plus rare, puis toutes les trouvailles s\'affichent ; touche une carte pour l\'équiper.',
+      'Le jeu se met à jour tout seul : quand une nouvelle version sort, il se recharge dès que tu reviens dans un menu (jamais en pleine course, dans l\'éditeur ou dans les caisses).',
+    ],
+  },
+  {
     version: '0.4.7',
     date: '05/10/2026',
     titre: 'Mises à jour sans coupure du classement',

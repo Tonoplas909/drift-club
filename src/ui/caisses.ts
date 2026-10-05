@@ -43,6 +43,18 @@ export interface OptionsCaisses {
 
 const cle = (n: number): string => `${n} clé${n > 1 ? 's' : ''}`;
 
+/** Nombre maximal de caisses ouvertes d'un coup. */
+export const MAX_LOT = 10;
+
+/** Caisses ouvrables d'un coup avec ces clés (0 ou 1 : pas de bouton « ×N »). */
+export const tailleLot = (cles: number): number => Math.max(0, Math.min(MAX_LOT, Math.floor(cles / ECONOMIE.coutCaisse)));
+
+/** La plus rare des ouvertures (à rareté égale, la première ; une nouveauté passe avant un doublon). */
+export function meilleure(ouvertures: Ouverture[]): Ouverture {
+  const rang = (x: Ouverture): number => RARETE_IDS.indexOf(x.tirage.objet.rarete) * 2 + (x.tirage.doublon ? 0 : 1);
+  return ouvertures.reduce((a, b) => (rang(b) > rang(a) ? b : a));
+}
+
 /** Carte de la roulette : barre de rareté, pastille de livrée, voiture et nom. */
 function carte(o: Objet, couleur: string): HTMLElement {
   if (o.car === 'fumee') {
@@ -69,6 +81,8 @@ export function ecranCaisses(o: OptionsCaisses): HTMLElement {
   const nouveauRng = o.rng ?? nouvelRng;
   const reduit = (): boolean => o.mouvementReduit?.() ?? (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches);
   let etat: 'attente' | 'ouverture' | 'roulette' | 'revele' = 'attente';
+  /** ouverture d'un lot en cours : caisses déjà ouvertes / demandées */
+  let lot: { fait: number; total: number } | null = null;
   /** dernier échec d'ouverture, affiché sous le bouton */
   let erreur: string | null = null;
   let raf = 0;
@@ -104,10 +118,16 @@ export function ecranCaisses(o: OptionsCaisses): HTMLElement {
     }
     const bloque = o.blocage?.() ?? null;
     const ok = peutOuvrir(p) && bloque === null && etat === 'attente', manque = ECONOMIE.coutCaisse - p.cles;
+    const n = tailleLot(p.cles);
     actions.replaceChildren(
       iconeCaisse(etat === 'ouverture' ? 'ico-caisse secoue' : undefined),
       h('div', { class: 'cs-ouvrir' },
-        h('button', { class: 'btn big', disabled: !ok, onclick: () => void demarrer() }, etat === 'ouverture' ? 'Ouverture…' : `Ouvrir (${cle(ECONOMIE.coutCaisse)})`),
+        h('div', { class: 'row' },
+          h('button', { class: 'btn big', disabled: !ok, onclick: () => void demarrer(1) },
+            etat === 'ouverture' ? (lot ? `Ouverture… ${lot.fait}/${lot.total}` : 'Ouverture…') : `Ouvrir (${cle(ECONOMIE.coutCaisse)})`),
+          etat !== 'ouverture' && n >= 2 && h('button', { class: 'btn big sec', disabled: !ok, title: `Ouvre ${n} caisses d'un coup`, onclick: () => void demarrer(n) },
+            `Ouvrir ×${n} (${cle(n * ECONOMIE.coutCaisse)})`),
+        ),
         bloque !== null ? h('p', { class: 'cs-raison' }, bloque)
           : erreur !== null ? h('p', { class: 'cs-raison' }, erreur)
           : !peutOuvrir(p) && h('p', { class: 'cs-raison' }, `Il te manque ${cle(manque)} : +${ECONOMIE.clesParArrivee} par arrivée, +${ECONOMIE.clesRecord} sur un record.`),
@@ -151,25 +171,78 @@ export function ecranCaisses(o: OptionsCaisses): HTMLElement {
         h('p', { class: 'cs-total' }, iconeCle(), `Tu as ${cle(p.cles)}`),
         h('div', { class: 'row' },
           h('button', { class: 'btn', onclick: () => o.onEquiper(x) }, 'Équiper'),
-          h('button', { class: 'btn sec', disabled: !peutOuvrir(p) || (o.blocage?.() ?? null) !== null, title: peutOuvrir(p) ? '' : `Il te manque ${cle(ECONOMIE.coutCaisse - p.cles)}`, onclick: () => { fermerRevele(); void demarrer(); } }, `Rouvrir (${cle(ECONOMIE.coutCaisse)})`),
+          h('button', { class: 'btn sec', disabled: !peutOuvrir(p) || (o.blocage?.() ?? null) !== null, title: peutOuvrir(p) ? '' : `Il te manque ${cle(ECONOMIE.coutCaisse - p.cles)}`, onclick: () => { fermerRevele(); void demarrer(1); } }, `Rouvrir (${cle(ECONOMIE.coutCaisse)})`),
           h('button', { class: 'btn sec', onclick: retour }, 'Retour'),
         ),
       ),
     ));
   };
 
-  const demarrer = async (): Promise<void> => {
+  /** Fiche d'un lot : toutes les caisses ouvertes, la plus rare en lumière ; cliquer une carte l'équipe. */
+  const revelerLot = (ouvertures: Ouverture[], probleme: string | null): void => {
+    etat = 'revele';
+    const top = meilleure(ouvertures), x = top.tirage.objet, r = RARETES[x.rarete];
+    ecran.classList.add('revele');
+    o.audio.reveal(x.rarete);
+    o.onApercu?.(x);
+    const p = o.progression(), n = tailleLot(p.cles);
+    const doublons = ouvertures.filter((u) => u.tirage.doublon);
+    const rendu = doublons.reduce((t, u) => t + u.remboursement, 0);
+    const nouveautes = ouvertures.length - doublons.length;
+    const cartes = ouvertures.map((u) => {
+      const c = carte(u.tirage.objet, o.couleur());
+      c.classList.add('cs-mini');
+      if (u === top) c.classList.add('gagnante');
+      c.append(h('span', { class: `cs-badge${u.tirage.doublon ? ' doublon' : ''}` }, u.tirage.doublon ? `+${u.remboursement}` : 'Nouveau'));
+      c.title = `Équiper ${infoObjet(u.tirage.objet).nom}`;
+      c.addEventListener('click', () => o.onEquiper(u.tirage.objet));
+      return c;
+    });
+    ecran.append(h('div', { class: `cs-revele lot r-${x.rarete}`, style: `--rc:${r.couleur}` },
+      h('div', { class: 'cs-lueur' }),
+      h('div', { class: 'cs-fiche', role: 'dialog', 'aria-label': `${ouvertures.length} caisses ouvertes` },
+        h('span', { class: 'cs-rarete' }, `Meilleure : ${r.nom}`),
+        h('h2', {}, `${ouvertures.length} caisses ouvertes`),
+        h('p', { class: 'petit' }, `${nouveautes} nouveauté${nouveautes > 1 ? 's' : ''}`, doublons.length > 0 ? ` · ${doublons.length} doublon${doublons.length > 1 ? 's' : ''} : +${cle(rendu)}` : '', '. Touche une carte pour l\'équiper.'),
+        h('div', { class: 'cs-lot' }, ...cartes),
+        probleme !== null && h('p', { class: 'cs-raison sombre' }, `Arrêté avant la fin : ${probleme}`),
+        h('p', { class: 'cs-total' }, iconeCle(), `Tu as ${cle(p.cles)}`),
+        h('div', { class: 'row' },
+          n >= 2 && (o.blocage?.() ?? null) === null
+            ? h('button', { class: 'btn', onclick: () => { fermerRevele(); void demarrer(n); } }, `Rouvrir ×${n}`)
+            : h('button', { class: 'btn', disabled: !peutOuvrir(p) || (o.blocage?.() ?? null) !== null, onclick: () => { fermerRevele(); void demarrer(1); } }, `Rouvrir (${cle(ECONOMIE.coutCaisse)})`),
+          h('button', { class: 'btn sec', onclick: retour }, 'Retour'),
+        ),
+      ),
+    ));
+  };
+
+  /** Ouvre une caisse (n = 1) ou un lot de n caisses, l'une après l'autre (chacune payée et tirée comme une ouverture seule). */
+  const demarrer = async (n: number): Promise<void> => {
     if (etat !== 'attente') return;
     const rng = nouveauRng();
     erreur = null;
     etat = 'ouverture';
+    lot = n > 1 ? { fait: 0, total: n } : null;
     rendreActions();
-    let res: ResultatOuverture;
-    try { res = await o.ouvrir(rng); } catch { res = { ok: false, message: "Ouverture impossible pour le moment. Réessaie." }; }
-    if (!ecran.isConnected) return; // écran quitté pendant l'attente
+    const ouvertures: Ouverture[] = [];
+    let probleme: string | null = null;
+    for (let i = 0; i < n; i++) {
+      let res: ResultatOuverture;
+      try { res = await o.ouvrir(i === 0 ? rng : nouveauRng()); } catch { res = { ok: false, message: "Ouverture impossible pour le moment. Réessaie." }; }
+      if (!ecran.isConnected) return; // écran quitté pendant l'attente
+      if (!res.ok) { probleme = res.message; break; }
+      ouvertures.push(res.ouverture);
+      if (lot) { lot.fait = ouvertures.length; rendreActions(); }
+      if (o.blocage?.() || !peutOuvrir(o.progression())) break;
+    }
+    lot = null;
     etat = 'attente';
-    if (!res.ok) { erreur = res.message; rendreActions(); return; }
-    const ou = res.ouverture;
+    if (ouvertures.length === 0) { erreur = probleme; rendreActions(); return; }
+    // la roulette s'arrête sur la plus rare du lot, puis la fiche montre tout le lot
+    const ou = ouvertures.length === 1 ? ouvertures[0] : meilleure(ouvertures);
+    const apres = ouvertures.length === 1 ? (): void => reveler(ou) : (): void => revelerLot(ouvertures, probleme);
+    if (ouvertures.length === 1 && probleme !== null) erreur = probleme;
     etat = 'roulette';
     o.audio.ouvrir();
     const cartes = monter(construireBande(rng, ou.tirage.objet));
@@ -196,7 +269,7 @@ export function ecranCaisses(o: OptionsCaisses): HTMLElement {
       poser(finale);
       sous(INDEX_GAGNANT, performance.now());
       cartes[INDEX_GAGNANT].classList.add('gagnante');
-      window.setTimeout(() => { if (ecran.isConnected && etat === 'roulette') reveler(ou); }, delai);
+      window.setTimeout(() => { if (ecran.isConnected && etat === 'roulette') apres(); }, delai);
     };
     fin = () => conclure(160);
     const image = (now: number): void => {

@@ -460,6 +460,17 @@ input[type=text], input[type=email], input[type=password] { user-select: text; -
 .cs-fiche .btn { font-size: 15px; padding: 6px 12px; }
 .cs-fiche .row { gap: 8px; flex-wrap: nowrap; }
 .cs-fiche .btn { white-space: nowrap; }
+.cs-revele.lot { justify-content: center; }
+.cs-revele.lot .cs-lueur { left: 50%; }
+.cs-revele.lot .cs-fiche { width: min(620px, 94vw); max-height: calc(100% - 16px); overflow: auto; }
+.cs-lot { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; padding: 6px 2px; }
+.cs-carte.cs-mini { width: auto; height: 112px; cursor: pointer; transition: transform .12s; }
+.cs-carte.cs-mini:hover { transform: translateY(-3px); }
+.cs-carte.cs-mini.gagnante { animation: none; }
+.cs-carte.cs-mini .ico-voiture { height: 38%; }
+.cs-badge { position: absolute !important; top: 4px; right: 4px; padding: 0 6px; border: 2px solid var(--ink); border-radius: 999px; background: var(--yellow); font-size: 10px; font-weight: 800; line-height: 1.5; }
+.cs-badge.doublon { background: #ddd; }
+.cs-raison.sombre { color: #b3261e; }
 @keyframes cs-gagne { from { transform: scale(1); } to { transform: scale(1.05); } }
 @keyframes cs-secoue { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg) translateY(-2px); } }
 @keyframes cs-entre { from { transform: translateX(-30px) scale(.86); opacity: 0; } to { transform: none; opacity: 1; } }
