@@ -460,6 +460,15 @@ input[type=text], input[type=email], input[type=password] { user-select: text; -
 .cs-fiche .btn { font-size: 15px; padding: 6px 12px; }
 .cs-fiche .row { gap: 8px; flex-wrap: nowrap; }
 .cs-fiche .btn { white-space: nowrap; }
+/* lot : une roulette par caisse, empilées ; cartes plus petites quand il y en a beaucoup */
+.cs-reels { display: flex; flex-direction: column; gap: 6px; --ch: clamp(30px, calc((100vh - 270px) / var(--n) - 16px), 132px); --cw: calc(var(--ch) * 1.08); --gap: 6px; }
+.cs-reels .cs-reel { padding: 4px 0; border-width: 3px; border-radius: 12px; box-shadow: 0 3px 0 var(--ink); }
+.cs-reels.compact { --cw: calc(var(--ch) * 1.35); }
+.cs-reels.compact .cs-voit, .cs-reels.compact .cs-nom { display: none; }
+.cs-reels.compact .cs-carte { padding: 3px 3px 9px; border-width: 2px; border-radius: 8px; }
+.cs-reels.compact .cs-carte .ico-voiture { height: 62%; }
+.cs-reels.compact .cs-barre { height: 6px; border-top-width: 2px; }
+.cs-reels.compact .cs-repere::before, .cs-reels.compact .cs-repere::after { left: -5px; border-width: 7px; }
 .cs-revele.lot { justify-content: center; }
 .cs-revele.lot .cs-lueur { left: 50%; }
 .cs-revele.lot .cs-fiche { width: min(620px, 94vw); max-height: calc(100% - 16px); overflow: auto; }
@@ -485,6 +494,12 @@ input[type=text], input[type=email], input[type=password] { user-select: text; -
 /* téléphone en paysage (844 × 390) : cartes et marges resserrées pour tout garder à l'écran */
 @media (max-height: 480px) {
   .screen.caisses { --cw: 106px; --ch: 108px; --gap: 8px; padding: 6px 10px; }
+  /* lot sur petit écran : roulettes plus serrées, les chances laissent la place pendant l'animation */
+  .cs-reels { --ch: clamp(12px, calc((100vh - 150px) / var(--n) - 12px), 108px); gap: 3px; }
+  .cs-reels .cs-reel { padding: 2px 0; border-width: 2px; border-radius: 8px; box-shadow: none; }
+  .cs:has(.cs-reels) .cs-chances { display: none; }
+  .cs-reels.compact .cs-carte { padding: 1px 1px 5px; }
+  .cs-reels.compact .cs-barre { height: 4px; border-top-width: 1px; }
   .cs { gap: 6px; }
   .cs-tete h2 { font-size: 26px; -webkit-text-stroke-width: 3px; }
   .cs-cles { font-size: 17px; }

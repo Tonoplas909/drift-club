@@ -13,6 +13,14 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.4.9',
+    date: '05/10/2026',
+    titre: 'Toutes les roulettes en même temps',
+    notes: [
+      'Ouvrir plusieurs caisses lance une roulette par caisse : elles tournent toutes ensemble et s\'arrêtent en même temps sur leur livrée, puis la fiche récapitule tout le lot.',
+    ],
+  },
+  {
     version: '0.4.8',
     date: '05/10/2026',
     titre: 'Caisses par lots et mises à jour automatiques',

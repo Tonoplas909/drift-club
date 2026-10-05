@@ -83,6 +83,8 @@ export function ecranCaisses(o: OptionsCaisses): HTMLElement {
   let etat: 'attente' | 'ouverture' | 'roulette' | 'revele' = 'attente';
   /** ouverture d'un lot en cours : caisses déjà ouvertes / demandées */
   let lot: { fait: number; total: number } | null = null;
+  /** roulettes d'un lot (une ligne par caisse), à la place de la roulette simple pendant l'animation */
+  let lignesLot: HTMLElement | null = null;
   /** dernier échec d'ouverture, affiché sous le bouton */
   let erreur: string | null = null;
   let raf = 0;
@@ -143,6 +145,7 @@ export function ecranCaisses(o: OptionsCaisses): HTMLElement {
 
   const fermerRevele = (): void => {
     ecran.querySelector('.cs-revele')?.remove();
+    if (lignesLot) { lignesLot.replaceWith(vue); lignesLot = null; }
     ecran.classList.remove('revele');
     o.onApercu?.(null);
     etat = 'attente';
@@ -220,7 +223,7 @@ export function ecranCaisses(o: OptionsCaisses): HTMLElement {
   /** Ouvre une caisse (n = 1) ou un lot de n caisses, l'une après l'autre (chacune payée et tirée comme une ouverture seule). */
   const demarrer = async (n: number): Promise<void> => {
     if (etat !== 'attente') return;
-    const rng = nouveauRng();
+    const rngs: Rng[] = [];
     erreur = null;
     etat = 'ouverture';
     lot = n > 1 ? { fait: 0, total: n } : null;
@@ -229,35 +232,50 @@ export function ecranCaisses(o: OptionsCaisses): HTMLElement {
     let probleme: string | null = null;
     for (let i = 0; i < n; i++) {
       let res: ResultatOuverture;
-      try { res = await o.ouvrir(i === 0 ? rng : nouveauRng()); } catch { res = { ok: false, message: "Ouverture impossible pour le moment. Réessaie." }; }
+      const rng = nouveauRng();
+      try { res = await o.ouvrir(rng); } catch { res = { ok: false, message: "Ouverture impossible pour le moment. Réessaie." }; }
       if (!ecran.isConnected) return; // écran quitté pendant l'attente
       if (!res.ok) { probleme = res.message; break; }
       ouvertures.push(res.ouverture);
+      rngs.push(rng);
       if (lot) { lot.fait = ouvertures.length; rendreActions(); }
       if (o.blocage?.() || !peutOuvrir(o.progression())) break;
     }
     lot = null;
     etat = 'attente';
     if (ouvertures.length === 0) { erreur = probleme; rendreActions(); return; }
-    // la roulette s'arrête sur la plus rare du lot, puis la fiche montre tout le lot
-    const ou = ouvertures.length === 1 ? ouvertures[0] : meilleure(ouvertures);
-    const apres = ouvertures.length === 1 ? (): void => reveler(ou) : (): void => revelerLot(ouvertures, probleme);
-    if (ouvertures.length === 1 && probleme !== null) erreur = probleme;
+    // une roulette par caisse : toutes tournent et s'arrêtent ensemble, puis la fiche montre le lot
+    const seule = ouvertures.length === 1;
+    const apres = seule ? (): void => reveler(ouvertures[0]) : (): void => revelerLot(ouvertures, probleme);
+    if (seule && probleme !== null) erreur = probleme;
     etat = 'roulette';
     o.audio.ouvrir();
-    const cartes = monter(construireBande(rng, ou.tirage.objet));
+    let lignes: { piste: HTMLElement; vue: HTMLElement; cartes: HTMLElement[]; rng: Rng }[];
+    if (seule) {
+      lignes = [{ piste, vue, cartes: monter(construireBande(rngs[0], ouvertures[0].tirage.objet)), rng: rngs[0] }];
+    } else {
+      lignes = ouvertures.map((u, i) => {
+        const cartes = construireBande(rngs[i], u.tirage.objet).map((x) => carte(x, o.couleur()));
+        const p = h('div', { class: 'cs-piste' }, ...cartes);
+        return { piste: p, vue: h('div', { class: 'cs-reel' }, p, h('div', { class: 'cs-repere' })), cartes, rng: rngs[i] };
+      });
+      lignesLot = h('div', { class: `cs-reels${ouvertures.length >= 4 ? ' compact' : ''}`, style: `--n:${ouvertures.length}` }, ...lignes.map((l) => l.vue));
+      vue.replaceWith(lignesLot);
+    }
     rendreActions();
     // mesures faites une fois, avant l'animation ; ensuite seules des transformations sont écrites
-    const pas = cartes[1].offsetLeft - cartes[0].offsetLeft, largeurCarte = cartes[0].offsetWidth, largeurVue = vue.clientWidth;
-    const finale = defilementFinal(INDEX_GAGNANT, pas, largeurCarte, largeurVue, rng() * 2 - 1);
+    const etats = lignes.map((l) => {
+      const pas = l.cartes[1].offsetLeft - l.cartes[0].offsetLeft, largeurCarte = l.cartes[0].offsetWidth, largeurVue = l.vue.clientWidth;
+      return { ...l, pas, largeurVue, finale: defilementFinal(INDEX_GAGNANT, pas, largeurCarte, largeurVue, l.rng() * 2 - 1), dernier: -1 };
+    });
     const duree = reduit() ? DUREE_ROULETTE_REDUITE : DUREE_ROULETTE;
-    let t0 = 0, dernier = -1, dernierTic = -1e9;
-    const poser = (d: number): void => { piste.style.transform = `translate3d(${-d}px,0,0)`; };
-    const sous = (i: number, now: number): void => {
-      if (i === dernier) return;
-      cartes[dernier]?.classList.remove('sous');
-      cartes[i]?.classList.add('sous');
-      dernier = i;
+    let t0 = 0, dernierTic = -1e9;
+    const poser = (e: typeof etats[number], d: number): void => { e.piste.style.transform = `translate3d(${-d}px,0,0)`; };
+    const sous = (e: typeof etats[number], i: number, now: number): void => {
+      if (i === e.dernier) return;
+      e.cartes[e.dernier]?.classList.remove('sous');
+      e.cartes[i]?.classList.add('sous');
+      e.dernier = i;
       if (now - dernierTic > 26) { dernierTic = now; o.audio.tick(Math.random()); }
     };
     let termine = false;
@@ -266,21 +284,26 @@ export function ecranCaisses(o: OptionsCaisses): HTMLElement {
       termine = true;
       cancelAnimationFrame(raf);
       fin = null;
-      poser(finale);
-      sous(INDEX_GAGNANT, performance.now());
-      cartes[INDEX_GAGNANT].classList.add('gagnante');
+      const now = performance.now();
+      for (const e of etats) {
+        poser(e, e.finale);
+        sous(e, INDEX_GAGNANT, now);
+        e.cartes[INDEX_GAGNANT].classList.add('gagnante');
+      }
       window.setTimeout(() => { if (ecran.isConnected && etat === 'roulette') apres(); }, delai);
     };
     fin = () => conclure(160);
     const image = (now: number): void => {
       if (!ecran.isConnected || termine) return;
       if (!t0) t0 = now;
-      const p = Math.min(1, (now - t0) / duree);
-      const d = finale * easeOutRoulette(p);
-      poser(d);
-      sous(indexSousRepere(d, largeurVue, pas), now);
+      const p = Math.min(1, (now - t0) / duree), k = easeOutRoulette(p);
+      for (const e of etats) {
+        const d = e.finale * k;
+        poser(e, d);
+        sous(e, indexSousRepere(d, e.largeurVue, e.pas), now);
+      }
       if (p < 1) raf = requestAnimationFrame(image);
-      else conclure(reduit() ? 200 : 450);
+      else conclure(reduit() ? 200 : seule ? 450 : 900);
     };
     raf = requestAnimationFrame(image);
   };
