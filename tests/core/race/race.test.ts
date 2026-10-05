@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { RaceSim, type RaceEvent } from '../../../src/core/race/race';
+import { RaceSim, MARGE_REPARCOURS, type RaceEvent } from '../../../src/core/race/race';
 import { buildTrack } from '../../../src/core/track/buildTrack';
 import { Terrain } from '../../../src/core/track/terrain';
 import { projectOnTrack } from '../../../src/core/track/projection';
@@ -9,6 +9,7 @@ import { MODES } from '../../../src/core/physics/assists';
 import type { InputState } from '../../../src/core/input';
 import type { Level } from '../../../src/core/level/types';
 import { SIM_DT } from '../../../src/core/constants';
+import { DEG } from '../../../src/core/math/vec';
 import { makeLevel, straightLevel, hairpinLevel } from '../../fixtures/levels';
 
 function makeSim(level: Level, countdown = 0): RaceSim {
@@ -113,5 +114,38 @@ describe('RaceSim', () => {
     for (const v of Object.values(h)) if (typeof v === 'number') expect(Number.isFinite(v)).toBe(true);
     expect(h.progress).toBeGreaterThan(0);
     expect(h.progress).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('RaceSim : reculer puis réavancer ne rapporte rien', () => {
+  /** Roule 5 s, recule éventuellement la voiture, puis la force en glisse (cap décalé de 30°) pendant 0,5 s. */
+  function glisse(reculer: number): { drift: number; derriere: number } {
+    const sim = makeSim(straightLevel(800));
+    runFor(sim, 5, GAZ);
+    sim.car.z -= reculer;
+    runFor(sim, 0.3, GAZ); // la progression suit la voiture
+    const derriere = sim.maxProgressS - sim.progressS;
+    for (let i = 0; i < 60; i++) {
+      sim.car.heading = Math.atan2(sim.car.vx, sim.car.vz) + 30 * DEG;
+      sim.step(GAZ);
+    }
+    expect(sim.maxProgressS - sim.progressS).toBeGreaterThan(reculer > 0 ? MARGE_REPARCOURS : -1);
+    return { drift: sim.score.drift + sim.score.total, derriere };
+  }
+  it('drift sur route nouvelle : des points', () => {
+    const g = glisse(0);
+    expect(g.derriere).toBeLessThan(MARGE_REPARCOURS);
+    expect(g.drift).toBeGreaterThan(100);
+  });
+  it('même drift 80 m derrière la progression maximale : aucun point', () => {
+    const g = glisse(80);
+    expect(g.derriere).toBeGreaterThan(MARGE_REPARCOURS);
+    expect(g.drift).toBe(0);
+  });
+  it('un replacement ne compte pas comme un recul (posé 5 m avant la progression maximale)', () => {
+    const sim = makeSim(straightLevel(300));
+    runFor(sim, 4, GAZ);
+    sim.step(IDLE, true);
+    expect(sim.maxProgressS - sim.progressS).toBeLessThan(MARGE_REPARCOURS);
   });
 });

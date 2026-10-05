@@ -6,7 +6,7 @@ Jeu de drift en 3D dans le navigateur : enchaîne les drifts sur des routes de m
 
 ## Principe
 
-- Un drift compte dès que la voiture glisse de plus de 15° au-dessus de 30 km/h. Plus l'angle et la vitesse sont grands, plus il rapporte.
+- Un drift compte dès que la voiture glisse de plus de 15° au-dessus de 30 km/h. Plus l'angle et la vitesse sont grands, plus il rapporte. Il ne rapporte que sur de la route nouvelle : reculer puis repasser au même endroit ne rapporte rien.
 - Enchaîne les drifts pour monter le **combo** (jusqu'à x5). Un drift est **encaissé** quand tu te redresses proprement.
 - Un **choc** contre une barrière ou le décor ou un replacement font **perdre** le drift en cours et le combo. Un tête-à-queue ne fait pas perdre, mais au-delà de 60° d'angle un drift rapporte de moins en moins.
 - À l'arrivée, un **bonus de temps** récompense les courses rapides.

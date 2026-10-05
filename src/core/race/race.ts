@@ -65,6 +65,12 @@ export interface HudData {
 
 export const ZONE_LIMIT = 35;
 export const FROZEN_LIMIT = 5;
+/**
+ * Le drift ne rapporte des points que sur de la route nouvelle : à plus de MARGE_REPARCOURS mètres derrière la
+ * progression maximale, on repasse sur une portion déjà parcourue (reculer puis réavancer ne rapporte rien).
+ * Marge > 5 m : un replacement pose la voiture 5 m avant la progression maximale.
+ */
+export const MARGE_REPARCOURS = 10;
 const COAST: InputState = { gaz: 0, frein: 0.3, direction: 0, freinAMain: false };
 
 export class RaceSim {
@@ -177,7 +183,7 @@ export class RaceSim {
     // Score
     const se = stepScore(
       this.score,
-      { betaRad: this.car.beta, speed: this.car.speed, onRoad: this.onRoad, progressRate, crash, reset },
+      { betaRad: this.car.beta, speed: this.car.speed, onRoad: this.onRoad, progressRate, crash, reset, dejaParcouru: this.progressS < this.maxProgressS - MARGE_REPARCOURS },
       SIM_DT,
       this.sp,
     );

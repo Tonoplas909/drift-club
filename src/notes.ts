@@ -13,6 +13,15 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.4.6',
+    date: '05/10/2026',
+    titre: 'Pas de points en repassant',
+    notes: [
+      'Le drift ne rapporte plus de points sur une portion de route déjà parcourue : reculer puis repasser au même endroit ne fait plus gagner de points.',
+      'Après un replacement, on repart normalement : la voiture est posée juste avant l\'endroit atteint.',
+    ],
+  },
+  {
     version: '0.4.5',
     date: '05/10/2026',
     titre: 'Clés gagnées en jouant',

@@ -54,6 +54,8 @@ export interface ScoreFrame {
   progressRate: number;
   crash: boolean;
   reset: boolean;
+  /** la voiture repasse sur une portion de route déjà parcourue (après un recul) : le drift n'y rapporte rien */
+  dejaParcouru?: boolean;
 }
 
 export function createScore(): ScoreState {
@@ -112,7 +114,7 @@ export function stepScore(st: ScoreState, f: ScoreFrame, dt: number, p: ScorePar
     st.pending = true;
     st.inactiveTime = 0;
     st.sinceBank = 0;
-    if (f.onRoad && f.progressRate >= p.progressMin) {
+    if (f.onRoad && !f.dejaParcouru && f.progressRate >= p.progressMin) {
       const fa = angleFactor(betaDeg);
       st.drift += p.gainPerKmh * fa * kmh * dt;
       st.driftTime += dt;

@@ -89,6 +89,7 @@ describe('stepScore', () => {
     const st = createScore();
     hold(st, { ...DRIFT, onRoad: false }, 1);
     hold(st, { ...DRIFT, progressRate: 0 }, 1);
+    hold(st, { ...DRIFT, dejaParcouru: true }, 1);
     expect(st.drift).toBe(0);
     expect(hold(st, STRAIGHT, 0.6)).toEqual([]);
     expect(st.multiplier).toBe(1);

@@ -5955,7 +5955,7 @@ function stepScore(st, f, dt, p = DEFAULT_SCORE_PARAMS) {
     st.pending = true;
     st.inactiveTime = 0;
     st.sinceBank = 0;
-    if (f.onRoad && f.progressRate >= p.progressMin) {
+    if (f.onRoad && !f.dejaParcouru && f.progressRate >= p.progressMin) {
       const fa = angleFactor(betaDeg);
       st.drift += p.gainPerKmh * fa * kmh * dt;
       st.driftTime += dt;
@@ -5998,6 +5998,7 @@ function timeBonus(targetTime, time, p = DEFAULT_SCORE_PARAMS) {
 // src/core/race/race.ts
 var ZONE_LIMIT = 35;
 var FROZEN_LIMIT = 5;
+var MARGE_REPARCOURS = 10;
 var COAST = { gaz: 0, frein: 0.3, direction: 0, freinAMain: false };
 var RaceSim = class {
   car;
@@ -6093,7 +6094,7 @@ var RaceSim = class {
     }
     const se = stepScore(
       this.score,
-      { betaRad: this.car.beta, speed: this.car.speed, onRoad: this.onRoad, progressRate, crash, reset },
+      { betaRad: this.car.beta, speed: this.car.speed, onRoad: this.onRoad, progressRate, crash, reset, dejaParcouru: this.progressS < this.maxProgressS - MARGE_REPARCOURS },
       SIM_DT,
       this.sp
     );
@@ -6226,4 +6227,4 @@ async function traiterCourse(corps, empreinteServeur) {
 export {
   traiterCourse
 };
-export const EMPREINTE = '695035644a481b23';
+export const EMPREINTE = 'feb117535242384d';
