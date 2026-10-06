@@ -7,6 +7,7 @@ import { AudioEngine } from './audio/audio';
 import { KeyboardInput } from './input/keyboard';
 import { TouchControls } from './input/touch';
 import { InputManager } from './input/manager';
+import { GamepadInput } from './input/gamepad';
 import { Store, safeStorage, cleNiveauPerso, type Reglages, type MonNiveau } from './storage/store';
 import { Hud } from './game/hud';
 import { GameSession, type DebugHook } from './game/session';
@@ -77,7 +78,8 @@ export class App {
   private readonly audio = new AudioEngine();
   private readonly keyboard = new KeyboardInput();
   private readonly touchControls = new TouchControls($('touch'));
-  private readonly input = new InputManager(this.keyboard, this.touchControls);
+  private readonly manette = new GamepadInput();
+  private readonly input = new InputManager(this.keyboard, this.touchControls, this.manette);
   private readonly touch = matchMedia('(pointer: coarse)').matches;
   private session: GameSession | ZenSession | null = null;
   private showroom: Showroom | null = null;
@@ -124,6 +126,7 @@ export class App {
     this.installerLivreesAtelier(this.store.loadLivreesAtelier().map(lireLivreeOfficielle).filter((l): l is LivreeOfficielle => l !== null));
     this.reglages = this.store.loadReglages(this.touch);
     this.hud.options(this.reglages);
+    this.manette.reglages = this.reglages.manette;
     // clés et livrées gagnées ; une livrée choisie mais verrouillée (données modifiées à la main) retombe sur « unie »
     this.progression = this.store.loadProgression(this.reglages.skins);
     // si une progression de compte est gardée sur l'appareil, le joueur est peut-être reconnecté dans un instant : on attend de savoir laquelle fait foi
@@ -586,6 +589,7 @@ export class App {
         this.hud.options(r);
         this.audio.setVolume(r.volume);
         this.audio.setMuted(r.muet);
+        this.manette.reglages = r.manette;
         this.save();
       },
       onRetour: retour,
@@ -782,6 +786,7 @@ export class App {
         onNouvelleRoute: () => void this.nouvelleRoute(),
         onMenu: () => { this.onEscape = null; this.quitterCourse(); },
       });
+      this.ecouterManetteEnPause();
       return;
     }
     this.screens.pause({
@@ -790,6 +795,21 @@ export class App {
       onMenu: () => { this.onEscape = null; this.quitterCourse(); },
       menuLabel: this.current?.contexte.menuLabel,
     });
+    this.ecouterManetteEnPause();
+  }
+
+  /** Pendant la pause, Start reprend la course et Select la recommence (la session ne lit plus la manette). */
+  private ecouterManetteEnPause(): void {
+    const session = this.session;
+    const tour = (): void => {
+      if (this.session !== session || !session?.enPause || !this.onEscape) return;
+      this.manette.poll();
+      const a = this.manette.consumeActions();
+      if (a.pause) { const f = this.onEscape; this.onEscape = null; f(); return; }
+      if (a.recommencer) { this.recommencerCourse(); return; }
+      requestAnimationFrame(tour);
+    };
+    requestAnimationFrame(tour);
   }
 
   private arrivee(r: RaceResult): void {

@@ -125,7 +125,7 @@ export class Screens {
         compte,
         h('button', { class: 'btn sec', onclick: o.onReglages }, 'Réglages'),
       ),
-      h('p', { class: 'hint' }, 'Z/W ou ↑ accélérer · S ou ↓ freiner · Q/A, D ou ← → tourner · Espace frein à main · R replacer · ⌫ recommencer · C caméra · Échap pause'),
+      h('p', { class: 'hint' }, 'Z/W ou ↑ accélérer · S ou ↓ freiner · Q/A, D ou ← → tourner · Espace frein à main · R replacer · ⌫ recommencer · C caméra · Échap pause · manette prise en charge'),
       !o.persistent && h('p', { class: 'warn' }, 'Stockage indisponible : tes records et réglages ne seront pas enregistrés.'),
     ));
   }
@@ -310,6 +310,12 @@ export class Screens {
         h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.detailPoints, onchange: (e: Event) => { r.detailPoints = (e.target as HTMLInputElement).checked; change(); } }), 'Détail des points de drift (vitesse, durée, angle)'),
         h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.indicateurAngle, onchange: (e: Event) => { r.indicateurAngle = (e.target as HTMLInputElement).checked; change(); } }), 'Indicateur d\'angle sous la voiture'),
         o.touch && h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.accelAuto, onchange: (e: Event) => { r.accelAuto = (e.target as HTMLInputElement).checked; change(); } }), 'Accélération automatique (tactile)'),
+        h('h3', {}, 'Manette'),
+        h('p', { class: 'hint' }, 'Gâchettes : accélérer et freiner · stick gauche : tourner · A / Croix : frein à main · B / Rond : replacer · Y / Triangle : caméra · Start : pause'),
+        h('label', { class: 'line' }, h('span', {}, 'Zone morte du stick'),
+          h('input', { type: 'range', min: '0', max: '0.4', step: '0.01', value: String(r.manette.zoneMorte), oninput: (e: Event) => { r.manette = { ...r.manette, zoneMorte: parseFloat((e.target as HTMLInputElement).value) }; o.onChange({ ...r }); } })),
+        h('label', { class: 'line' }, h('span', {}, 'Direction : précise ↔ vive'),
+          h('input', { type: 'range', min: '0', max: '1', step: '0.05', value: String(r.manette.sensibilite), oninput: (e: Event) => { r.manette = { ...r.manette, sensibilite: parseFloat((e.target as HTMLInputElement).value) }; o.onChange({ ...r }); } })),
         h('button', { class: 'btn', onclick: o.onRetour }, 'Retour'),
       )));
     };

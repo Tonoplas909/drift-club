@@ -7,6 +7,7 @@ import { validerSkins, type SkinsChoisies } from '../core/skins';
 import { FUMEE_DEFAUT, validerFumee, type FumeeId } from '../core/fumees';
 import { offrirCaisse, progressionInitiale, validerProgression, type Progression } from '../core/economie';
 import type { EtatProgressionCompte } from '../core/progressionCompte';
+import { MANETTE_DEFAUT, type ReglagesManette } from '../input/gamepad';
 
 export interface KV {
   getItem(key: string): string | null;
@@ -32,6 +33,8 @@ export interface Reglages {
   detailPoints: boolean;
   /** HUD : indicateur d'angle de glisse sous la voiture */
   indicateurAngle: boolean;
+  /** manette : zone morte du stick et sensibilité de la direction */
+  manette: ReglagesManette;
 }
 
 export interface RecordEntry {
@@ -94,6 +97,17 @@ export function defaultReglages(touch: boolean): Reglages {
     cameraLoin: false,
     detailPoints: true,
     indicateurAngle: true,
+    manette: { ...MANETTE_DEFAUT },
+  };
+}
+
+const entre = (v: unknown, lo: number, hi: number): v is number => typeof v === 'number' && v >= lo && v <= hi;
+
+function lireManette(v: unknown): ReglagesManette {
+  const o = typeof v === 'object' && v !== null ? v as Record<string, unknown> : {};
+  return {
+    zoneMorte: entre(o.zoneMorte, 0, 0.4) ? o.zoneMorte : MANETTE_DEFAUT.zoneMorte,
+    sensibilite: entre(o.sensibilite, 0, 1) ? o.sensibilite : MANETTE_DEFAUT.sensibilite,
   };
 }
 
@@ -138,6 +152,7 @@ export class Store {
       cameraLoin: typeof o.cameraLoin === 'boolean' ? o.cameraLoin : d.cameraLoin,
       detailPoints: typeof o.detailPoints === 'boolean' ? o.detailPoints : d.detailPoints,
       indicateurAngle: typeof o.indicateurAngle === 'boolean' ? o.indicateurAngle : d.indicateurAngle,
+      manette: lireManette(o.manette),
     };
   }
 
