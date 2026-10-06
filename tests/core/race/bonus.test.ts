@@ -12,6 +12,6 @@ describe('bonus de temps sur un niveau officiel', () => {
     expect(result).not.toBeNull();
     expect(result!.driftPoints).toBeGreaterThan(0);
     expect(result!.bonus).toBeGreaterThan(0);
-    expect(result!.time).toBeLessThan(2 * result!.targetTime);
+    expect(result!.time).toBeLessThan(1.5 * result!.targetTime);
   });
 });
