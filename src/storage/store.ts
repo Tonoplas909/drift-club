@@ -26,6 +26,8 @@ export interface Reglages {
   fumee: FumeeId;
   volume: number;
   muet: boolean;
+  /** fond sonore du décor (vent, oiseaux, vagues…) */
+  ambianceDecor: boolean;
   qualite: Qualite;
   accelAuto: boolean;
   cameraLoin: boolean;
@@ -91,6 +93,7 @@ export function defaultReglages(touch: boolean): Reglages {
     fumee: FUMEE_DEFAUT,
     volume: 0.8,
     muet: false,
+    ambianceDecor: true,
     qualite: 'auto',
     // désactivée par défaut : sur téléphone la voiture avançait seule dès le premier toucher
     accelAuto: false,
@@ -146,6 +149,7 @@ export class Store {
       fumee: validerFumee(o.fumee),
       volume: typeof o.volume === 'number' && o.volume >= 0 && o.volume <= 1 ? o.volume : d.volume,
       muet: typeof o.muet === 'boolean' ? o.muet : d.muet,
+      ambianceDecor: typeof o.ambianceDecor === 'boolean' ? o.ambianceDecor : d.ambianceDecor,
       qualite: QUALITES.includes(o.qualite as Qualite) ? (o.qualite as Qualite) : d.qualite,
       // avant la v2 des réglages, accelAuto valait true par défaut sans choix du joueur : on l'ignore
       accelAuto: o.v === VERSION_REGLAGES && typeof o.accelAuto === 'boolean' ? o.accelAuto : d.accelAuto,

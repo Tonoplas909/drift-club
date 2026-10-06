@@ -302,6 +302,7 @@ export class Screens {
           h('input', { type: 'range', min: '0', max: '1', step: '0.05', value: String(r.volume), oninput: (e: Event) => { r.volume = parseFloat((e.target as HTMLInputElement).value); o.onChange({ ...r }); } }),
           h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.muet, onchange: (e: Event) => { r.muet = (e.target as HTMLInputElement).checked; change(); } }), 'Muet'),
         ),
+        h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.ambianceDecor, onchange: (e: Event) => { r.ambianceDecor = (e.target as HTMLInputElement).checked; change(); } }), 'Ambiance du décor (vent, oiseaux, vagues, néons…)'),
         h('h3', {}, 'Qualité graphique'),
         h('div', { class: 'seg' }, ...QUALITES.map(([q, label]) =>
           h('button', { class: 'tab' + (q === r.qualite ? ' on' : ''), onclick: () => { r.qualite = q; change(); } }, label))),

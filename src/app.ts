@@ -135,6 +135,7 @@ export class App {
     if (this.store.idProgressionCompte() === null) this.appliquerSkinsAutorises();
     this.audio.setVolume(this.reglages.volume);
     this.audio.setMuted(this.reglages.muet);
+    this.audio.setFondSonore(this.reglages.ambianceDecor);
     this.keyboard.attach(window);
 
     const unlock = () => this.audio.unlock();
@@ -591,6 +592,7 @@ export class App {
         this.hud.options(r);
         this.audio.setVolume(r.volume);
         this.audio.setMuted(r.muet);
+        this.audio.setFondSonore(r.ambianceDecor);
         this.manette.reglages = r.manette;
         this.save();
       },

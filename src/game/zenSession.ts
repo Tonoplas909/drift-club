@@ -116,6 +116,7 @@ export class ZenSession {
     this.deps.hud.annonce(THEMES[this.sim.region].nom);
     this.world.resetCamera(this.sim.car);
     this.deps.input.reset();
+    this.deps.audio.setDecor(this.sim.region);
     this.deps.audio.startEngine(this.deps.reglages.voiture);
     this.last = performance.now();
     this.raf = requestAnimationFrame(this.frame);
@@ -212,6 +213,7 @@ export class ZenSession {
         break;
       case 'region':
         this.deps.hud.annonce(THEMES[e.theme].nom);
+        this.deps.audio.setDecor(e.theme);
         break;
     }
   }
@@ -258,6 +260,7 @@ export class ZenSession {
     this.deps.hud.zen(true);
     this.world.resetCamera(this.sim.car);
     this.deps.hud.annonce(THEMES[this.sim.region].nom);
+    this.deps.audio.setDecor(this.sim.region);
     this.resume();
   }
 

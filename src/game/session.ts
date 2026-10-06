@@ -105,6 +105,7 @@ export class GameSession {
     this.deps.hud.show(true);
     this.world.resetCamera(this.race.car);
     this.deps.input.reset();
+    this.deps.audio.setDecor(this.level.level.environnement);
     this.deps.audio.startEngine(this.deps.reglages.voiture);
     this.last = performance.now();
     this.raf = requestAnimationFrame(this.frame);
