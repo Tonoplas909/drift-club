@@ -13,6 +13,16 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.3',
+    date: '06/10/2026',
+    titre: 'Manette, mode photo et ambiances sonores',
+    notes: [
+      'Joue à la manette (Xbox, PlayStation…) : gâchettes pour accélérer et freiner en douceur, stick gauche pour tourner, A / Croix pour le frein à main, B / Rond pour replacer, Y / Triangle pour la caméra, Start pour la pause. Zone morte du stick et sensibilité de la direction dans les Réglages.',
+      'Nouveau mode photo, depuis la pause : tourne autour de ta voiture, zoome, choisis un filtre (noir et blanc, grain, vignette) et enregistre la photo, ou partage-la depuis ton téléphone.',
+      'Chaque décor a son ambiance sonore : vent et oiseaux en montagne, vent glacé dans la neige, cigales au Japon, vagues et mouettes chez les pirates, néons qui grésillent dans les Backrooms, ville et pluie en Cyberpunk… En mode Zen, elle change avec la région. Se coupe dans les Réglages.',
+    ],
+  },
+  {
     version: '0.5.2',
     date: '06/10/2026',
     titre: 'Correctifs : arrivée et Garage',

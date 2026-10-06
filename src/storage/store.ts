@@ -7,6 +7,7 @@ import { validerSkins, type SkinsChoisies } from '../core/skins';
 import { FUMEE_DEFAUT, validerFumee, type FumeeId } from '../core/fumees';
 import { offrirCaisse, progressionInitiale, validerProgression, type Progression } from '../core/economie';
 import type { EtatProgressionCompte } from '../core/progressionCompte';
+import { MANETTE_DEFAUT, type ReglagesManette } from '../input/gamepad';
 
 export interface KV {
   getItem(key: string): string | null;
@@ -25,6 +26,8 @@ export interface Reglages {
   fumee: FumeeId;
   volume: number;
   muet: boolean;
+  /** fond sonore du décor (vent, oiseaux, vagues…) */
+  ambianceDecor: boolean;
   qualite: Qualite;
   accelAuto: boolean;
   cameraLoin: boolean;
@@ -32,6 +35,8 @@ export interface Reglages {
   detailPoints: boolean;
   /** HUD : indicateur d'angle de glisse sous la voiture */
   indicateurAngle: boolean;
+  /** manette : zone morte du stick et sensibilité de la direction */
+  manette: ReglagesManette;
 }
 
 export interface RecordEntry {
@@ -88,12 +93,24 @@ export function defaultReglages(touch: boolean): Reglages {
     fumee: FUMEE_DEFAUT,
     volume: 0.8,
     muet: false,
+    ambianceDecor: true,
     qualite: 'auto',
     // désactivée par défaut : sur téléphone la voiture avançait seule dès le premier toucher
     accelAuto: false,
     cameraLoin: false,
     detailPoints: true,
     indicateurAngle: true,
+    manette: { ...MANETTE_DEFAUT },
+  };
+}
+
+const entre = (v: unknown, lo: number, hi: number): v is number => typeof v === 'number' && v >= lo && v <= hi;
+
+function lireManette(v: unknown): ReglagesManette {
+  const o = typeof v === 'object' && v !== null ? v as Record<string, unknown> : {};
+  return {
+    zoneMorte: entre(o.zoneMorte, 0, 0.4) ? o.zoneMorte : MANETTE_DEFAUT.zoneMorte,
+    sensibilite: entre(o.sensibilite, 0, 1) ? o.sensibilite : MANETTE_DEFAUT.sensibilite,
   };
 }
 
@@ -132,12 +149,14 @@ export class Store {
       fumee: validerFumee(o.fumee),
       volume: typeof o.volume === 'number' && o.volume >= 0 && o.volume <= 1 ? o.volume : d.volume,
       muet: typeof o.muet === 'boolean' ? o.muet : d.muet,
+      ambianceDecor: typeof o.ambianceDecor === 'boolean' ? o.ambianceDecor : d.ambianceDecor,
       qualite: QUALITES.includes(o.qualite as Qualite) ? (o.qualite as Qualite) : d.qualite,
       // avant la v2 des réglages, accelAuto valait true par défaut sans choix du joueur : on l'ignore
       accelAuto: o.v === VERSION_REGLAGES && typeof o.accelAuto === 'boolean' ? o.accelAuto : d.accelAuto,
       cameraLoin: typeof o.cameraLoin === 'boolean' ? o.cameraLoin : d.cameraLoin,
       detailPoints: typeof o.detailPoints === 'boolean' ? o.detailPoints : d.detailPoints,
       indicateurAngle: typeof o.indicateurAngle === 'boolean' ? o.indicateurAngle : d.indicateurAngle,
+      manette: lireManette(o.manette),
     };
   }
 
