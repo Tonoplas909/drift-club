@@ -47,9 +47,10 @@ jobs:
         run: 'echo "::warning::Secret SUPABASE_ACCESS_TOKEN absent, Edge Function verifier-course non redéployée (à faire à la main)."'
       - if: env.SUPABASE_ACCESS_TOKEN != ''
         uses: actions/checkout@v4
+      # version fixée : « latest » demande la dernière version à l'API de GitHub, qui refuse parfois (limite de requêtes)
       - if: env.SUPABASE_ACCESS_TOKEN != ''
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.119.0
       - if: env.SUPABASE_ACCESS_TOKEN != ''
         run: supabase functions deploy verifier-course --project-ref studzxweqmgpuhgsvxmi --no-verify-jwt --use-api

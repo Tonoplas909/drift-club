@@ -13,6 +13,17 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.1',
+    date: '06/10/2026',
+    titre: 'Menu animé et Garage interactif',
+    notes: [
+      'Nouveau fond du menu principal : ta voiture (couleur, livrée et fumée choisies au Garage) enchaîne les drifts sur une ligne droite sans fin.',
+      'Au Garage et dans l\'Atelier, fais glisser pour tourner la voiture comme tu veux, et utilise la molette ou le pincement pour zoomer. Elle ne tourne plus toute seule.',
+      'Au Garage, les roues arrière patinent pour montrer la fumée équipée ; touche une fumée verrouillée pour la voir avant de la gagner.',
+      'Une fumée gagnée dans une caisse s\'affiche sur ta voiture.',
+    ],
+  },
+  {
     version: '0.5.0',
     date: '06/10/2026',
     titre: 'L\'Atelier et de nouveaux décors',

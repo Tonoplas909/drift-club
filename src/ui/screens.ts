@@ -187,6 +187,8 @@ export class Screens {
     onChange(voiture: CarId, couleur: string, skins: SkinsChoisies): void;
     /** fumée de pneus choisie (débloquée) */
     onFumee(id: FumeeId): void;
+    /** montrer une fumée dans le showroom (verrouillée : aperçu seulement) ; null : la fumée équipée */
+    onApercuFumee(id: FumeeId | null): void;
     /** aperçu 3D d'une livrée non enregistrée (verrouillée) ou retour à la livrée enregistrée */
     onApercu(voiture: CarId, couleur: string, skin: SkinId): void;
     onCaisses(): void;
@@ -200,7 +202,10 @@ export class Screens {
     let fumee = o.fumee;
     /** fumée regardée (choisie, ou verrouillée en aperçu) ; null = on parle de la livrée */
     let fumeeVue: FumeeId | null = null;
-    const change = () => { apercu = null; fumeeVue = null; o.onChange(voiture, couleur, skins); render(); };
+    const change = () => {
+      if (fumeeVue !== null) o.onApercuFumee(null);
+      apercu = null; fumeeVue = null; o.onChange(voiture, couleur, skins); render();
+    };
     const render = () => {
       const choisie = skinChoisie(skins, voiture), affichee = apercu ?? choisie, def = skinDef(voiture, affichee);
       const fv = fumeeVue !== null ? fumeeDef(fumeeVue) : null, fvLibre = fv !== null && fumeeDebloquee(o.progression, fv.id);
@@ -224,6 +229,7 @@ export class Screens {
             onclick: () => {
               if (libre) { skins = choisirSkin(skins, voiture, s.id); change(); return; }
               apercu = s.id; // aperçu seulement : rien n'est enregistré
+              if (fumeeVue !== null) o.onApercuFumee(null);
               fumeeVue = null;
               o.onApercu(voiture, couleur, s.id);
               render();
@@ -239,7 +245,7 @@ export class Screens {
             title: `${f.nom} · ${RARETES[f.rarete].nom}${libre ? '' : ' · verrouillée'} — ${f.description}`,
             onclick: () => {
               fumeeVue = f.id;
-              if (libre) { fumee = f.id; o.onFumee(f.id); }
+              if (libre) { fumee = f.id; o.onFumee(f.id); } else o.onApercuFumee(f.id);
               render();
             },
           }, h('i', { style: `background:${fondFumee(f.style)}` }), f.nom, !libre && iconeCadenas());
@@ -266,7 +272,7 @@ export class Screens {
           h('button', { class: 'btn sec', onclick: o.onAtelier, title: 'Crée ta livrée et propose-la pour les caisses' }, 'Atelier'),
           h('button', { class: 'btn', onclick: o.onRetour }, 'Retour'),
         ),
-      )));
+      ), h('p', { class: 'astuce-vue' }, 'Fais glisser pour tourner la voiture · molette ou pincement pour zoomer')));
       corps.scrollTop = defilement;
       // rangée de voitures défilante (téléphone en paysage) : la voiture choisie reste visible
       corps.querySelector('.choices.voitures .choice.on')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });

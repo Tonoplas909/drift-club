@@ -609,3 +609,18 @@ input[type=text], input[type=email], input[type=password] { user-select: text; -
 .at-prop.refusee .at-statut { color: #b3261e; }
 .at-prop .msg:empty { display: none; }
 .atelier input[type=range] { accent-color: var(--orange); }
+
+/* Accueil : fond 3D animé (la voiture du joueur en drift, sur la droite de l'écran) ; le menu passe à gauche sous un voile.
+   L'illustration fixe ne sert plus qu'en attendant le premier rendu (ou sans WebGL). */
+.screen.accueil.fond3d {
+  align-items: flex-start;
+  padding-left: max(4vw, 20px, env(safe-area-inset-left));
+  background:
+    linear-gradient(90deg, rgba(21, 19, 28, .55) 0%, rgba(21, 19, 28, .3) 32%, rgba(21, 19, 28, 0) 52%),
+    linear-gradient(rgba(21, 19, 28, .18), rgba(21, 19, 28, 0) 40%);
+}
+.screen.accueil.fond3d .logo.big { font-size: clamp(48px, 8vw, 96px); }
+.screen.accueil.fond3d .hint { max-width: min(46vw, 560px); text-align: left; }
+/* Garage : rappel discret des gestes du showroom */
+.astuce-vue { position: absolute; right: max(12px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom)); margin: 0; font-size: 13px; font-weight: 700; color: #fff; opacity: .7; background: rgba(21, 19, 28, .45); border-radius: 10px; padding: 3px 10px; pointer-events: none; }
+@media (max-width: 800px) { .astuce-vue { display: none; } }

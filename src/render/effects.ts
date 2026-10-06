@@ -117,8 +117,9 @@ export class SmokeSystem {
   private rgbEtincelles: Float32Array = new Float32Array(3);
   private teinteDecor = new THREE.Color();
 
-  constructor(capacity: number, color: THREE.ColorRepresentation, style: FumeeStyle | null = null, etincellesMax = 0) {
-    this.pool = new ParticlePool(capacity, 11);
+  /** `particules` : durée de vie et taille des bouffées (défaut : celles de la course ; le Garage en veut de petites) */
+  constructor(capacity: number, color: THREE.ColorRepresentation, style: FumeeStyle | null = null, etincellesMax = 0, particules: OptionsParticules = {}) {
+    this.pool = new ParticlePool(capacity, 11, particules);
     this.poolEtincelles = new ParticlePool(Math.max(1, etincellesMax), 23, { vie: [0.45, 1], taille: [0.1, 0.2], dispersion: 2.6, montee: [0.5, 1.8], inertie: 0.45, poussee: -0.3 });
     this.matOpaque = toonMaterial({ color });
     this.matLueur = new THREE.MeshBasicMaterial({ color: 0xffffff, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false });

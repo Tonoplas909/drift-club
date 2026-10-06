@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { loadAssets, type Assets } from './render/assets';
 import { QualityManager } from './render/quality';
 import { Showroom } from './render/showroom';
+import { FondMenu } from './render/fondMenu';
 import { AudioEngine } from './audio/audio';
 import { KeyboardInput } from './input/keyboard';
 import { TouchControls } from './input/touch';
@@ -15,7 +16,8 @@ import { forcerDecor } from './game/decorUrl';
 import { NIVEAUX_OFFICIELS, cleNiveauOfficiel } from './levels';
 import { Screens, levelSummary, type NiveauCarte } from './ui/screens';
 import { formatDistance } from './ui/format';
-import { skinChoisie, choisirSkin, ajouterLivreesAtelier } from './core/skins';
+import { skinChoisie, choisirSkin, ajouterLivreesAtelier, skinDef } from './core/skins';
+import { fumeeDef } from './core/fumees';
 import { defAtelier, lireLivreeOfficielle, versLigneOfficielle, type LivreeOfficielle } from './core/atelier';
 import { estFumee } from './core/caisses';
 import type { CarId } from './core/physics/types';
@@ -79,6 +81,8 @@ export class App {
   private readonly touch = matchMedia('(pointer: coarse)').matches;
   private session: GameSession | ZenSession | null = null;
   private showroom: Showroom | null = null;
+  /** fond animé de l'accueil (la voiture du joueur en drift sur une ligne droite) */
+  private fondMenu: FondMenu | null = null;
   private current: { index: number; prepared: PreparedLevel; contexte: Contexte } | null = null;
   private editeur: Editeur | null = null;
   private onEscape: (() => void) | null = null;
@@ -180,6 +184,7 @@ export class App {
     try {
       this.assets = await loadAssets(import.meta.env.BASE_URL + 'models/', (p) => this.screens.setProgress(p));
       this.showroom = new Showroom(this.renderer, this.assets);
+      this.fondMenu = new FondMenu(this.renderer, this.assets);
       this.accueil();
       // lien de partage : à l'ouverture de la page, puis si le joueur colle un autre lien dans la barre d'adresse
       void this.ouvrirLien();
@@ -323,6 +328,23 @@ export class App {
       onEditeur: () => this.hubEditeur(),
       onReglages: () => this.reglagesEcran(() => this.accueil()),
     });
+    this.lancerFondMenu();
+  }
+
+  /** Fond de l'accueil : la voiture choisie au Garage (couleur, livrée, fumée) en drift ; s'arrête dès qu'on quitte l'accueil. */
+  private lancerFondMenu(): void {
+    const ecran = document.querySelector<HTMLElement>('#ui .screen.accueil');
+    if (!this.fondMenu || !ecran) return;
+    const r = this.reglages, voiture = r.voiture;
+    try {
+      this.fondMenu.demarrer({
+        voiture, couleur: r.couleur, skin: skinDef(voiture, skinChoisie(r.skins, voiture)), fumee: fumeeDef(r.fumee).style,
+        ecran, basse: r.qualite === 'basse' || (r.qualite === 'auto' && this.touch),
+      });
+      ecran.classList.add('fond3d');
+    } catch {
+      // WebGL perdu ou modèle manquant : l'illustration fixe reste en fond
+    }
   }
 
   private niveaux(): void {
@@ -418,6 +440,9 @@ export class App {
   private garage(retour: () => void): void {
     if (this.showroom) {
       this.showroom.setCar(this.reglages.voiture, this.reglages.couleur, skinChoisie(this.reglages.skins, this.reglages.voiture));
+      // la voiture se tourne à la main, et montre la fumée équipée
+      this.showroom.setAuto(false);
+      this.showroom.setFumee(fumeeDef(this.reglages.fumee).style);
       this.showroom.start();
     }
     this.screens.garage({
@@ -429,7 +454,10 @@ export class App {
       onFumee: (id) => {
         this.reglages.fumee = fumeeAutorisee(id, this.prog().progression);
         this.save();
+        this.showroom?.setFumee(fumeeDef(this.reglages.fumee).style);
       },
+      // aperçu d'une fumée (verrouillée ou non) ; null : retour à la fumée équipée
+      onApercuFumee: (id) => this.showroom?.setFumee(fumeeDef(id ?? this.reglages.fumee).style),
       onChange: (voiture, couleur, skins) => {
         this.reglages.voiture = voiture;
         this.reglages.couleur = couleur;
@@ -443,11 +471,14 @@ export class App {
       onAtelier: () => this.atelierEcran(() => this.garage(retour)),
       onRetour: () => { this.showroom?.stop(); retour(); },
     });
+    this.showroom?.piloter($('ui'));
     void this.chargerLivreesAtelier();
   }
 
   /** Atelier : créer et proposer une livrée (aperçu dans le showroom), suivre ses propositions, modérer (administrateurs). */
   private atelierEcran(retour: () => void): void {
+    this.showroom?.setAuto(false);
+    this.showroom?.setFumee(null);
     this.showroom?.start();
     const connecte = (): boolean => this.compte.etat.statut === 'connecte' && !!this.compte.etat.pseudo;
     this.screens.monter(ecranAtelier({
@@ -469,6 +500,7 @@ export class App {
       onCompte: () => this.ecranCompte(() => this.atelierEcran(retour)),
       onRetour: retour,
     }));
+    this.showroom?.piloter($('ui'));
   }
 
   /**
@@ -530,11 +562,18 @@ export class App {
     }
   }
 
-  /** Montre la livrée gagnée dans le showroom, derrière la fiche de révélation ; `null` l'arrête. */
+  /** Montre l'objet gagné dans le showroom, derrière la fiche de révélation (une fumée : sur la voiture du joueur) ; `null` l'arrête. */
   private apercuCaisse(x: Objet | null): void {
     if (!this.showroom) return;
-    if (!x || estFumee(x)) { this.showroom.stop(); return; } // une fumée n'a pas d'aperçu 3D : la fiche la montre
-    this.showroom.setCar(x.car as CarId, this.reglages.couleur, x.skin);
+    if (!x) { this.showroom.stop(); return; }
+    if (estFumee(x)) {
+      this.showroom.setCar(this.reglages.voiture, this.reglages.couleur, skinChoisie(this.reglages.skins, this.reglages.voiture));
+      this.showroom.setFumee(fumeeDef(x.skin).style);
+    } else {
+      this.showroom.setCar(x.car as CarId, this.reglages.couleur, x.skin);
+      this.showroom.setFumee(null);
+    }
+    this.showroom.setAuto(true);
     this.showroom.start();
   }
 
