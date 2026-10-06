@@ -12,6 +12,7 @@ import type { InputState } from '../core/input';
 import { clamp, wrapAngle } from '../core/math/vec';
 import { interpolatePose } from './pose';
 import { toggleFullscreen, type SessionDeps } from './session';
+import type { ScenePhoto } from './photo';
 
 export interface ZenCallbacks {
   onPause(): void;
@@ -213,6 +214,19 @@ export class ZenSession {
         this.deps.hud.annonce(THEMES[e.theme].nom);
         break;
     }
+  }
+
+  /** Mode photo (pendant la pause) : caméra posée à la main et image redessinée aussitôt ; null = caméra de poursuite. */
+  rendrePhoto(cam: CamLibre | null): void {
+    this.world.camPhoto = cam;
+    const car = this.sim.car;
+    this.world.update(interpolatePose(this.sim.prevCar, car, 1, this.route.sol), car, 0, this.camCfg, this.sim.progressS);
+    this.world.render();
+  }
+
+  scenePhoto(): ScenePhoto {
+    const c = this.sim.car, p = this.world.camera.position;
+    return { voiture: { x: c.x, y: c.y, z: c.z }, camera: { x: p.x, y: p.y, z: p.z }, sol: (x, z) => this.route.sol.heightAt(x, z) };
   }
 
   get enPause(): boolean {

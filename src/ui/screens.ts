@@ -322,17 +322,18 @@ export class Screens {
     render();
   }
 
-  pause(o: { onReprendre(): void; onRecommencer(): void; onMenu(): void; menuLabel?: string }): void {
+  pause(o: { onReprendre(): void; onRecommencer(): void; onPhoto(): void; onMenu(): void; menuLabel?: string }): void {
     this.show(h('div', { class: 'screen dim' }, h('div', { class: 'panel' },
       h('h2', {}, 'Pause'),
       h('button', { class: 'btn', onclick: o.onReprendre }, 'Reprendre'),
       h('button', { class: 'btn sec', onclick: o.onRecommencer }, 'Recommencer'),
+      h('button', { class: 'btn sec', onclick: o.onPhoto }, 'Mode photo'),
       h('button', { class: 'btn sec', onclick: o.onMenu }, o.menuLabel ?? 'Menu'),
     )));
   }
 
   /** Pause du mode Zen : reprendre, nouvelle route (autre graine), menu ; numéro de la route, copiable. */
-  pauseZen(o: { graine: number; onReprendre(): void; onNouvelleRoute(): void; onMenu(): void }): void {
+  pauseZen(o: { graine: number; onReprendre(): void; onNouvelleRoute(): void; onPhoto(): void; onMenu(): void }): void {
     const num = o.graine.toLocaleString('fr-FR');
     const copier = h('button', { class: 'btn sm sec', onclick: () => {
       void navigator.clipboard?.writeText(String(o.graine)).then(() => this.toast('Numéro de route copié'), () => this.toast(`Route n° ${num}`));
@@ -342,6 +343,7 @@ export class Screens {
       h('p', { class: 'hint zen-graine' }, `Mode Zen · route n° ${num} `, copier),
       h('button', { class: 'btn', onclick: o.onReprendre }, 'Reprendre'),
       h('button', { class: 'btn sec', onclick: o.onNouvelleRoute }, 'Nouvelle route'),
+      h('button', { class: 'btn sec', onclick: o.onPhoto }, 'Mode photo'),
       h('button', { class: 'btn sec', onclick: o.onMenu }, 'Menu'),
     )));
   }

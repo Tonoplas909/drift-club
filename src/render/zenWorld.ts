@@ -65,6 +65,8 @@ export class ZenWorld {
   private readonly rear = [new THREE.Vector3(), new THREE.Vector3()];
   private readonly target: CameraTarget = { x: 0, y: 0, z: 0, heading: 0, vx: 0, vz: 0, speed: 0 };
   camLibre: CamLibre | null = null;
+  /** caméra du mode photo (pendant la pause) : remplace la caméra de poursuite */
+  camPhoto: CamLibre | null = null;
 
   constructor(private readonly init: ZenWorldInit) {
     const { renderer, route, assets, quality } = init;
@@ -196,6 +198,12 @@ export class ZenWorld {
       this.camera.position.set(...this.camLibre.pos);
       this.camera.lookAt(...this.camLibre.cible);
     }
+    // mode photo : caméra posée par le joueur (le décor reste trié comme d'habitude), sans la jauge de vitesse
+    if (this.camPhoto) {
+      this.camera.position.set(...this.camPhoto.pos);
+      this.camera.lookAt(...this.camPhoto.cible);
+    }
+    this.gauge.root.visible = !this.camPhoto;
     const cam = this.camera.position;
     this.sky.position.copy(cam);
 

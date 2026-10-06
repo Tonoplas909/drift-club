@@ -8,6 +8,7 @@ import { KeyboardInput } from './input/keyboard';
 import { TouchControls } from './input/touch';
 import { InputManager } from './input/manager';
 import { GamepadInput } from './input/gamepad';
+import { ModePhoto } from './game/photo';
 import { Store, safeStorage, cleNiveauPerso, type Reglages, type MonNiveau } from './storage/store';
 import { Hud } from './game/hud';
 import { GameSession, type DebugHook } from './game/session';
@@ -88,6 +89,7 @@ export class App {
   private current: { index: number; prepared: PreparedLevel; contexte: Contexte } | null = null;
   private editeur: Editeur | null = null;
   private onEscape: (() => void) | null = null;
+  private photo: ModePhoto | null = null;
   private readonly compte = new CompteService(clientParDefaut);
   private readonly classement = new ClassementService(clientParDefaut);
   private readonly niveauxEnLigne = new NiveauxEnLigneService(clientParDefaut);
@@ -144,7 +146,7 @@ export class App {
     // Retour arrière : recommence le niveau depuis la pause ou les résultats (en course, la session s'en charge)
     window.addEventListener('keydown', (e) => {
       const t = e.target as HTMLElement | null;
-      if (e.code !== 'Backspace' || e.repeat || !this.session?.enPause || (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA'))) return;
+      if (e.code !== 'Backspace' || e.repeat || !this.session?.enPause || this.photo || (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA'))) return;
       e.preventDefault();
       this.recommencerCourse();
     });
@@ -774,6 +776,8 @@ export class App {
 
   private pauseRace(): void {
     if (!this.session) return;
+    // onglet caché pendant le mode photo : on referme le mode photo, qui revient à la pause
+    if (this.photo) { this.photo.quitter(); return; }
     this.session.pause();
     this.save();
     this.touchControls.show(false);
@@ -784,6 +788,7 @@ export class App {
         graine: zen.graine,
         onReprendre: () => { this.onEscape = null; this.reprendre(); },
         onNouvelleRoute: () => void this.nouvelleRoute(),
+        onPhoto: () => this.modePhoto(),
         onMenu: () => { this.onEscape = null; this.quitterCourse(); },
       });
       this.ecouterManetteEnPause();
@@ -792,10 +797,29 @@ export class App {
     this.screens.pause({
       onReprendre: () => { this.onEscape = null; this.reprendre(); },
       onRecommencer: () => this.recommencerCourse(),
+      onPhoto: () => this.modePhoto(),
       onMenu: () => { this.onEscape = null; this.quitterCourse(); },
       menuLabel: this.current?.contexte.menuLabel,
     });
     this.ecouterManetteEnPause();
+  }
+
+  /** Mode photo depuis la pause : HUD masqué, caméra libre ; Retour (ou Échap) revient à la pause. */
+  private modePhoto(): void {
+    const session = this.session;
+    if (!session?.enPause) return;
+    this.hud.show(false);
+    const photo = new ModePhoto({
+      canvas: $('scene') as HTMLCanvasElement,
+      scene: session.scenePhoto(),
+      rendre: (cam) => session.rendrePhoto(cam),
+      partager: this.touch,
+      toast: (m) => this.screens.toast(m),
+      onQuitter: () => { this.photo = null; this.hud.show(true); if (this.session === session) this.pauseRace(); },
+    });
+    this.photo = photo;
+    this.onEscape = () => photo.quitter();
+    this.screens.monter(photo.el);
   }
 
   /** Pendant la pause, Start reprend la course et Select la recommence (la session ne lit plus la manette). */
@@ -806,7 +830,7 @@ export class App {
       this.manette.poll();
       const a = this.manette.consumeActions();
       if (a.pause) { const f = this.onEscape; this.onEscape = null; f(); return; }
-      if (a.recommencer) { this.recommencerCourse(); return; }
+      if (a.recommencer && !this.photo) { this.recommencerCourse(); return; }
       requestAnimationFrame(tour);
     };
     requestAnimationFrame(tour);

@@ -67,6 +67,8 @@ export class World {
   private eau: Eau | null = null;
   /** caméra libre (développement, `?debug`) : remplace la caméra de poursuite */
   camLibre: CamLibre | null = null;
+  /** caméra du mode photo (pendant la pause) : remplace la caméra de poursuite */
+  camPhoto: CamLibre | null = null;
 
   constructor(private readonly init: WorldInit) {
     const { renderer, level, track, terrain, env, assets, quality } = init;
@@ -186,6 +188,12 @@ export class World {
       this.camera.position.set(...this.camLibre.pos);
       this.camera.lookAt(...this.camLibre.cible);
     }
+    // mode photo : caméra posée par le joueur (le décor reste trié comme d'habitude), sans la jauge de vitesse
+    if (this.camPhoto) {
+      this.camera.position.set(...this.camPhoto.pos);
+      this.camera.lookAt(...this.camPhoto.cible);
+    }
+    this.gauge.root.visible = !this.camPhoto;
     this.sky.position.copy(this.camera.position);
     this.eau?.update(dt);
     if (this.snow?.points.visible) this.snow.update(dt, this.camera.position);
