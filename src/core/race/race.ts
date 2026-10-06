@@ -189,8 +189,10 @@ export class RaceSim {
     );
     if (se) ev.push(se);
 
-    // Arrivée
-    if (this.maxProgressS >= track.length - 1.5 && this.onRoad) this.finish(ev);
+    // Arrivée : dès que la ligne est franchie, même en glisse sur le bas-côté (la progression n'avance déjà qu'à moins de
+    // 25 m de la route). Exiger la chaussée laissait la course continuer derrière la ligne : un arbre touché après
+    // l'arrivée annulait le combo en cours.
+    if (this.maxProgressS >= track.length - 1.5) this.finish(ev);
     return ev;
   }
 

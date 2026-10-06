@@ -6429,7 +6429,7 @@ var RaceSim = class {
       this.sp
     );
     if (se) ev.push(se);
-    if (this.maxProgressS >= track.length - 1.5 && this.onRoad) this.finish(ev);
+    if (this.maxProgressS >= track.length - 1.5) this.finish(ev);
     return ev;
   }
   hud() {
@@ -6557,4 +6557,4 @@ async function traiterCourse(corps, empreinteServeur) {
 export {
   traiterCourse
 };
-export const EMPREINTE = '5212a203fd8a4c18';
+export const EMPREINTE = '8f7e4856df09a7dc';

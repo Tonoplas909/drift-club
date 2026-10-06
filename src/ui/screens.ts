@@ -275,7 +275,13 @@ export class Screens {
       ), h('p', { class: 'astuce-vue' }, 'Fais glisser pour tourner la voiture · molette ou pincement pour zoomer')));
       corps.scrollTop = defilement;
       // rangée de voitures défilante (téléphone en paysage) : la voiture choisie reste visible
-      corps.querySelector('.choices.voitures .choice.on')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+      // (horizontalement seulement : un scrollIntoView ramenait toute la liste en haut à chaque choix)
+      const rangee = corps.querySelector<HTMLElement>('.choices.voitures'), voitureOn = rangee?.querySelector<HTMLElement>('.choice.on');
+      if (rangee && voitureOn && rangee.scrollWidth > rangee.clientWidth) {
+        const g = voitureOn.offsetLeft - rangee.offsetLeft, d = g + voitureOn.offsetWidth;
+        if (g < rangee.scrollLeft) rangee.scrollLeft = g;
+        else if (d > rangee.scrollLeft + rangee.clientWidth) rangee.scrollLeft = d - rangee.clientWidth;
+      }
     };
     render();
   }

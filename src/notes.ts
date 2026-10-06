@@ -13,6 +13,15 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.2',
+    date: '06/10/2026',
+    titre: 'Correctifs : arrivée et Garage',
+    notes: [
+      'L\'arrivée compte dès que tu passes la ligne, même en glisse sur le bas-côté : ton combo est encaissé, et ce qui se passe après la ligne (un arbre touché…) ne l\'annule plus.',
+      'Au Garage, choisir une livrée, une couleur ou une fumée ne fait plus remonter la liste tout en haut.',
+    ],
+  },
+  {
     version: '0.5.1',
     date: '06/10/2026',
     titre: 'Menu animé et Garage interactif',
