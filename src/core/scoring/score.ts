@@ -20,7 +20,7 @@ export const DEFAULT_SCORE_PARAMS: ScoreParams = {
   comboTimeout: 2,
   comboMax: 5,
   progressMin: 2,
-  timeBonusPerSec: 2000,
+  timeBonusPerSec: 2500,
 };
 
 export interface ScoreState {
@@ -164,6 +164,12 @@ export function finishScore(st: ScoreState, p: ScoreParams = DEFAULT_SCORE_PARAM
   return st.pending ? bank(st, p) : null;
 }
 
-export function timeBonus(targetTime: number, time: number, p: ScoreParams = DEFAULT_SCORE_PARAMS): number {
-  return Math.max(0, targetTime - time) * p.timeBonusPerSec;
+/**
+ * Bonus de temps : `timeBonusPerSec` points par seconde d'avance sur le double du temps cible (plein bonus à
+ * l'arrivée immédiate, 0 à deux fois le temps cible). Chaque seconde passée coûte autant de points, ce qui rend
+ * moins rentable de traîner pour enchaîner les drifts. Plafonné aux points de drift : rouler vite sans glisser
+ * ne rapporte pas plus que le drift lui-même.
+ */
+export function timeBonus(targetTime: number, time: number, driftPoints: number, p: ScoreParams = DEFAULT_SCORE_PARAMS): number {
+  return Math.min(Math.max(0, driftPoints), Math.max(0, 2 * targetTime - time) * p.timeBonusPerSec);
 }
