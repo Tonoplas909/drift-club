@@ -125,7 +125,7 @@ export class Screens {
         compte,
         h('button', { class: 'btn sec', onclick: o.onReglages }, 'Réglages'),
       ),
-      h('p', { class: 'hint' }, 'Z/W ou ↑ accélérer · S ou ↓ freiner · Q/A, D ou ← → tourner · Espace frein à main · R replacer · ⌫ recommencer · C caméra · Échap pause'),
+      h('p', { class: 'hint' }, 'Z/W ou ↑ accélérer · S ou ↓ freiner · Q/A, D ou ← → tourner · Espace frein à main · R replacer · ⌫ recommencer · C caméra · Échap pause · manette prise en charge'),
       !o.persistent && h('p', { class: 'warn' }, 'Stockage indisponible : tes records et réglages ne seront pas enregistrés.'),
     ));
   }
@@ -302,6 +302,7 @@ export class Screens {
           h('input', { type: 'range', min: '0', max: '1', step: '0.05', value: String(r.volume), oninput: (e: Event) => { r.volume = parseFloat((e.target as HTMLInputElement).value); o.onChange({ ...r }); } }),
           h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.muet, onchange: (e: Event) => { r.muet = (e.target as HTMLInputElement).checked; change(); } }), 'Muet'),
         ),
+        h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.ambianceDecor, onchange: (e: Event) => { r.ambianceDecor = (e.target as HTMLInputElement).checked; change(); } }), 'Ambiance du décor (vent, oiseaux, vagues, néons…)'),
         h('h3', {}, 'Qualité graphique'),
         h('div', { class: 'seg' }, ...QUALITES.map(([q, label]) =>
           h('button', { class: 'tab' + (q === r.qualite ? ' on' : ''), onclick: () => { r.qualite = q; change(); } }, label))),
@@ -310,23 +311,30 @@ export class Screens {
         h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.detailPoints, onchange: (e: Event) => { r.detailPoints = (e.target as HTMLInputElement).checked; change(); } }), 'Détail des points de drift (vitesse, durée, angle)'),
         h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.indicateurAngle, onchange: (e: Event) => { r.indicateurAngle = (e.target as HTMLInputElement).checked; change(); } }), 'Indicateur d\'angle sous la voiture'),
         o.touch && h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.accelAuto, onchange: (e: Event) => { r.accelAuto = (e.target as HTMLInputElement).checked; change(); } }), 'Accélération automatique (tactile)'),
+        h('h3', {}, 'Manette'),
+        h('p', { class: 'hint' }, 'Gâchettes : accélérer et freiner · stick gauche : tourner · A / Croix : frein à main · B / Rond : replacer · Y / Triangle : caméra · Start : pause'),
+        h('label', { class: 'line' }, h('span', {}, 'Zone morte du stick'),
+          h('input', { type: 'range', min: '0', max: '0.4', step: '0.01', value: String(r.manette.zoneMorte), oninput: (e: Event) => { r.manette = { ...r.manette, zoneMorte: parseFloat((e.target as HTMLInputElement).value) }; o.onChange({ ...r }); } })),
+        h('label', { class: 'line' }, h('span', {}, 'Direction : précise ↔ vive'),
+          h('input', { type: 'range', min: '0', max: '1', step: '0.05', value: String(r.manette.sensibilite), oninput: (e: Event) => { r.manette = { ...r.manette, sensibilite: parseFloat((e.target as HTMLInputElement).value) }; o.onChange({ ...r }); } })),
         h('button', { class: 'btn', onclick: o.onRetour }, 'Retour'),
       )));
     };
     render();
   }
 
-  pause(o: { onReprendre(): void; onRecommencer(): void; onMenu(): void; menuLabel?: string }): void {
+  pause(o: { onReprendre(): void; onRecommencer(): void; onPhoto(): void; onMenu(): void; menuLabel?: string }): void {
     this.show(h('div', { class: 'screen dim' }, h('div', { class: 'panel' },
       h('h2', {}, 'Pause'),
       h('button', { class: 'btn', onclick: o.onReprendre }, 'Reprendre'),
       h('button', { class: 'btn sec', onclick: o.onRecommencer }, 'Recommencer'),
+      h('button', { class: 'btn sec', onclick: o.onPhoto }, 'Mode photo'),
       h('button', { class: 'btn sec', onclick: o.onMenu }, o.menuLabel ?? 'Menu'),
     )));
   }
 
   /** Pause du mode Zen : reprendre, nouvelle route (autre graine), menu ; numéro de la route, copiable. */
-  pauseZen(o: { graine: number; onReprendre(): void; onNouvelleRoute(): void; onMenu(): void }): void {
+  pauseZen(o: { graine: number; onReprendre(): void; onNouvelleRoute(): void; onPhoto(): void; onMenu(): void }): void {
     const num = o.graine.toLocaleString('fr-FR');
     const copier = h('button', { class: 'btn sm sec', onclick: () => {
       void navigator.clipboard?.writeText(String(o.graine)).then(() => this.toast('Numéro de route copié'), () => this.toast(`Route n° ${num}`));
@@ -336,6 +344,7 @@ export class Screens {
       h('p', { class: 'hint zen-graine' }, `Mode Zen · route n° ${num} `, copier),
       h('button', { class: 'btn', onclick: o.onReprendre }, 'Reprendre'),
       h('button', { class: 'btn sec', onclick: o.onNouvelleRoute }, 'Nouvelle route'),
+      h('button', { class: 'btn sec', onclick: o.onPhoto }, 'Mode photo'),
       h('button', { class: 'btn sec', onclick: o.onMenu }, 'Menu'),
     )));
   }

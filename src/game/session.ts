@@ -17,6 +17,7 @@ import type { Hud } from './hud';
 import type { PreparedLevel } from './prepare';
 import { camDepuisUrl, type CamLibre } from '../debug/camLibre';
 import { Enregistreur, quantifier } from '../core/replay/replay';
+import type { ScenePhoto } from './photo';
 
 export interface DebugHook {
   attach(car: CarParams, assists: AssistParams, cam: ChaseConfig): void;
@@ -104,6 +105,7 @@ export class GameSession {
     this.deps.hud.show(true);
     this.world.resetCamera(this.race.car);
     this.deps.input.reset();
+    this.deps.audio.setDecor(this.level.level.environnement);
     this.deps.audio.startEngine(this.deps.reglages.voiture);
     this.last = performance.now();
     this.raf = requestAnimationFrame(this.frame);
@@ -183,6 +185,19 @@ export class GameSession {
   /** Replay de la course terminée (null avant l'arrivée). */
   replay(): Uint8Array | null {
     return this.race.result ? this.enregistreur.octetsReplay() : null;
+  }
+
+  /** Mode photo (pendant la pause) : caméra posée à la main et image redessinée aussitôt ; null = caméra de poursuite. */
+  rendrePhoto(cam: CamLibre | null): void {
+    this.world.camPhoto = cam;
+    const car = this.race.car;
+    this.world.update(interpolatePose(this.race.prevCar, car, 1, this.level.terrain), car, 0, this.camCfg);
+    this.world.render();
+  }
+
+  scenePhoto(): ScenePhoto {
+    const c = this.race.car, p = this.world.camera.position;
+    return { voiture: { x: c.x, y: c.y, z: c.z }, camera: { x: p.x, y: p.y, z: p.z }, sol: (x, z) => this.level.terrain.heightAt(x, z) };
   }
 
   /** vrai pendant la pause et sur l'écran des résultats */

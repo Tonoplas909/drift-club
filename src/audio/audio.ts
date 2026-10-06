@@ -12,6 +12,8 @@ import { volumeToGain } from './params';
 import * as sons from './shots';
 import { AmbianceVoice, EngineVoice, TyreVoice } from './voices';
 import { chargerMoteurPhysique, creerNoeudMoteur } from './moteurPhysique';
+import { FONDS_SONORES, FondSonore } from './fondsSonores';
+import type { Environnement } from '../core/level/types';
 
 export { engineFrequency, screechGain } from './params';
 
@@ -37,6 +39,11 @@ export class AudioEngine {
   private moteur: EngineVoice | null = null;
   private pneus: TyreVoice | null = null;
   private ambiance: AmbianceVoice | null = null;
+  /** fond sonore du décor (vent, oiseaux, vagues…) */
+  private fond: FondSonore | null = null;
+  private decor: Environnement | null = null;
+  private fondActif = true;
+  private graineFond = 1;
   private voiture: CarId = 'equilibree';
   private veutMoteur = false;
   private volume = 0.8;
@@ -129,6 +136,34 @@ export class AudioEngine {
   setMuted(m: boolean): void { this.muted = m; this.appliquerVolume(); }
   toggleMute(): boolean { this.setMuted(!this.muted); return this.muted; }
 
+  /**
+   * Décor de la course (son d'ambiance) ; changer de décor pendant la course (mode Zen) fait un long fondu enchaîné.
+   * `null` : pas de fond sonore.
+   */
+  setDecor(decor: Environnement | null): void {
+    if (decor === this.decor) return;
+    this.decor = decor;
+    const ctx = this.ctx;
+    if (!ctx || !this.fond) return;
+    this.fond.stop(ctx.currentTime, 2.5);
+    this.fond = null;
+    this.demarrerFond(2.5);
+  }
+
+  /** Réglage « Ambiance du décor ». */
+  setFondSonore(actif: boolean): void {
+    this.fondActif = actif;
+    const ctx = this.ctx;
+    if (!actif) { if (ctx) this.fond?.stop(ctx.currentTime); this.fond = null; }
+    else if (!this.fond) this.demarrerFond(1.5);
+  }
+
+  private demarrerFond(fondu: number): void {
+    const ctx = this.ctx, bus = this.bus, env = this.env;
+    if (!ctx || !bus || !env || !this.veutMoteur || !this.fondActif || !this.decor || this.fond) return;
+    this.fond = new FondSonore(env, bus.drive, FONDS_SONORES[this.decor], ctx.currentTime, fondu, this.graineFond++);
+  }
+
   /** Lance les voix continues (moteur de la voiture, pneus, ambiance). Sans contexte prêt, démarre au premier geste. */
   startEngine(car: CarId = this.voiture): void {
     this.voiture = car;
@@ -139,6 +174,7 @@ export class AudioEngine {
     this.moteur = this.creerVoixMoteur(env, bus.drive, car);
     this.pneus ??= new TyreVoice(env, bus.drive);
     this.ambiance ??= new AmbianceVoice(env, bus.drive);
+    this.demarrerFond(1.5);
     this.dernierT = -1;
   }
 
@@ -148,8 +184,8 @@ export class AudioEngine {
     const ctx = this.ctx;
     if (!ctx) return;
     const t = ctx.currentTime;
-    this.moteur?.stop(t); this.pneus?.stop(t); this.ambiance?.stop(t);
-    this.moteur = this.pneus = null; this.ambiance = null;
+    this.moteur?.stop(t); this.pneus?.stop(t); this.ambiance?.stop(t); this.fond?.stop(t);
+    this.moteur = this.pneus = null; this.ambiance = null; this.fond = null;
   }
 
   updateEngine(rpm: number, throttle: number, slip: number, speed: number, extra: EngineExtra = {}): void {
@@ -161,6 +197,7 @@ export class AudioEngine {
     this.moteur.update(t, dt, rpm, throttle, extra.gear ?? 1);
     this.pneus.update(t, dt, slip, speed);
     this.ambiance.update(t, dt, extra.onRoad ?? true, speed);
+    this.fond?.update(t);
   }
 
   /** Planifie un son ponctuel (plafonné : les surplus sont ignorés, sauf priorité). */

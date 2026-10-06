@@ -624,3 +624,16 @@ input[type=text], input[type=email], input[type=password] { user-select: text; -
 /* Garage : rappel discret des gestes du showroom */
 .astuce-vue { position: absolute; right: max(12px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom)); margin: 0; font-size: 13px; font-weight: 700; color: #fff; opacity: .7; background: rgba(21, 19, 28, .45); border-radius: 10px; padding: 3px 10px; pointer-events: none; }
 @media (max-width: 800px) { .astuce-vue { display: none; } }
+
+/* Mode photo (depuis la pause) : la course est visible en entier, la zone de glisse couvre l'écran, la barre reste en bas. */
+.screen.dim.photo { background: none; justify-content: space-between; }
+.photo-zone { position: absolute; inset: 0; touch-action: none; cursor: grab; }
+.photo-zone:active { cursor: grabbing; }
+.photo-apercu { position: absolute; inset: 0; pointer-events: none; }
+.photo-apercu.vignette { background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 45%, rgba(0, 0, 0, .6) 100%); }
+.photo-apercu.grain { background-repeat: repeat; opacity: .22; mix-blend-mode: overlay; }
+#scene.photo-nb { filter: grayscale(1) contrast(1.12); }
+.photo-aide, .photo-barre { position: relative; }
+.photo-aide { background: rgba(21, 19, 28, .62); border-radius: 12px; padding: 4px 14px; pointer-events: none; }
+.photo-barre { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; margin-bottom: env(safe-area-inset-bottom); }
+.photo-barre .seg { background: rgba(21, 19, 28, .62); border-radius: 14px; padding: 4px; }

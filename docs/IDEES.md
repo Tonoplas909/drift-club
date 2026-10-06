@@ -1,6 +1,6 @@
 # Idées pour la suite de Drift Club
 
-Carnet d'idées : ce qui pourrait venir après la v0.5.1. Rien ici n'est promis ni planifié ; on pioche dedans, et on met
+Carnet d'idées : ce qui pourrait venir après la v0.5.3. Rien ici n'est promis ni planifié ; on pioche dedans, et on met
 à jour la colonne **État** (et la section « Fait » en bas) au fil des versions.
 
 Repères d'effort : **petit** = une session, **moyen** = une ou deux sessions, **gros** = une vraie mise à jour (v0.x.0).
@@ -11,10 +11,18 @@ la fonction `verifier-course` (`npx vite-node tools/gen-fonction.ts`).
 
 | Idée | Effort | Serveur | État |
 | --- | --- | --- | --- |
-| [Manette](#manette) | petit | non | à faire |
-| [Mode photo](#mode-photo) | petit | non | à faire |
-| [Ambiance sonore par décor](#ambiance-sonore-par-décor) | petit | non | à faire |
+| [Manette](#manette) | petit | non | fait (0.5.3) |
+| [Mode photo](#mode-photo) | petit | non | fait (0.5.3) |
+| [Ambiance sonore par décor](#ambiance-sonore-par-décor) | petit | non | fait (0.5.3) |
+| [Médailles par niveau](#médailles-par-niveau) | petit | non | nouveau |
+| [Vibrations de la manette](#vibrations-de-la-manette) | petit | non | nouveau |
+| [Caméra capot](#caméra-capot) | petit | non | nouveau |
+| [Touches personnalisables](#touches-personnalisables) | petit | non | nouveau |
+| [Carte de score à partager](#carte-de-score-à-partager) | petit | non | nouveau |
+| [Statistiques du pilote](#statistiques-du-pilote) | petit | non | nouveau |
 | [Défi du jour](#défi-du-jour) | moyen | oui (migration) | **recommandé** |
+| [Revoir sa course](#revoir-sa-course) | moyen | non | nouveau |
+| [Fantôme de son record (local)](#fantôme-de-son-record-local) | moyen | non | nouveau |
 | [Zones de clipping](#zones-de-clipping) | moyen | oui (simulation) | **recommandé** |
 | [Votes dans l'Atelier](#votes-dans-latelier) | moyen | oui (migration) | à faire |
 | [Pluie et nuit](#pluie-et-nuit) | moyen | oui (simulation) | à faire |
@@ -23,7 +31,7 @@ la fonction `verifier-course` (`npx vite-node tools/gen-fonction.ts`).
 | [Saison](#saison) | gros | oui (migration) | à faire |
 | [Réglages de voiture](#réglages-de-voiture) | gros | oui (simulation) | à discuter |
 
-Recommandation actuelle : **défi du jour** puis **zones de clipping** (la manette peut venir dans la même version).
+Recommandation actuelle : **défi du jour** puis **zones de clipping**.
 Le défi du jour fait revenir les joueurs chaque jour ; les zones de clipping rendent le drift plus riche à jouer ; les deux
 réutilisent ce qui existe (dessinateur du mode Zen, éditeur, rejeu des courses par le serveur).
 
@@ -48,7 +56,54 @@ Un fond sonore léger par thème, en boucle et en mélange avec le moteur : vent
 cigales (japon), vagues (pirate), bourdonnement électrique des néons (backrooms), rumeur de ville et pluie (cyberpunk).
 Sons générés comme le reste de l'audio (`src/audio/`), volume lié au réglage existant.
 
+### Médailles par niveau
+
+Bronze, argent et or sur chaque niveau officiel (seuils de score fixés par niveau, l'or demandant un vrai bon run),
+affichées sur la liste des niveaux et à l'arrivée. Donne un objectif clair aux joueurs qui ne regardent pas le
+classement en ligne. Les records locaux suffisent ; récompenser les médailles en clés demanderait le serveur
+(les clés ne se créditent que pour des courses vérifiées).
+
+### Vibrations de la manette
+
+Prolonge la manette : petite vibration quand un drift est encaissé (plus forte avec le multiplicateur), secousse au
+choc, grondement léger hors piste (`gamepad.vibrationActuator`, Chrome et Edge ; ignoré ailleurs). Réglage pour la couper.
+
+### Caméra capot
+
+Une troisième caméra sur la touche C : posée sur le capot, très basse, sensation de vitesse maximale. Le reste du rendu
+ne change pas (la caméra de poursuite et la caméra éloignée existent déjà dans `src/render/camera.ts`).
+
+### Touches personnalisables
+
+Changer les touches dans les Réglages (cliquer sur une action puis appuyer sur la touche voulue), et faire de même
+pour les boutons de la manette. Utile pour les gauchers, les claviers exotiques et ceux qui veulent le frein à main
+ailleurs que sur Espace.
+
+### Carte de score à partager
+
+À l'arrivée, un bouton « Partager » qui produit une image : capture de la course (même mécanique que le mode photo),
+nom du niveau, score, meilleur drift, voiture et livrée, avec le lien du jeu. Le partage sur téléphone passe par
+`navigator.share`, comme pour les photos.
+
+### Statistiques du pilote
+
+Une page dans le Compte (ou les Réglages hors ligne) : kilomètres parcourus, temps passé en glisse, plus long drift,
+courses finies, voiture la plus jouée, kilomètres en mode Zen. Tout est compté sur l'appareil ; plus tard, les mêmes
+chiffres pourraient nourrir les succès ou la saison.
+
 ## Moyennes
+
+### Revoir sa course
+
+Le jeu enregistre déjà chaque course (replay binaire envoyé au serveur) et la simulation est déterministe : à
+l'arrivée, « Revoir » rejoue la course dans le navigateur avec des caméras de télévision (bord de route, hélicoptère,
+poursuite), avance rapide et ralenti. On peut y ouvrir le mode photo pour capturer le plus beau drift.
+
+### Fantôme de son record (local)
+
+Première marche vers les fantômes, sans serveur : garder sur l'appareil le replay de son meilleur score par niveau
+(quelques ko) et le rejouer en voiture translucide pendant la course. Le fantôme du premier du classement viendra
+avec le stockage des replays côté serveur (voir [Fantômes et tandem](#fantômes-et-tandem)).
 
 ### Défi du jour
 
@@ -121,3 +176,6 @@ serveur à mettre à jour.
 | 0.4.10 → 0.4.12 | Moteur simulé physiquement (et vrai moteur rotatif), performances (seul le décor visible est dessiné) |
 | 0.5.0 | **Atelier** (livrées créées par les joueurs, validées par l'administrateur, qui entrent dans les caisses) ; Backrooms en couloir sous plafond, Japon avec villages et rues commerçantes, décor **Cyberpunk** et niveau Néo-Shinjuku. Les fantômes ont été mis de côté au profit de l'Atelier. |
 | 0.5.1 | Menu principal animé (la voiture du joueur en drift), Garage où l'on tourne la voiture à la main et où l'on voit sa fumée |
+| 0.5.2 | Correctifs : l'arrivée compte même en glisse hors chaussée, le Garage ne remonte plus en haut de la liste |
+| 0.5.3 | **Manette** (gâchettes progressives, zone morte et sensibilité réglables), **mode photo** depuis la pause (caméra libre, filtres, capture enregistrée ou partagée), **ambiance sonore** propre à chaque décor (réglable, fondu enchaîné entre régions en mode Zen) |
+| 0.5.4 | **Bonus de temps** enfin gagnable : temps cible réaliste (× 1,25), 2 500 points par seconde d'avance sur le double du temps cible, plafonné aux points de drift |
