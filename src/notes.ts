@@ -13,6 +13,16 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.4',
+    date: '06/10/2026',
+    titre: 'Le bonus de temps compte enfin',
+    notes: [
+      'Le bonus de temps valait toujours 0 : le temps cible était impossible à battre. Il est maintenant calé sur une course rapide et propre.',
+      'Nouveau barème : 2 500 points par seconde d\'avance sur le double du temps cible. Chaque seconde passée à traîner coûte donc 2 500 points.',
+      'Le bonus ne peut pas dépasser tes points de drift : rouler vite sans glisser ne suffit pas.',
+    ],
+  },
+  {
     version: '0.5.3',
     date: '06/10/2026',
     titre: 'Manette, mode photo et ambiances sonores',

@@ -178,3 +178,4 @@ serveur à mettre à jour.
 | 0.5.1 | Menu principal animé (la voiture du joueur en drift), Garage où l'on tourne la voiture à la main et où l'on voit sa fumée |
 | 0.5.2 | Correctifs : l'arrivée compte même en glisse hors chaussée, le Garage ne remonte plus en haut de la liste |
 | 0.5.3 | **Manette** (gâchettes progressives, zone morte et sensibilité réglables), **mode photo** depuis la pause (caméra libre, filtres, capture enregistrée ou partagée), **ambiance sonore** propre à chaque décor (réglable, fondu enchaîné entre régions en mode Zen) |
+| 0.5.4 | **Bonus de temps** enfin gagnable : temps cible réaliste (× 1,25), 2 500 points par seconde d'avance sur le double du temps cible, plafonné aux points de drift |

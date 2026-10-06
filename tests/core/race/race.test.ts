@@ -47,7 +47,7 @@ describe('RaceSim', () => {
     expect(r.time).toBeGreaterThan(5);
     expect(r.time).toBeLessThan(40);
     expect(r.score).toBe(r.driftPoints + r.bonus);
-    expect(r.bonus).toBe(Math.round(Math.max(0, r.targetTime - r.time) * 2000));
+    expect(r.bonus).toBe(Math.round(Math.min(r.driftPoints, Math.max(0, 2 * r.targetTime - r.time) * 2500)));
     const zAfter = sim.car.z;
     runFor(sim, 1, GAZ);
     expect(sim.car.z).toBeGreaterThan(zAfter);

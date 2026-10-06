@@ -3977,6 +3977,7 @@ var A_LAT = 8;
 var V_MIN = 12;
 var V_MAX = 30;
 var CURB_K = 1 / 40;
+var MARGE_CIBLE = 1.25;
 function buildTrack(level) {
   const pts = level.route.map((p) => ({ x: p.x, y: p.y, z: p.z, l: p.l }));
   const { samples: raw, pointS } = sampleRoute(pts, STEP);
@@ -4031,6 +4032,7 @@ function finirPiste(samples, pointSample = []) {
     const vref = k > 1e-9 ? clamp(Math.sqrt(A_LAT / k), V_MIN, V_MAX) : V_MAX;
     targetTime += (samples[i].s - samples[i - 1].s) / vref;
   }
+  targetTime *= MARGE_CIBLE;
   const curbs = [];
   let start = -1;
   for (let i = 0; i <= n; i++) {
@@ -6234,7 +6236,7 @@ var DEFAULT_SCORE_PARAMS = {
   comboTimeout: 2,
   comboMax: 5,
   progressMin: 2,
-  timeBonusPerSec: 2e3
+  timeBonusPerSec: 2500
 };
 function createScore() {
   return { total: 0, drift: 0, multiplier: 1, active: false, pending: false, inactiveTime: 0, sinceBank: 0, bestDrift: 0, driftCount: 0, driftTime: 0, driftVitesse: 0, driftAngle: 0 };
@@ -6321,8 +6323,8 @@ function facteursDrift(st, p = DEFAULT_SCORE_PARAMS) {
 function finishScore(st, p = DEFAULT_SCORE_PARAMS) {
   return st.pending ? bank(st, p) : null;
 }
-function timeBonus(targetTime, time, p = DEFAULT_SCORE_PARAMS) {
-  return Math.max(0, targetTime - time) * p.timeBonusPerSec;
+function timeBonus(targetTime, time, driftPoints, p = DEFAULT_SCORE_PARAMS) {
+  return Math.min(Math.max(0, driftPoints), Math.max(0, 2 * targetTime - time) * p.timeBonusPerSec);
 }
 
 // src/core/race/race.ts
@@ -6468,7 +6470,7 @@ var RaceSim = class {
     const fe = finishScore(this.score, this.sp);
     if (fe) ev.push(fe);
     const driftPoints = Math.round(this.score.total);
-    const bonus = Math.round(timeBonus(this.config.track.targetTime, this.time, this.sp));
+    const bonus = Math.round(timeBonus(this.config.track.targetTime, this.time, driftPoints, this.sp));
     this.result = {
       score: driftPoints + bonus,
       driftPoints,
@@ -6557,4 +6559,4 @@ async function traiterCourse(corps, empreinteServeur) {
 export {
   traiterCourse
 };
-export const EMPREINTE = '8f7e4856df09a7dc';
+export const EMPREINTE = '2731788d93c060f9';

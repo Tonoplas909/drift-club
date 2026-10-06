@@ -37,6 +37,12 @@ const A_LAT = 8;
 const V_MIN = 12;
 const V_MAX = 30;
 const CURB_K = 1 / 40;
+/**
+ * Le modèle ci-dessus (vitesse de virage idéale, aucune phase d'accélération ni de freinage) donne un temps que
+ * personne n'atteint : les meilleurs pilotes automatiques font ~1,25 fois plus. Le temps cible est donc ce temps
+ * idéal × MARGE_CIBLE, soit une course rapide et propre.
+ */
+const MARGE_CIBLE = 1.25;
 
 export function buildTrack(level: Level): TrackData {
   const pts: P4[] = level.route.map((p) => ({ x: p.x, y: p.y, z: p.z, l: p.l }));
@@ -88,6 +94,7 @@ export function finirPiste(samples: TrackSample[], pointSample: number[] = []): 
     const vref = k > 1e-9 ? clamp(Math.sqrt(A_LAT / k), V_MIN, V_MAX) : V_MAX;
     targetTime += (samples[i].s - samples[i - 1].s) / vref;
   }
+  targetTime *= MARGE_CIBLE;
 
   // Vibreurs : zones de rayon < 40 m d'au moins 5 m, prolongées de 3 m, fusionnées
   const curbs: CurbRange[] = [];

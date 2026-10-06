@@ -234,7 +234,7 @@ export class RaceSim {
     const fe = finishScore(this.score, this.sp);
     if (fe) ev.push(fe);
     const driftPoints = Math.round(this.score.total);
-    const bonus = Math.round(timeBonus(this.config.track.targetTime, this.time, this.sp));
+    const bonus = Math.round(timeBonus(this.config.track.targetTime, this.time, driftPoints, this.sp));
     this.result = {
       score: driftPoints + bonus,
       driftPoints,

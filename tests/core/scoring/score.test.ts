@@ -115,9 +115,17 @@ describe('stepScore', () => {
     expect(st.total).toBeCloseTo(800, -1);
     expect(finishScore(st)).toBeNull();
   });
-  it('bonus de temps', () => {
-    expect(timeBonus(60, 50)).toBe(20000);
-    expect(timeBonus(60, 70)).toBe(0);
+  it('bonus de temps : 2 500 points par seconde avant le double du temps cible, plafonné aux points de drift', () => {
+    expect(timeBonus(60, 50, 1e6)).toBe(175000);
+    expect(timeBonus(60, 70, 1e6)).toBe(125000);
+    expect(timeBonus(60, 119, 1e6)).toBe(2500);
+    expect(timeBonus(60, 120, 1e6)).toBe(0);
+    expect(timeBonus(60, 200, 1e6)).toBe(0);
+    expect(timeBonus(60, 50, 30000)).toBe(30000);
+    expect(timeBonus(60, 50, 0)).toBe(0);
+  });
+  it('bonus de temps : traîner une seconde de plus coûte 2 500 points', () => {
+    expect(timeBonus(60, 80, 1e6) - timeBonus(60, 81, 1e6)).toBe(2500);
   });
 });
 

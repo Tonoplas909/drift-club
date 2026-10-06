@@ -18,7 +18,7 @@ describe('buildTrack', () => {
     expect(mid.nz).toBeCloseTo(0, 5);
     expect(mid.w).toBe(5);
     expect(mid.k).toBeCloseTo(0, 5);
-    expect(t.targetTime).toBeCloseTo(200 / 30, 1);
+    expect(t.targetTime).toBeCloseTo((200 / 30) * 1.25, 1);
     expect(t.curbs.length).toBe(0);
     expect(t.pointSample).toEqual([0, 50, 100, 150, 200]);
     expect(t.bounds.minZ).toBeCloseTo(0, 5);
