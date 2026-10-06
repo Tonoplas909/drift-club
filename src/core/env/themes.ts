@@ -76,6 +76,33 @@ export interface RegleBatiments {
   rang2: number;
   /** tours de fond : une case tous les `cellule` m, entre 45 et 320 m de la route */
   fond: { cellule: number; probabilite: number };
+  /**
+   * Types de bâtiments de chaque rang, avec leur part (somme 1, tirés dans l'ordre). Défaut (ville) : immeubles au 1er rang,
+   * 40 % de tours au 2e, 35 % au fond.
+   */
+  types?: TypesBatiments;
+  /**
+   * Bâtiments seulement dans les « quartiers » (bruit de grande échelle au-dessus de `seuil`) : villages du japon. Au-dessus
+   * de `ville`, ce sont les types `typesVille` (centre-bourg) ; les quartiers ignorent le masque de forêt.
+   */
+  quartiers?: { echelle: number; seuil: number; ville: number; typesVille: TypesBatiments };
+}
+
+export type PartsBatiments = readonly (readonly [DecorKind, number])[];
+export interface TypesBatiments { rang1: PartsBatiments; rang2: PartsBatiments; fond: PartsBatiments }
+
+/**
+ * Couloir (backrooms) : murs continus de chaque côté de la route, à `decalage` m du bord, ouverts par endroits sur des
+ * passages latéraux (labyrinthe). Longueurs tirées entre [min, min + amplitude] m.
+ */
+export interface RegleCouloir {
+  decalage: number;
+  /** longueur d'un tronçon de mur (m) */
+  pas: number;
+  /** longueur des pans de mur pleins, des ouvertures, et des murs latéraux des passages */
+  plein: [number, number];
+  ouverture: [number, number];
+  passage: [number, number];
 }
 
 export interface ThemeRegles {
@@ -120,8 +147,10 @@ export interface ThemeRegles {
   };
   /** objets semés loin de la route (pagodes, pontons, murs des backrooms…) */
   fond?: RegleFond[];
-  /** bâtiments (ville) ; absent : aucun */
+  /** bâtiments (ville, japon, cyberpunk) ; absent : aucun */
   batiments?: RegleBatiments;
+  /** couloir le long de la route (backrooms) */
+  couloir?: RegleCouloir;
   /** décor correspondant aux objets posés à la main dans l'éditeur (« barriere » est toujours la glissière) */
   objets: Record<Exclude<TypeObjet, 'barriere'>, DecorKind>;
   /** noms français des objets de la palette de l'éditeur pour ce thème */
@@ -255,25 +284,25 @@ export const THEMES: Record<Environnement, ThemeRegles> = {
   },
   backrooms: {
     nom: 'Backrooms',
-    description: 'Moquette humide, papier peint jaune, cloisons et piliers sans fin, néons suspendus dans la brume.',
+    description: 'Couloirs sans fin sous un plafond bas : moquette humide, papier peint jaune, néons, ouvertures sur un labyrinthe de pièces vides.',
     fondEditeur: '#c9b84e',
     relief: 0.08,
     // quelques piliers égarés ; les pièces (murs, piliers) sont semées loin de la route
     arbres: { essences: [{ kind: 'pilier', bas: 1, haut: 1, echelle: [1, 0] }], pForet: 0.05, pHors: 0.01 },
     rochers: { base: 0.012, pente: 0, normal: 'carton', haut: 'porteBureau', partHauts: 0.15, echelle: [0.9, 0.3] },
+    couloir: { decalage: 5.5, pas: 4, plein: [14, 30], ouverture: [7, 6], passage: [8, 10] },
     bord: {
       chevron: 'chevron', borne: null, sansChevauchement: true,
       extras: [
-        { kind: 'mur', tousLes: 8.5, decalage: 6, probabilite: 0.7, orientation: 'route', echelle: [1, 0] },
-        { kind: 'lampeBureau', tousLes: 22, decalage: 4.2, probabilite: 0.7, orientation: 'route', echelle: [1, 0] },
         { kind: 'carton', tousLes: 40, decalage: 3.6, probabilite: 0.3 },
-        { kind: 'porteBureau', tousLes: 70, decalage: 5, probabilite: 0.3, orientation: 'travers', echelle: [1, 0] },
+        { kind: 'porteBureau', tousLes: 70, decalage: 4.2, probabilite: 0.25, orientation: 'travers', echelle: [1, 0] },
       ],
-      suspendus: [{ kind: 'dalleLumiere', tousLes: 13, probabilite: 0.85, lateral: 14 }],
+      // néons du plafond, dans le couloir et dans les pièces
+      suspendus: [{ kind: 'dalleLumiere', tousLes: 9, probabilite: 0.9, lateral: 14 }],
     },
     fond: [
-      { kind: 'mur', cellule: 18, probabilite: 0.55, dMin: 14, dMax: 100, orientation: 'quart', echelle: [1, 0] },
-      { kind: 'pilier', cellule: 16, probabilite: 0.5, dMin: 12, dMax: 90, orientation: 'quart', echelle: [1, 0] },
+      { kind: 'mur', cellule: 18, probabilite: 0.6, dMin: 13, dMax: 100, orientation: 'quart', echelle: [1, 0] },
+      { kind: 'pilier', cellule: 16, probabilite: 0.5, dMin: 13, dMax: 90, orientation: 'quart', echelle: [1, 0] },
     ],
     objets: { arbre: 'pilier', sapin: 'lampeBureau', rocher: 'mur', pneus: 'carton', panneau: 'porteBureau' },
     nomsObjets: { arbre: 'Pilier', sapin: 'Lampadaire néon', rocher: 'Cloison', pneus: 'Cartons', panneau: 'Porte' },
@@ -307,7 +336,7 @@ export const THEMES: Record<Environnement, ThemeRegles> = {
   },
   japon: {
     nom: 'Japon',
-    description: 'Cerisiers en fleurs et pétales, torii, lanternes de pierre, bambous, sanctuaires, rizières en terrasses et pagodes.',
+    description: 'Cerisiers en fleurs, villages de maisons traditionnelles, rues commerçantes, torii, lanternes de pierre, bambous, rizières et pagodes.',
     fondEditeur: '#f0c6d3',
     relief: 0.7,
     arbres: {
@@ -327,11 +356,52 @@ export const THEMES: Record<Environnement, ThemeRegles> = {
         { kind: 'bambou', tousLes: 30, decalage: 3.8, probabilite: 0.35 },
         { kind: 'cerisier', tousLes: 24, decalage: 4.5, probabilite: 0.55, echelle: [0.9, 0.4] },
         { kind: 'sanctuaire', tousLes: 220, decalage: 7, probabilite: 0.5, orientation: 'travers', echelle: [1, 0] },
+        { kind: 'poteauJp', tousLes: 34, decalage: 3.3, probabilite: 0.6, orientation: 'route', echelle: [1, 0] },
+        { kind: 'distributeur', tousLes: 120, decalage: 3.8, probabilite: 0.45, orientation: 'travers', echelle: [1, 0] },
       ],
+    },
+    // villages (maisons traditionnelles) et, au cœur des plus grands, une rue commerçante (échoppes, petits immeubles)
+    batiments: {
+      recul: 7, ecart: [2, 5], rang1: 0.8, rang2: 0.6, fond: { cellule: 40, probabilite: 0.35 },
+      types: { rang1: [['minka', 1]], rang2: [['minka', 1]], fond: [['minka', 1]] },
+      quartiers: {
+        echelle: 260, seuil: 0.56, ville: 0.64,
+        typesVille: { rang1: [['machiya', 0.65], ['immeubleJp', 0.35]], rang2: [['immeubleJp', 0.5], ['machiya', 0.5]], fond: [['immeubleJp', 0.5], ['minka', 0.5]] },
+      },
     },
     fond: [{ kind: 'pagode', cellule: 190, probabilite: 0.7, dMin: 70, dMax: 320, penteMax: 0.5, altitudeMin: 4, echelle: [1, 0.3] }],
     objets: { arbre: 'cerisier', sapin: 'bambou', rocher: 'rocher', pneus: 'toro', panneau: 'torii' },
     nomsObjets: { arbre: 'Cerisier', sapin: 'Bambou', pneus: 'Lanterne de pierre', panneau: 'Torii' },
+  },
+  cyberpunk: {
+    nom: 'Cyberpunk',
+    description: 'Mégapole de nuit : tours couvertes d’écrans, néons magenta et cyan, hologrammes au-dessus de la route, échoppes de ramen.',
+    fondEditeur: '#3a3550',
+    relief: 0.25,
+    // quelques arbres en bac, parcs très rares ; pas de rochers
+    arbres: { essences: [{ kind: 'arbreVille', bas: 1, haut: 1, echelle: [0.65, 0.4] }], pForet: 0.3, pHors: 0, seuilMin: 0.7 },
+    rochers: { base: 0, pente: 0, normal: 'blocBeton', haut: 'blocBeton', partHauts: 0, echelle: [1, 0] },
+    bord: {
+      chevron: 'chevron', borne: null, sansChevauchement: true,
+      extras: [
+        { kind: 'lampadaireNeon', tousLes: 24, decalage: 3.2, probabilite: 0.9, orientation: 'route', echelle: [1, 0] },
+        { kind: 'enseigneNeon', tousLes: 28, decalage: 3.8, probabilite: 0.55, orientation: 'travers', echelle: [0.9, 0.3] },
+        { kind: 'kiosque', tousLes: 110, decalage: 4.2, probabilite: 0.6, orientation: 'travers', echelle: [1, 0] },
+        { kind: 'borneRecharge', tousLes: 60, decalage: 3.4, probabilite: 0.4, orientation: 'travers', echelle: [1, 0] },
+        { kind: 'voiture', tousLes: 26, decalage: 3.4, probabilite: 0.35, orientation: 'routeSym', echelle: [1, 0] },
+        { kind: 'plot', tousLes: 20, decalage: 3.4, probabilite: 0.3, echelle: [0.9, 0.3] },
+        { kind: 'blocBeton', tousLes: 70, decalage: 3.5, probabilite: 0.3, orientation: 'routeSym', echelle: [1, 0] },
+        { kind: 'poubelle', tousLes: 50, decalage: 3.5, probabilite: 0.35, echelle: [1, 0] },
+      ],
+      // panneaux holographiques flottant au-dessus de la route
+      suspendus: [{ kind: 'holo', tousLes: 55, probabilite: 0.7, lateral: 9, echelle: [0.9, 0.4] }],
+    },
+    batiments: {
+      recul: 8, ecart: [1, 4], rang1: 0.9, rang2: 0.8, fond: { cellule: 44, probabilite: 0.6 },
+      types: { rang1: [['immeubleNeon', 1]], rang2: [['tourNeon', 0.55], ['immeubleNeon', 0.45]], fond: [['tourNeon', 0.7], ['immeubleNeon', 0.3]] },
+    },
+    objets: { arbre: 'arbreVille', sapin: 'lampadaireNeon', rocher: 'blocBeton', pneus: 'kiosque', panneau: 'enseigneNeon' },
+    nomsObjets: { arbre: 'Arbre en bac', sapin: 'Lampadaire néon', rocher: 'Bloc béton', pneus: 'Échoppe de ramen', panneau: 'Enseigne' },
   },
 };
 
@@ -346,6 +416,23 @@ export function typesDuTheme(t: ThemeRegles): DecorKind[] {
   for (const x of t.bord.suspendus ?? []) s.add(x.kind);
   for (const x of t.fond ?? []) s.add(x.kind);
   for (const k of Object.values(t.objets)) s.add(k);
-  if (t.batiments) { s.add('immeuble'); s.add('tour'); }
+  if (t.batiments) for (const k of typesBatiments(t.batiments)) s.add(k);
   return [...s];
+}
+
+/** Types de bâtiments par défaut (ville) : immeubles au 1er rang, tours au 2e rang et au fond. */
+export const TYPES_VILLE: TypesBatiments = { rang1: [['immeuble', 1]], rang2: [['tour', 0.4], ['immeuble', 0.6]], fond: [['tour', 0.35], ['immeuble', 0.65]] };
+
+/** Tous les types de bâtiments qu'une règle peut poser. */
+export function typesBatiments(b: RegleBatiments): DecorKind[] {
+  const out = new Set<DecorKind>();
+  for (const t of [b.types ?? TYPES_VILLE, ...(b.quartiers ? [b.quartiers.typesVille] : [])]) for (const l of [t.rang1, t.rang2, t.fond]) for (const [k] of l) out.add(k);
+  return [...out];
+}
+
+/** Type tiré dans une liste de parts (`r` dans [0, 1[ ; le dernier type si les parts n'atteignent pas `r`). */
+export function tirerType(parts: PartsBatiments, r: number): DecorKind {
+  let acc = 0;
+  for (const [k, p] of parts) { acc += p; if (r < acc) return k; }
+  return parts[parts.length - 1][0];
 }

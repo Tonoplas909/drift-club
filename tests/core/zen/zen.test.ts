@@ -8,7 +8,7 @@ import { CARS } from '../../../src/core/physics/cars';
 import { MODES } from '../../../src/core/physics/assists';
 import { SIM_DT } from '../../../src/core/constants';
 import { wrapAngle, clamp } from '../../../src/core/math/vec';
-import type { Environment } from '../../../src/core/env/types';
+import { SANS_COLLISION, type Environment } from '../../../src/core/env/types';
 
 function empreinte(env: Environment): string {
   const r = (v: number) => Math.round(v * 1000);
@@ -245,7 +245,8 @@ describe('Zen : tronçons, sol composé, décor', () => {
       for (const p of tt.parties ?? []) {
         for (const it of p.env.items) {
           const near = r.sol.plusProche(it.x, it.z, 20);
-          if (near) expect(near.dist).toBeGreaterThan(near.w + 1.5);
+          // objets suspendus (néons, hologrammes) : au-dessus de la route, sans collision
+          if (near && !SANS_COLLISION.has(it.kind)) expect(near.dist).toBeGreaterThan(near.w + 1.5);
           const k = `${it.kind}:${Math.round(it.x * 10)}:${Math.round(it.z * 10)}`;
           expect(cles.has(k)).toBe(false);
           cles.add(k);

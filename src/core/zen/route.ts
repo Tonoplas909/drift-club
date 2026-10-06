@@ -350,7 +350,9 @@ export class RouteZen {
 
   /**
    * Tronçon « propriétaire » de l'endroit (x, z) : celui dont l'axe est le plus proche, parmi les tronçons voisins de
-   * `n` (±6, fenêtre fixe : le résultat ne dépend pas du moment du calcul). Renvoie aussi l'abscisse du point d'axe.
+   * `n` (±6, fenêtre fixe : le résultat ne dépend pas du moment du calcul). À égalité (point d'axe partagé par deux
+   * tronçons qui se suivent), le plus petit numéro l'emporte, quel que soit le tronçon qui pose la question.
+   * Renvoie aussi l'abscisse du point d'axe.
    */
   proprietaire(n: number, x: number, z: number): { n: number; s: number; d: number } {
     let best = Infinity, bn = -1, bs = 0;
@@ -361,10 +363,10 @@ export class RouteZen {
       if (!t) continue;
       const b = t.boite;
       const dx = Math.max(b.minX - x, 0, x - b.maxX), dz = Math.max(b.minZ - z, 0, z - b.maxZ);
-      if (dx * dx + dz * dz >= best) continue;
+      if (dx * dx + dz * dz > best) continue;
       for (const p of t.axe) {
         const d = (p.x - x) * (p.x - x) + (p.z - z) * (p.z - z);
-        if (d < best) { best = d; bn = m; bs = p.s; }
+        if (d < best || (d === best && m < bn)) { best = d; bn = m; bs = p.s; }
       }
     }
     return { n: bn, s: bs, d: Math.sqrt(best) };

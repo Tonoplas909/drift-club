@@ -3232,6 +3232,125 @@ var labyrinthe_de_neons_default = {
   objets: []
 };
 
+// levels/neo-shinjuku.json
+var neo_shinjuku_default = {
+  format: 1,
+  nom: "Néo-Shinjuku",
+  auteur: "Drift Club",
+  environnement: "cyberpunk",
+  ambiance: "jour",
+  route: [
+    { x: 0, z: 0, y: 2, l: 11 },
+    { x: 30, z: 0, y: 2.3, l: 11 },
+    { x: 60, z: 0, y: 2.7, l: 11 },
+    { x: 90, z: 0, y: 3, l: 11 },
+    { x: 120, z: 0, y: 3.3, l: 11 },
+    { x: 126.1, z: -1.2, y: 3.4, l: 11 },
+    { x: 131.3, z: -4.7, y: 3.5, l: 11 },
+    { x: 134.8, z: -9.9, y: 3.5, l: 11 },
+    { x: 136, z: -16, y: 3.6, l: 11 },
+    { x: 136, z: -46, y: 3.9, l: 11 },
+    { x: 136, z: -76, y: 4.1, l: 11 },
+    { x: 136, z: -106, y: 4.4, l: 11 },
+    { x: 136.9, z: -111.6, y: 4.4, l: 11 },
+    { x: 139.4, z: -116.6, y: 4.4, l: 11 },
+    { x: 143.4, z: -120.6, y: 4.5, l: 11 },
+    { x: 148.4, z: -123.1, y: 4.5, l: 11 },
+    { x: 154, z: -124, y: 4.5, l: 11 },
+    { x: 184, z: -124, y: 4.7, l: 11 },
+    { x: 214, z: -124, y: 4.8, l: 11 },
+    { x: 219.9, z: -123.6, y: 4.9, l: 11 },
+    { x: 225.6, z: -122.5, y: 4.9, l: 11 },
+    { x: 231.2, z: -120.6, y: 4.9, l: 11 },
+    { x: 236.5, z: -118, y: 4.9, l: 11 },
+    { x: 241.4, z: -114.7, y: 4.9, l: 11 },
+    { x: 245.8, z: -110.8, y: 4.9, l: 11 },
+    { x: 249.7, z: -106.4, y: 5, l: 11 },
+    { x: 253, z: -101.5, y: 5, l: 11 },
+    { x: 255.6, z: -96.2, y: 5, l: 11 },
+    { x: 257.5, z: -90.6, y: 5, l: 11 },
+    { x: 258.6, z: -84.9, y: 5, l: 11 },
+    { x: 259, z: -79, y: 5, l: 11 },
+    { x: 258.6, z: -73.1, y: 5, l: 11 },
+    { x: 257.5, z: -67.4, y: 5, l: 11 },
+    { x: 255.6, z: -61.8, y: 5, l: 11 },
+    { x: 253, z: -56.5, y: 5, l: 11 },
+    { x: 239.6, z: -33.4, y: 5, l: 11 },
+    { x: 226.3, z: -10.3, y: 4.9, l: 11 },
+    { x: 213, z: 12.8, y: 4.8, l: 11 },
+    { x: 210.5, z: 18.8, y: 4.8, l: 11 },
+    { x: 209.6, z: 25.3, y: 4.8, l: 11 },
+    { x: 208.8, z: 31.8, y: 4.7, l: 11 },
+    { x: 206.3, z: 37.8, y: 4.7, l: 11 },
+    { x: 202.3, z: 43, y: 4.7, l: 11 },
+    { x: 197.1, z: 46.9, y: 4.6, l: 11 },
+    { x: 191.9, z: 50.9, y: 4.6, l: 11 },
+    { x: 188, z: 56.1, y: 4.6, l: 11 },
+    { x: 171.3, z: 85, y: 4.3, l: 11 },
+    { x: 154.6, z: 113.8, y: 4.1, l: 11 },
+    { x: 138, z: 142.7, y: 3.8, l: 11 },
+    { x: 136.2, z: 147.9, y: 3.7, l: 11 },
+    { x: 136.6, z: 153.3, y: 3.7, l: 11 },
+    { x: 139, z: 158.2, y: 3.6, l: 11 },
+    { x: 143.1, z: 161.8, y: 3.6, l: 11 },
+    { x: 173.4, z: 179.3, y: 3.2, l: 11 },
+    { x: 203.7, z: 196.8, y: 2.9, l: 11 },
+    { x: 208.9, z: 198.6, y: 2.8, l: 11 },
+    { x: 214.3, z: 198.2, y: 2.7, l: 11 },
+    { x: 219.2, z: 195.8, y: 2.7, l: 11 },
+    { x: 222.8, z: 191.7, y: 2.6, l: 11 },
+    { x: 237.8, z: 165.7, y: 2.3, l: 11 },
+    { x: 252.8, z: 139.7, y: 1.9, l: 11 },
+    { x: 256.8, z: 134.9, y: 1.9, l: 11 },
+    { x: 262, z: 131.5, y: 1.8, l: 11 },
+    { x: 268.1, z: 129.8, y: 1.7, l: 11 },
+    { x: 274.3, z: 130.2, y: 1.6, l: 11 },
+    { x: 280.2, z: 132.4, y: 1.6, l: 11 },
+    { x: 304.4, z: 146.4, y: 1.3, l: 11 },
+    { x: 328.7, z: 160.4, y: 0.9, l: 11 },
+    { x: 352.9, z: 174.4, y: 0.6, l: 11 },
+    { x: 377.2, z: 188.4, y: 0.4, l: 11 },
+    { x: 401.4, z: 202.4, y: 0.1, l: 11 },
+    { x: 406.8, z: 205.1, y: 0.1, l: 11 },
+    { x: 412.4, z: 207.2, y: 0, l: 11 },
+    { x: 418.2, z: 208.7, y: -0.1, l: 11 },
+    { x: 424.1, z: 209.6, y: -0.1, l: 11 },
+    { x: 430.1, z: 209.8, y: -0.1, l: 11 },
+    { x: 436.1, z: 209.3, y: -0.2, l: 11 },
+    { x: 442, z: 208.2, y: -0.2, l: 11 },
+    { x: 447.7, z: 206.5, y: -0.3, l: 11 },
+    { x: 453.2, z: 204.1, y: -0.3, l: 11 },
+    { x: 458.5, z: 201.2, y: -0.4, l: 11 },
+    { x: 463.3, z: 197.7, y: -0.4, l: 11 },
+    { x: 467.8, z: 193.7, y: -0.5, l: 11 },
+    { x: 471.8, z: 189.2, y: -0.5, l: 11 },
+    { x: 475.3, z: 184.3, y: -0.5, l: 11 },
+    { x: 478.2, z: 179.1, y: -0.6, l: 11 },
+    { x: 480.6, z: 173.6, y: -0.6, l: 11 },
+    { x: 482.3, z: 167.8, y: -0.6, l: 11 },
+    { x: 483.4, z: 162, y: -0.7, l: 11 },
+    { x: 483.9, z: 156, y: -0.7, l: 11 },
+    { x: 483.7, z: 150, y: -0.7, l: 11 },
+    { x: 482.8, z: 144, y: -0.8, l: 11 },
+    { x: 481.4, z: 138.2, y: -0.8, l: 11 },
+    { x: 479.2, z: 132.6, y: -0.8, l: 11 },
+    { x: 476.5, z: 127.3, y: -0.8, l: 11 },
+    { x: 461.5, z: 101.3, y: -0.9, l: 11 },
+    { x: 446.5, z: 75.3, y: -1, l: 11 },
+    { x: 431.5, z: 49.3, y: -1, l: 11 },
+    { x: 429.5, z: 43.4, y: -1, l: 11 },
+    { x: 429.9, z: 37.2, y: -1, l: 11 },
+    { x: 432.7, z: 31.6, y: -1, l: 11 },
+    { x: 437.4, z: 27.5, y: -1, l: 11 },
+    { x: 460.5, z: 14.1, y: -0.9, l: 11 },
+    { x: 483.6, z: 0.8, y: -0.9, l: 11 },
+    { x: 506.7, z: -12.5, y: -0.7, l: 11 }
+  ],
+  barrieres: [],
+  decor: { graine: 31847, densite: 0.85 },
+  objets: []
+};
+
 // src/levels.ts
 var NIVEAUX_OFFICIELS = [
   { id: "premiers-virages", data: premiers_virages_default },
@@ -3263,11 +3382,12 @@ var NIVEAUX_OFFICIELS = [
   { id: "orbite-basse", data: orbite_basse_default },
   { id: "cratere-rouge", data: cratere_rouge_default },
   { id: "couloirs-jaunes", data: couloirs_jaunes_default },
-  { id: "labyrinthe-de-neons", data: labyrinthe_de_neons_default }
+  { id: "labyrinthe-de-neons", data: labyrinthe_de_neons_default },
+  { id: "neo-shinjuku", data: neo_shinjuku_default }
 ];
 
 // src/core/level/types.ts
-var ENVIRONNEMENTS = ["montagne", "neige", "desert", "automne", "ville", "pirate", "backrooms", "espace", "japon"];
+var ENVIRONNEMENTS = ["montagne", "neige", "desert", "automne", "ville", "pirate", "backrooms", "espace", "japon", "cyberpunk"];
 var LIMITES = {
   pointsMin: 2,
   pointsMax: 150,
@@ -4544,27 +4664,27 @@ var THEMES = {
   },
   backrooms: {
     nom: "Backrooms",
-    description: "Moquette humide, papier peint jaune, cloisons et piliers sans fin, néons suspendus dans la brume.",
+    description: "Couloirs sans fin sous un plafond bas : moquette humide, papier peint jaune, néons, ouvertures sur un labyrinthe de pièces vides.",
     fondEditeur: "#c9b84e",
     relief: 0.08,
     // quelques piliers égarés ; les pièces (murs, piliers) sont semées loin de la route
     arbres: { essences: [{ kind: "pilier", bas: 1, haut: 1, echelle: [1, 0] }], pForet: 0.05, pHors: 0.01 },
     rochers: { base: 0.012, pente: 0, normal: "carton", haut: "porteBureau", partHauts: 0.15, echelle: [0.9, 0.3] },
+    couloir: { decalage: 5.5, pas: 4, plein: [14, 30], ouverture: [7, 6], passage: [8, 10] },
     bord: {
       chevron: "chevron",
       borne: null,
       sansChevauchement: true,
       extras: [
-        { kind: "mur", tousLes: 8.5, decalage: 6, probabilite: 0.7, orientation: "route", echelle: [1, 0] },
-        { kind: "lampeBureau", tousLes: 22, decalage: 4.2, probabilite: 0.7, orientation: "route", echelle: [1, 0] },
         { kind: "carton", tousLes: 40, decalage: 3.6, probabilite: 0.3 },
-        { kind: "porteBureau", tousLes: 70, decalage: 5, probabilite: 0.3, orientation: "travers", echelle: [1, 0] }
+        { kind: "porteBureau", tousLes: 70, decalage: 4.2, probabilite: 0.25, orientation: "travers", echelle: [1, 0] }
       ],
-      suspendus: [{ kind: "dalleLumiere", tousLes: 13, probabilite: 0.85, lateral: 14 }]
+      // néons du plafond, dans le couloir et dans les pièces
+      suspendus: [{ kind: "dalleLumiere", tousLes: 9, probabilite: 0.9, lateral: 14 }]
     },
     fond: [
-      { kind: "mur", cellule: 18, probabilite: 0.55, dMin: 14, dMax: 100, orientation: "quart", echelle: [1, 0] },
-      { kind: "pilier", cellule: 16, probabilite: 0.5, dMin: 12, dMax: 90, orientation: "quart", echelle: [1, 0] }
+      { kind: "mur", cellule: 18, probabilite: 0.6, dMin: 13, dMax: 100, orientation: "quart", echelle: [1, 0] },
+      { kind: "pilier", cellule: 16, probabilite: 0.5, dMin: 13, dMax: 90, orientation: "quart", echelle: [1, 0] }
     ],
     objets: { arbre: "pilier", sapin: "lampeBureau", rocher: "mur", pneus: "carton", panneau: "porteBureau" },
     nomsObjets: { arbre: "Pilier", sapin: "Lampadaire néon", rocher: "Cloison", pneus: "Cartons", panneau: "Porte" }
@@ -4600,7 +4720,7 @@ var THEMES = {
   },
   japon: {
     nom: "Japon",
-    description: "Cerisiers en fleurs et pétales, torii, lanternes de pierre, bambous, sanctuaires, rizières en terrasses et pagodes.",
+    description: "Cerisiers en fleurs, villages de maisons traditionnelles, rues commerçantes, torii, lanternes de pierre, bambous, rizières et pagodes.",
     fondEditeur: "#f0c6d3",
     relief: 0.7,
     arbres: {
@@ -4622,14 +4742,76 @@ var THEMES = {
         { kind: "torii", tousLes: 130, decalage: 5.5, probabilite: 0.6, orientation: "travers", echelle: [0.95, 0.3] },
         { kind: "bambou", tousLes: 30, decalage: 3.8, probabilite: 0.35 },
         { kind: "cerisier", tousLes: 24, decalage: 4.5, probabilite: 0.55, echelle: [0.9, 0.4] },
-        { kind: "sanctuaire", tousLes: 220, decalage: 7, probabilite: 0.5, orientation: "travers", echelle: [1, 0] }
+        { kind: "sanctuaire", tousLes: 220, decalage: 7, probabilite: 0.5, orientation: "travers", echelle: [1, 0] },
+        { kind: "poteauJp", tousLes: 34, decalage: 3.3, probabilite: 0.6, orientation: "route", echelle: [1, 0] },
+        { kind: "distributeur", tousLes: 120, decalage: 3.8, probabilite: 0.45, orientation: "travers", echelle: [1, 0] }
       ]
+    },
+    // villages (maisons traditionnelles) et, au cœur des plus grands, une rue commerçante (échoppes, petits immeubles)
+    batiments: {
+      recul: 7,
+      ecart: [2, 5],
+      rang1: 0.8,
+      rang2: 0.6,
+      fond: { cellule: 40, probabilite: 0.35 },
+      types: { rang1: [["minka", 1]], rang2: [["minka", 1]], fond: [["minka", 1]] },
+      quartiers: {
+        echelle: 260,
+        seuil: 0.56,
+        ville: 0.64,
+        typesVille: { rang1: [["machiya", 0.65], ["immeubleJp", 0.35]], rang2: [["immeubleJp", 0.5], ["machiya", 0.5]], fond: [["immeubleJp", 0.5], ["minka", 0.5]] }
+      }
     },
     fond: [{ kind: "pagode", cellule: 190, probabilite: 0.7, dMin: 70, dMax: 320, penteMax: 0.5, altitudeMin: 4, echelle: [1, 0.3] }],
     objets: { arbre: "cerisier", sapin: "bambou", rocher: "rocher", pneus: "toro", panneau: "torii" },
     nomsObjets: { arbre: "Cerisier", sapin: "Bambou", pneus: "Lanterne de pierre", panneau: "Torii" }
+  },
+  cyberpunk: {
+    nom: "Cyberpunk",
+    description: "Mégapole de nuit : tours couvertes d’écrans, néons magenta et cyan, hologrammes au-dessus de la route, échoppes de ramen.",
+    fondEditeur: "#3a3550",
+    relief: 0.25,
+    // quelques arbres en bac, parcs très rares ; pas de rochers
+    arbres: { essences: [{ kind: "arbreVille", bas: 1, haut: 1, echelle: [0.65, 0.4] }], pForet: 0.3, pHors: 0, seuilMin: 0.7 },
+    rochers: { base: 0, pente: 0, normal: "blocBeton", haut: "blocBeton", partHauts: 0, echelle: [1, 0] },
+    bord: {
+      chevron: "chevron",
+      borne: null,
+      sansChevauchement: true,
+      extras: [
+        { kind: "lampadaireNeon", tousLes: 24, decalage: 3.2, probabilite: 0.9, orientation: "route", echelle: [1, 0] },
+        { kind: "enseigneNeon", tousLes: 28, decalage: 3.8, probabilite: 0.55, orientation: "travers", echelle: [0.9, 0.3] },
+        { kind: "kiosque", tousLes: 110, decalage: 4.2, probabilite: 0.6, orientation: "travers", echelle: [1, 0] },
+        { kind: "borneRecharge", tousLes: 60, decalage: 3.4, probabilite: 0.4, orientation: "travers", echelle: [1, 0] },
+        { kind: "voiture", tousLes: 26, decalage: 3.4, probabilite: 0.35, orientation: "routeSym", echelle: [1, 0] },
+        { kind: "plot", tousLes: 20, decalage: 3.4, probabilite: 0.3, echelle: [0.9, 0.3] },
+        { kind: "blocBeton", tousLes: 70, decalage: 3.5, probabilite: 0.3, orientation: "routeSym", echelle: [1, 0] },
+        { kind: "poubelle", tousLes: 50, decalage: 3.5, probabilite: 0.35, echelle: [1, 0] }
+      ],
+      // panneaux holographiques flottant au-dessus de la route
+      suspendus: [{ kind: "holo", tousLes: 55, probabilite: 0.7, lateral: 9, echelle: [0.9, 0.4] }]
+    },
+    batiments: {
+      recul: 8,
+      ecart: [1, 4],
+      rang1: 0.9,
+      rang2: 0.8,
+      fond: { cellule: 44, probabilite: 0.6 },
+      types: { rang1: [["immeubleNeon", 1]], rang2: [["tourNeon", 0.55], ["immeubleNeon", 0.45]], fond: [["tourNeon", 0.7], ["immeubleNeon", 0.3]] }
+    },
+    objets: { arbre: "arbreVille", sapin: "lampadaireNeon", rocher: "blocBeton", pneus: "kiosque", panneau: "enseigneNeon" },
+    nomsObjets: { arbre: "Arbre en bac", sapin: "Lampadaire néon", rocher: "Bloc béton", pneus: "Échoppe de ramen", panneau: "Enseigne" }
   }
 };
+var TYPES_VILLE = { rang1: [["immeuble", 1]], rang2: [["tour", 0.4], ["immeuble", 0.6]], fond: [["tour", 0.35], ["immeuble", 0.65]] };
+function tirerType(parts, r) {
+  let acc = 0;
+  for (const [k, p] of parts) {
+    acc += p;
+    if (r < acc) return k;
+  }
+  return parts[parts.length - 1][0];
+}
 
 // src/core/env/terrainDuNiveau.ts
 function creerTerrain(track, level) {
@@ -4662,6 +4844,47 @@ var TOURS = [
   { w: 16, d: 16, etages: 11, style: 2 },
   { w: 20, d: 20, etages: 12, style: 7 }
 ];
+var MINKAS = [
+  { w: 10, d: 8, etages: 1, style: 0 },
+  { w: 12, d: 9, etages: 2, style: 1 },
+  { w: 9, d: 8, etages: 1, style: 2 },
+  { w: 14, d: 10, etages: 2, style: 0 }
+];
+var MACHIYAS = [
+  { w: 7, d: 9, etages: 2, style: 0 },
+  { w: 6, d: 8, etages: 2, style: 1 },
+  { w: 8, d: 10, etages: 2, style: 2 },
+  { w: 6, d: 9, etages: 3, style: 3 }
+];
+var IMMEUBLES_JP = [
+  { w: 8, d: 10, etages: 4, style: 0 },
+  { w: 7, d: 9, etages: 5, style: 1 },
+  { w: 9, d: 10, etages: 3, style: 2 },
+  { w: 8, d: 12, etages: 6, style: 3 }
+];
+var IMMEUBLES_NEON = [
+  { w: 12, d: 12, etages: 5, style: 0 },
+  { w: 14, d: 12, etages: 7, style: 1 },
+  { w: 10, d: 12, etages: 6, style: 2 },
+  { w: 16, d: 14, etages: 4, style: 3 },
+  { w: 12, d: 14, etages: 8, style: 0 },
+  { w: 18, d: 12, etages: 6, style: 1 }
+];
+var TOURS_NEON = [
+  { w: 18, d: 18, etages: 14, style: 0 },
+  { w: 22, d: 18, etages: 18, style: 1 },
+  { w: 16, d: 16, etages: 12, style: 2 },
+  { w: 24, d: 22, etages: 22, style: 3 }
+];
+var BATIMENTS = {
+  immeuble: IMMEUBLES,
+  tour: TOURS,
+  minka: MINKAS,
+  machiya: MACHIYAS,
+  immeubleJp: IMMEUBLES_JP,
+  immeubleNeon: IMMEUBLES_NEON,
+  tourNeon: TOURS_NEON
+};
 var EMPRISES_THEMES = {
   ponton: [[2.6, 12], [2.6, 8]],
   epave: [[3.6, 10], [3.6, 9]],
@@ -4669,9 +4892,11 @@ var EMPRISES_THEMES = {
   pilier: [[1.1, 1.1]],
   porteBureau: [[1.3, 0.3]],
   pagode: [[9, 9], [7, 7]],
-  sanctuaire: [[2.6, 2.4]]
+  sanctuaire: [[2.6, 2.4]],
+  distributeur: [[1.1, 0.8]],
+  kiosque: [[3.4, 2.4], [3, 2.2]]
 };
-var batimentDe = (kind, variant) => kind === "immeuble" ? IMMEUBLES[variant] ?? null : kind === "tour" ? TOURS[variant] ?? null : null;
+var batimentDe = (kind, variant) => BATIMENTS[kind]?.[variant] ?? null;
 function boiteDe(kind, variant) {
   const b = batimentDe(kind, variant);
   if (b) return [b.w, b.d];
@@ -4744,7 +4969,19 @@ var VARIANTS = {
   toro: 1,
   pagode: 2,
   bambou: 2,
-  sanctuaire: 1
+  sanctuaire: 1,
+  minka: MINKAS.length,
+  machiya: MACHIYAS.length,
+  immeubleJp: IMMEUBLES_JP.length,
+  distributeur: 2,
+  poteauJp: 1,
+  tourNeon: TOURS_NEON.length,
+  immeubleNeon: IMMEUBLES_NEON.length,
+  lampadaireNeon: 1,
+  enseigneNeon: 3,
+  kiosque: 2,
+  holo: 2,
+  borneRecharge: 1
 };
 var COLLIDER_RADIUS = {
   sapin: 0.45,
@@ -4798,9 +5035,21 @@ var COLLIDER_RADIUS = {
   toro: 0.35,
   pagode: 4,
   bambou: 0.5,
-  sanctuaire: 1.6
+  sanctuaire: 1.6,
+  minka: 6,
+  machiya: 5,
+  immeubleJp: 5,
+  distributeur: 0.6,
+  poteauJp: 0.2,
+  tourNeon: 12,
+  immeubleNeon: 8,
+  lampadaireNeon: 0.25,
+  enseigneNeon: 0.3,
+  kiosque: 1.6,
+  holo: 1,
+  borneRecharge: 0.4
 };
-var SANS_COLLISION = /* @__PURE__ */ new Set(["dalleLumiere"]);
+var SANS_COLLISION = /* @__PURE__ */ new Set(["dalleLumiere", "holo"]);
 var CERCLES_MULTIPLES = {
   torii: [{ dx: -2.6, r: 0.42 }, { dx: 2.6, r: 0.42 }]
 };
@@ -4952,6 +5201,81 @@ function* decorEnEtapes(level, track, terrain, opts = {}) {
     }
     add({ kind: theme.objets[o.type], variant: 0, x: o.x, y: terrain.heightAt(o.x, o.z), z: o.z, rot, scale: 1, solid: true, manual: true });
   }
+  const couloir = theme.couloir;
+  const CASE_MUR = 12;
+  const grilleMurs = /* @__PURE__ */ new Map();
+  const cleMur = (i, j) => (j + 4096) * 8192 + (i + 4096);
+  const presMur = (x, z, r) => {
+    if (grilleMurs.size === 0) return false;
+    const i0 = Math.floor((x - r) / CASE_MUR), i1 = Math.floor((x + r) / CASE_MUR), j0 = Math.floor((z - r) / CASE_MUR), j1 = Math.floor((z + r) / CASE_MUR);
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+      for (const g of grilleMurs.get(cleMur(i, j)) ?? []) {
+        const vx = g.bx - g.ax, vz = g.bz - g.az, l2 = vx * vx + vz * vz;
+        const t = l2 > 0 ? Math.max(0, Math.min(1, ((x - g.ax) * vx + (z - g.az) * vz) / l2)) : 0;
+        const dx = g.ax + vx * t - x, dz = g.az + vz * t - z;
+        if (dx * dx + dz * dz < r * r) return true;
+      }
+    }
+    return false;
+  };
+  if (couloir) {
+    const rc = mulberry32((opts.alea ?? graine) + 9013);
+    const cloisons = env.cloisons = [];
+    const marge = couloir.decalage - 0.6;
+    const empiete = (x, z) => {
+      track.grid.query(x, z, 20 + marge, voisins);
+      for (const i of voisins) {
+        const sp = S[i], r = sp.w + marge;
+        if ((sp.x - x) * (sp.x - x) + (sp.z - z) * (sp.z - z) < r * r) return true;
+      }
+      return false;
+    };
+    const poserMur = (ax, az, bx, bz) => {
+      const mx = (ax + bx) / 2, mz = (az + bz) / 2;
+      if (garder && !garder(mx, mz)) return;
+      env.segments.push({ ax, az, bx, bz });
+      cloisons.push({ x: mx, y: Math.min(terrain.heightAt(ax, az), terrain.heightAt(bx, bz)), z: mz, rot: atan2(bx - ax, bz - az), len: hypot(bx - ax, bz - az) });
+      const seg = { ax, az, bx, bz };
+      const i0 = Math.floor(Math.min(ax, bx) / CASE_MUR), i1 = Math.floor(Math.max(ax, bx) / CASE_MUR);
+      const j0 = Math.floor(Math.min(az, bz) / CASE_MUR), j1 = Math.floor(Math.max(az, bz) / CASE_MUR);
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+        const k = cleMur(i, j), l = grilleMurs.get(k);
+        if (l) l.push(seg);
+        else grilleMurs.set(k, [seg]);
+      }
+    };
+    const passage = (x, z, nx, nz, longueur) => {
+      let px = x, pz = z;
+      for (let d = 2; d <= longueur + 1e-9; d += 2) {
+        const qx = x + nx * d, qz = z + nz * d;
+        if (empiete(qx, qz) || nearManual(qx, qz, 1.5)) break;
+        poserMur(px, pz, qx, qz);
+        px = qx;
+        pz = qz;
+      }
+    };
+    const tirer = (l) => l[0] + l[1] * rc();
+    for (const side of [1, -1]) {
+      yield;
+      let plein = true, reste = tirer(couloir.plein) * rc();
+      let prev = null;
+      for (let s = 0; s <= track.length + 1e-9; s += couloir.pas) {
+        const sp = S[Math.min(S.length - 1, Math.round(s))];
+        const off = sp.w + couloir.decalage;
+        const x = sp.x + sp.nx * side * off, z = sp.z + sp.nz * side * off;
+        const ok = !empiete(x, z) && !nearManual(x, z, 1.5);
+        if (plein && prev && prev.ok && ok) poserMur(prev.x, prev.z, x, z);
+        reste -= couloir.pas;
+        if (reste <= 0) {
+          plein = !plein;
+          reste = tirer(plein ? couloir.plein : couloir.ouverture);
+          const lg = tirer(couloir.passage);
+          if (ok) passage(x, z, sp.nx * side, sp.nz * side, lg);
+        }
+        prev = { x, z, ok };
+      }
+    }
+  }
   const chevron = theme.bord.chevron, borne2 = theme.bord.borne;
   const tightZone = new Uint8Array(S.length);
   let runStart = -1;
@@ -4998,6 +5322,7 @@ function* decorEnEtapes(level, track, terrain, opts = {}) {
         const x = sp.x + sp.nx * side * off, z = sp.z + sp.nz * side * off;
         if (garder && !garder(x, z) || nearManual(x, z, 3) || inCorridor(x, z, 3, terrain.distanceToRoad(x, z)) || surEau(x, z, 3)) continue;
         const variant = Math.min(VARIANTS[ex.kind] - 1, Math.floor(variantR * VARIANTS[ex.kind]));
+        if (presMur(x, z, (boiteDe(ex.kind, variant) ? hypot(...boiteDe(ex.kind, variant)) / 2 : COLLIDER_RADIUS[ex.kind]) * (ex.echelle ?? [0.8, 0.5])[0] + 0.8)) continue;
         const [eMin, eAmp] = ex.echelle ?? [0.8, 0.5];
         const scale = eMin + eAmp * scaleR;
         if (theme.bord.sansChevauchement) {
@@ -5028,6 +5353,9 @@ function* decorEnEtapes(level, track, terrain, opts = {}) {
   const bat = theme.batiments;
   if (bat) {
     const rb = mulberry32((opts.alea ?? graine) + 4099);
+    const types = bat.types ?? TYPES_VILLE, qu = bat.quartiers;
+    const quartier = (x, z) => qu ? fbm(x / qu.echelle, z / qu.echelle, graine + 23) : 1;
+    const typesEn = (x, z) => qu && quartier(x, z) > qu.ville ? qu.typesVille : types;
     const poser = (kind, variant, x, z, rot) => {
       const b3 = batimentDe(kind, variant);
       const e = empriseDe(x, z, rot, b3.w, b3.d);
@@ -5036,7 +5364,7 @@ function* decorEnEtapes(level, track, terrain, opts = {}) {
       let dMin = Infinity, yMin = Infinity, yMax = -Infinity;
       for (const [px, pz] of pts) {
         if (garder && !garder(px, pz)) return false;
-        if (forestMask(px, pz, graine) > thr) return false;
+        if (qu ? quartier(px, pz) <= qu.seuil : forestMask(px, pz, graine) > thr) return false;
         const ns = nearestSampleWithin(track, px, pz, 10 + bat.recul + 0.5);
         if (ns && ns.dist < S[ns.index].w + bat.recul) return false;
         if (inCorridor(px, pz, bat.recul, 0)) return false;
@@ -5062,13 +5390,14 @@ function* decorEnEtapes(level, track, terrain, opts = {}) {
       add({ kind, variant, x, y: yMin - 0.1, z, rot, scale: 1, solid: dMin < SOLID_DISTANCE, manual: false });
       return true;
     };
-    const rang = function* (decale, amplitude, proba, partTours) {
+    const rang = function* (decale, amplitude, proba, quel) {
       for (const side of [1, -1]) {
         let k = 0;
         for (let s = 3 + rb() * 6; s < track.length - 3; ) {
           if (++k % 16 === 0) yield;
           const pick = rb(), kindR = rb(), variantR = rb(), gapR = rb(), offR = rb();
-          const kind = kindR < partTours ? "tour" : "immeuble";
+          const sp0 = S[Math.min(S.length - 1, Math.round(s))];
+          const kind = tirerType(typesEn(sp0.x + sp0.nx * side * (sp0.w + bat.recul + decale), sp0.z + sp0.nz * side * (sp0.w + bat.recul + decale))[quel], kindR);
           const variant = Math.min(VARIANTS[kind] - 1, Math.floor(variantR * VARIANTS[kind]));
           const b3 = batimentDe(kind, variant);
           const sp = S[Math.min(S.length - 1, Math.round(s + b3.w / 2))];
@@ -5079,8 +5408,8 @@ function* decorEnEtapes(level, track, terrain, opts = {}) {
         }
       }
     };
-    yield* rang(0, 2, bat.rang1, 0);
-    yield* rang(24, 14, bat.rang2, 0.4);
+    yield* rang(0, 2, bat.rang1, "rang1");
+    yield* rang(24, 14, bat.rang2, "rang2");
     const bb = zone, cell = bat.fond.cellule;
     for (let gz = bb.minZ - dLoin; gz < bb.maxZ + dLoin; gz += cell) {
       yield;
@@ -5089,7 +5418,7 @@ function* decorEnEtapes(level, track, terrain, opts = {}) {
         const pick = rb(), kindR = rb(), variantR = rb(), rotR = rb();
         const d = terrain.distanceToRoad(x, z);
         if (d < 45 || d >= dLoin || pick >= bat.fond.probabilite) continue;
-        const kind = kindR < 0.35 ? "tour" : "immeuble";
+        const kind = tirerType(typesEn(x, z).fond, kindR);
         poser(kind, Math.min(VARIANTS[kind] - 1, Math.floor(variantR * VARIANTS[kind])), x, z, Math.round(rotR * 4) * (Math.PI / 2));
       }
     }
@@ -5105,7 +5434,7 @@ function* decorEnEtapes(level, track, terrain, opts = {}) {
         const d = terrain.distanceToRoad(x, z);
         if (d < dMin || d >= dMax) continue;
         if (garder && !garder(x, z)) continue;
-        if (inCorridor(x, z, 3, d) || nearManual(x, z, 4) || enBatiment(x, z, 2.5) || surEau(x, z, 6)) continue;
+        if (inCorridor(x, z, 3, d) || nearManual(x, z, 4) || enBatiment(x, z, 2.5) || surEau(x, z, 6) || presMur(x, z, 1.6)) continue;
         let p = forestMask(x, z, graine) > thr ? arbres.pForet : arbres.pHors * (0.5 + densite);
         if (d < 12) p *= 0.5;
         if (pick >= p) continue;
@@ -5131,7 +5460,7 @@ function* decorEnEtapes(level, track, terrain, opts = {}) {
       const d = terrain.distanceToRoad(x, z);
       if (d >= dRoc) continue;
       if (garder && !garder(x, z)) continue;
-      if (inCorridor(x, z, 4, d) || nearManual(x, z, 4) || surEau(x, z, 6)) continue;
+      if (inCorridor(x, z, 4, d) || nearManual(x, z, 4) || surEau(x, z, 6) || presMur(x, z, 1.8)) continue;
       const g = terrain.gradientAt(x, z);
       const slope = hypot(g.gx, g.gz);
       const p = (roc.base + roc.pente * smoothstep(0.25, 0.8, slope)) * (0.5 + densite / 2);
@@ -5220,6 +5549,7 @@ function* decorEnEtapes(level, track, terrain, opts = {}) {
           if (!libre) continue;
         } else if (inCorridor(x, z, 3 + r, d)) continue;
         if (fond.some((o) => (o.x - x) * (o.x - x) + (o.z - z) * (o.z - z) < (o.r + r + 0.5) * (o.r + r + 0.5))) continue;
+        if (presMur(x, z, r + 1)) continue;
         fond.push({ x, z, r });
         const y = rule.yMer !== void 0 && terrain.mer ? terrain.mer.niveau + rule.yMer : yBas - (rule.enfoncement ?? 0.3);
         add({ kind: rule.kind, variant, x, y, z, rot, scale, solid: d - r < SOLID_DISTANCE, manual: false });
@@ -6227,4 +6557,4 @@ async function traiterCourse(corps, empreinteServeur) {
 export {
   traiterCourse
 };
-export const EMPREINTE = 'feb117535242384d';
+export const EMPREINTE = '5212a203fd8a4c18';

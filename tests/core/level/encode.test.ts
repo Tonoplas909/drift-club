@@ -232,7 +232,7 @@ describe('encoderNiveau / decoderNiveau', () => {
       await ko(await cz('pas du json'), /invalide/);
       await ko(await cz('[]'), /invalide/);
       await ko(await cz('{"n":"x"}'), /invalide/);
-      await ko(await cz('{"n":"x","a":"","e":9,"m":0,"r":[],"b":[],"d":[1,50],"o":[]}'), /invalide/);
+      await ko(await cz('{"n":"x","a":"","e":99,"m":0,"r":[],"b":[],"d":[1,50],"o":[]}'), /invalide/);
     });
 
     it('trop gros une fois décompressé', async () => {

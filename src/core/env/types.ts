@@ -1,4 +1,4 @@
-import { IMMEUBLES, TOURS } from './ville';
+import { IMMEUBLES, IMMEUBLES_JP, IMMEUBLES_NEON, MACHIYAS, MINKAS, TOURS, TOURS_NEON } from './ville';
 
 /** Types de décor. Les 8 premiers existent depuis le début ; les autres servent les thèmes (desert, neige, automne, ville, pirate, backrooms, espace, japon). */
 export type DecorKind =
@@ -12,7 +12,11 @@ export type DecorKind =
   // espace
   | 'cristal' | 'antenne' | 'atterrisseur' | 'parabole' | 'balise' | 'bidon'
   // japon
-  | 'cerisier' | 'torii' | 'toro' | 'pagode' | 'bambou' | 'sanctuaire';
+  | 'cerisier' | 'torii' | 'toro' | 'pagode' | 'bambou' | 'sanctuaire'
+  // japon (v0.5) : maisons traditionnelles, échoppes et petits immeubles de ville, distributeurs, poteaux électriques
+  | 'minka' | 'machiya' | 'immeubleJp' | 'distributeur' | 'poteauJp'
+  // cyberpunk
+  | 'tourNeon' | 'immeubleNeon' | 'lampadaireNeon' | 'enseigneNeon' | 'kiosque' | 'holo' | 'borneRecharge';
 
 export interface EnvItem {
   kind: DecorKind;
@@ -35,6 +39,8 @@ export interface Environment {
   circles: CircleCollider[];
   segments: SegmentCollider[];
   barriers: BarrierPiece[];
+  /** cloisons du couloir (backrooms) : tronçons de mur étirés en longueur, solides (leurs segments sont dans `segments`) */
+  cloisons?: BarrierPiece[];
 }
 
 export const VARIANTS: Record<DecorKind, number> = {
@@ -46,6 +52,8 @@ export const VARIANTS: Record<DecorKind, number> = {
   mur: 3, pilier: 1, lampeBureau: 1, dalleLumiere: 2, porteBureau: 1, carton: 1,
   cristal: 3, antenne: 2, atterrisseur: 1, parabole: 1, balise: 1, bidon: 1,
   cerisier: 3, torii: 2, toro: 1, pagode: 2, bambou: 2, sanctuaire: 1,
+  minka: MINKAS.length, machiya: MACHIYAS.length, immeubleJp: IMMEUBLES_JP.length, distributeur: 2, poteauJp: 1,
+  tourNeon: TOURS_NEON.length, immeubleNeon: IMMEUBLES_NEON.length, lampadaireNeon: 1, enseigneNeon: 3, kiosque: 2, holo: 2, borneRecharge: 1,
 };
 
 /**
@@ -61,13 +69,15 @@ export const COLLIDER_RADIUS: Record<DecorKind, number> = {
   mur: 1, pilier: 0.6, lampeBureau: 0.15, dalleLumiere: 0.5, porteBureau: 0.6, carton: 0.6,
   cristal: 0.8, antenne: 0.6, atterrisseur: 2.2, parabole: 0.5, balise: 0.12, bidon: 0.5,
   cerisier: 0.45, torii: 2.9, toro: 0.35, pagode: 4, bambou: 0.5, sanctuaire: 1.6,
+  minka: 6, machiya: 5, immeubleJp: 5, distributeur: 0.6, poteauJp: 0.2,
+  tourNeon: 12, immeubleNeon: 8, lampadaireNeon: 0.25, enseigneNeon: 0.3, kiosque: 1.6, holo: 1, borneRecharge: 0.4,
 };
 
 /**
  * Objets purement visuels : jamais de collision, même « solides » (ils restent dans la liste proche du rendu).
- * Dalles lumineuses suspendues des backrooms.
+ * Dalles lumineuses suspendues des backrooms, panneaux holographiques du cyberpunk.
  */
-export const SANS_COLLISION: ReadonlySet<DecorKind> = new Set<DecorKind>(['dalleLumiere']);
+export const SANS_COLLISION: ReadonlySet<DecorKind> = new Set<DecorKind>(['dalleLumiere', 'holo']);
 
 /** Colliders circulaires multiples (décalage latéral en x local, rayon) : le torii a deux piliers, on passe entre eux. */
 export const CERCLES_MULTIPLES: Partial<Record<DecorKind, readonly { dx: number; r: number }[]>> = {

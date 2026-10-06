@@ -6,7 +6,7 @@ import { mulberry32 } from '../math/rng';
 import { fbm } from '../math/noise';
 import { smoothstep, DEG } from '../math/vec';
 import { CERCLES_MULTIPLES, COLLIDER_RADIUS, SANS_COLLISION, SOLID_DISTANCE, VARIANTS, type DecorKind, type EnvItem, type Environment } from './types';
-import { THEMES, type Essence } from './themes';
+import { THEMES, TYPES_VILLE, tirerType, type Essence } from './themes';
 import { jusquAuBout } from '../track/terrain';
 import { batimentDe, boiteDe } from './ville';
 import * as dm from '../math/dmath';
@@ -214,6 +214,87 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
     add({ kind: theme.objets[o.type], variant: 0, x: o.x, y: terrain.heightAt(o.x, o.z), z: o.z, rot, scale: 1, solid: true, manual: true });
   }
 
+  // 2b. Couloir (backrooms) : murs continus à w + `decalage` m, ouverts par endroits sur des passages latéraux.
+  // Générateur à part ; un tronçon de mur n'est posé que s'il n'empiète pas sur le couloir d'une autre partie de la route
+  // (intérieur des virages serrés, branches voisines).
+  const couloir = theme.couloir;
+  const CASE_MUR = 12;
+  const grilleMurs = new Map<number, { ax: number; az: number; bx: number; bz: number }[]>();
+  const cleMur = (i: number, j: number): number => (j + 4096) * 8192 + (i + 4096);
+  /** Un mur passe-t-il à moins de `r` m de (x, z) ? */
+  const presMur = (x: number, z: number, r: number): boolean => {
+    if (grilleMurs.size === 0) return false;
+    const i0 = Math.floor((x - r) / CASE_MUR), i1 = Math.floor((x + r) / CASE_MUR), j0 = Math.floor((z - r) / CASE_MUR), j1 = Math.floor((z + r) / CASE_MUR);
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+      for (const g of grilleMurs.get(cleMur(i, j)) ?? []) {
+        const vx = g.bx - g.ax, vz = g.bz - g.az, l2 = vx * vx + vz * vz;
+        const t = l2 > 0 ? Math.max(0, Math.min(1, ((x - g.ax) * vx + (z - g.az) * vz) / l2)) : 0;
+        const dx = g.ax + vx * t - x, dz = g.az + vz * t - z;
+        if (dx * dx + dz * dz < r * r) return true;
+      }
+    }
+    return false;
+  };
+  if (couloir) {
+    const rc = mulberry32((opts.alea ?? graine) + 9013);
+    const cloisons: NonNullable<Environment['cloisons']> = (env.cloisons = []);
+    const marge = couloir.decalage - 0.6;
+    /** Le point empiète-t-il sur le couloir d'une partie de la route ? */
+    const empiete = (x: number, z: number): boolean => {
+      track.grid.query(x, z, 20 + marge, voisins);
+      for (const i of voisins) {
+        const sp = S[i], r = sp.w + marge;
+        if ((sp.x - x) * (sp.x - x) + (sp.z - z) * (sp.z - z) < r * r) return true;
+      }
+      return false;
+    };
+    const poserMur = (ax: number, az: number, bx: number, bz: number): void => {
+      const mx = (ax + bx) / 2, mz = (az + bz) / 2;
+      if (garder && !garder(mx, mz)) return;
+      env.segments.push({ ax, az, bx, bz });
+      cloisons.push({ x: mx, y: Math.min(terrain.heightAt(ax, az), terrain.heightAt(bx, bz)), z: mz, rot: dm.atan2(bx - ax, bz - az), len: dm.hypot(bx - ax, bz - az) });
+      const seg = { ax, az, bx, bz };
+      const i0 = Math.floor(Math.min(ax, bx) / CASE_MUR), i1 = Math.floor(Math.max(ax, bx) / CASE_MUR);
+      const j0 = Math.floor(Math.min(az, bz) / CASE_MUR), j1 = Math.floor(Math.max(az, bz) / CASE_MUR);
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+        const k = cleMur(i, j), l = grilleMurs.get(k);
+        if (l) l.push(seg); else grilleMurs.set(k, [seg]);
+      }
+    };
+    /** Mur latéral d'un passage : de (x, z) vers l'extérieur (nx, nz), arrêté dès qu'il approcherait la route. */
+    const passage = (x: number, z: number, nx: number, nz: number, longueur: number): void => {
+      let px = x, pz = z;
+      for (let d = 2; d <= longueur + 1e-9; d += 2) {
+        const qx = x + nx * d, qz = z + nz * d;
+        if (empiete(qx, qz) || nearManual(qx, qz, 1.5)) break;
+        poserMur(px, pz, qx, qz);
+        px = qx; pz = qz;
+      }
+    };
+    const tirer = (l: [number, number]): number => l[0] + l[1] * rc();
+    for (const side of [1, -1]) {
+      yield;
+      let plein = true, reste = tirer(couloir.plein) * rc();
+      let prev: { x: number; z: number; ok: boolean } | null = null;
+      for (let s = 0; s <= track.length + 1e-9; s += couloir.pas) {
+        const sp = S[Math.min(S.length - 1, Math.round(s))];
+        const off = sp.w + couloir.decalage;
+        const x = sp.x + sp.nx * side * off, z = sp.z + sp.nz * side * off;
+        const ok = !empiete(x, z) && !nearManual(x, z, 1.5);
+        if (plein && prev && prev.ok && ok) poserMur(prev.x, prev.z, x, z);
+        reste -= couloir.pas;
+        if (reste <= 0) {
+          plein = !plein;
+          reste = tirer(plein ? couloir.plein : couloir.ouverture);
+          // bord d'une ouverture : mur latéral vers l'extérieur (passage du labyrinthe)
+          const lg = tirer(couloir.passage);
+          if (ok) passage(x, z, sp.nx * side, sp.nz * side, lg);
+        }
+        prev = { x, z, ok };
+      }
+    }
+  }
+
   // 3. Chevrons à l'extérieur des virages de rayon < 30 m (tous les 8 m, à w + 2,2 m)
   const chevron = theme.bord.chevron, borne = theme.bord.borne;
   const tightZone = new Uint8Array(S.length);
@@ -265,6 +346,7 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
         const x = sp.x + sp.nx * side * off, z = sp.z + sp.nz * side * off;
         if ((garder && !garder(x, z)) || nearManual(x, z, 3) || inCorridor(x, z, 3, terrain.distanceToRoad(x, z)) || surEau(x, z, 3)) continue;
         const variant = Math.min(VARIANTS[ex.kind] - 1, Math.floor(variantR * VARIANTS[ex.kind]));
+        if (presMur(x, z, (boiteDe(ex.kind, variant) ? dm.hypot(...boiteDe(ex.kind, variant)!) / 2 : COLLIDER_RADIUS[ex.kind]) * (ex.echelle ?? [0.8, 0.5])[0] + 0.8)) continue;
         const [eMin, eAmp] = ex.echelle ?? [0.8, 0.5];
         const scale = eMin + eAmp * scaleR;
         if (theme.bord.sansChevauchement) {
@@ -302,6 +384,10 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
   const bat = theme.batiments;
   if (bat) {
     const rb = mulberry32((opts.alea ?? graine) + 4099);
+    const types = bat.types ?? TYPES_VILLE, qu = bat.quartiers;
+    /** Valeur du bruit des quartiers (villages du japon) ; 1 partout sans quartiers. */
+    const quartier = (x: number, z: number): number => (qu ? fbm(x / qu.echelle, z / qu.echelle, graine + 23) : 1);
+    const typesEn = (x: number, z: number): typeof types => (qu && quartier(x, z) > qu.ville ? qu.typesVille : types);
     /** Pose (si la place est libre) un bâtiment de centre (x, z) et de cap `rot` ; renvoie s'il est posé. */
     const poser = (kind: DecorKind, variant: number, x: number, z: number, rot: number): boolean => {
       const b = batimentDe(kind, variant)!;
@@ -311,7 +397,7 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
       let dMin = Infinity, yMin = Infinity, yMax = -Infinity;
       for (const [px, pz] of pts) {
         if (garder && !garder(px, pz)) return false; // à cheval sur la zone d'un autre tronçon
-        if (forestMask(px, pz, graine) > thr) return false; // parc
+        if (qu ? quartier(px, pz) <= qu.seuil : forestMask(px, pz, graine) > thr) return false; // hors du village, ou parc
         const ns = nearestSampleWithin(track, px, pz, 10 + bat.recul + 0.5);
         if (ns && ns.dist < S[ns.index].w + bat.recul) return false;
         if (inCorridor(px, pz, bat.recul, 0)) return false;
@@ -334,13 +420,14 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
       return true;
     };
     // rangs le long de la route : le 2e rang (30 à 50 m) mêle des tours
-    const rang = function* (decale: number, amplitude: number, proba: number, partTours: number): Generator<void, void> {
+    const rang = function* (decale: number, amplitude: number, proba: number, quel: 'rang1' | 'rang2'): Generator<void, void> {
       for (const side of [1, -1]) {
         let k = 0;
         for (let s = 3 + rb() * 6; s < track.length - 3;) {
           if (++k % 16 === 0) yield;
           const pick = rb(), kindR = rb(), variantR = rb(), gapR = rb(), offR = rb();
-          const kind: DecorKind = kindR < partTours ? 'tour' : 'immeuble';
+          const sp0 = S[Math.min(S.length - 1, Math.round(s))];
+          const kind: DecorKind = tirerType(typesEn(sp0.x + sp0.nx * side * (sp0.w + bat.recul + decale), sp0.z + sp0.nz * side * (sp0.w + bat.recul + decale))[quel], kindR);
           const variant = Math.min(VARIANTS[kind] - 1, Math.floor(variantR * VARIANTS[kind]));
           const b = batimentDe(kind, variant)!;
           const sp = S[Math.min(S.length - 1, Math.round(s + b.w / 2))];
@@ -351,8 +438,8 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
         }
       }
     };
-    yield* rang(0, 2, bat.rang1, 0);
-    yield* rang(24, 14, bat.rang2, 0.4);
+    yield* rang(0, 2, bat.rang1, 'rang1');
+    yield* rang(24, 14, bat.rang2, 'rang2');
     // fond : tours et immeubles isolés jusqu'à 320 m (visuels, hors de portée de la voiture)
     const bb = zone, cell = bat.fond.cellule;
     for (let gz = bb.minZ - dLoin; gz < bb.maxZ + dLoin; gz += cell) {
@@ -362,7 +449,7 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
         const pick = rb(), kindR = rb(), variantR = rb(), rotR = rb();
         const d = terrain.distanceToRoad(x, z);
         if (d < 45 || d >= dLoin || pick >= bat.fond.probabilite) continue;
-        const kind: DecorKind = kindR < 0.35 ? 'tour' : 'immeuble';
+        const kind = tirerType(typesEn(x, z).fond, kindR);
         poser(kind, Math.min(VARIANTS[kind] - 1, Math.floor(variantR * VARIANTS[kind])), x, z, Math.round(rotR * 4) * (Math.PI / 2));
       }
     }
@@ -380,7 +467,7 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
         const d = terrain.distanceToRoad(x, z);
         if (d < dMin || d >= dMax) continue;
         if (garder && !garder(x, z)) continue;
-        if (inCorridor(x, z, 3, d) || nearManual(x, z, 4) || enBatiment(x, z, 2.5) || surEau(x, z, 6)) continue;
+        if (inCorridor(x, z, 3, d) || nearManual(x, z, 4) || enBatiment(x, z, 2.5) || surEau(x, z, 6) || presMur(x, z, 1.6)) continue;
         let p = forestMask(x, z, graine) > thr ? arbres.pForet : arbres.pHors * (0.5 + densite);
         if (d < 12) p *= 0.5;
         if (pick >= p) continue;
@@ -408,7 +495,7 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
       const d = terrain.distanceToRoad(x, z);
       if (d >= dRoc) continue;
       if (garder && !garder(x, z)) continue;
-      if (inCorridor(x, z, 4, d) || nearManual(x, z, 4) || surEau(x, z, 6)) continue;
+      if (inCorridor(x, z, 4, d) || nearManual(x, z, 4) || surEau(x, z, 6) || presMur(x, z, 1.8)) continue;
       const g = terrain.gradientAt(x, z);
       const slope = dm.hypot(g.gx, g.gz);
       const p = (roc.base + roc.pente * smoothstep(0.25, 0.8, slope)) * (0.5 + densite / 2);
@@ -494,6 +581,7 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
           if (!libre) continue;
         } else if (inCorridor(x, z, 3 + r, d)) continue;
         if (fond.some((o) => (o.x - x) * (o.x - x) + (o.z - z) * (o.z - z) < (o.r + r + 0.5) * (o.r + r + 0.5))) continue;
+        if (presMur(x, z, r + 1)) continue;
         fond.push({ x, z, r });
         const y = rule.yMer !== undefined && terrain.mer ? terrain.mer.niveau + rule.yMer : yBas - (rule.enfoncement ?? 0.3);
         add({ kind: rule.kind, variant, x, y, z, rot, scale, solid: d - r < SOLID_DISTANCE, manual: false });

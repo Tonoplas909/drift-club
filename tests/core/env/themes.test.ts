@@ -32,7 +32,7 @@ describe('registre des thèmes (règles)', () => {
     expect(ENVIRONNEMENTS[0]).toBe('montagne');
     expect(ENVIRONNEMENTS.slice(0, 4)).toEqual(['montagne', 'neige', 'desert', 'automne']);
     expect(ENVIRONNEMENTS[4]).toBe('ville'); // ajouté à la fin : les anciens liens gardent leur indice
-    expect(ENVIRONNEMENTS.slice(5)).toEqual(['pirate', 'backrooms', 'espace', 'japon']);
+    expect(ENVIRONNEMENTS.slice(5)).toEqual(['pirate', 'backrooms', 'espace', 'japon', 'cyberpunk']);
   });
   for (const id of ENVIRONNEMENTS) {
     describe(id, () => {
@@ -79,7 +79,8 @@ describe('registre des thèmes (règles)', () => {
         // un cercle par objet solide rond, 4 segments par objet solide à emprise rectangulaire (ville)
         const solides = env.items.filter((i) => i.solid && !SANS_COLLISION.has(i.kind));
         expect(env.circles.length).toBe(solides.filter((i) => !boiteDe(i.kind, i.variant)).reduce((n, i) => n + (CERCLES_MULTIPLES[i.kind]?.length ?? 1), 0));
-        expect(env.segments.length).toBe(4 * solides.filter((i) => boiteDe(i.kind, i.variant)).length);
+        // plus un segment par tronçon de cloison (couloir des backrooms)
+        expect(env.segments.length).toBe(4 * solides.filter((i) => boiteDe(i.kind, i.variant)).length + (env.cloisons?.length ?? 0));
         for (const c of env.circles) expect(Number.isFinite(c.r + c.x + c.z)).toBe(true);
       });
     });

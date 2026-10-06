@@ -13,6 +13,20 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.0',
+    date: '06/10/2026',
+    titre: 'L\'Atelier et de nouveaux décors',
+    notes: [
+      'Nouveau : l\'Atelier, dans le Garage. Crée ta propre livrée avec 30 motifs (bandes, flammes, damier, numéro de course, camouflage, circuit imprimé…), règle couleurs, tailles et positions, et vois le résultat en 3D en direct.',
+      'Propose ta livrée : si elle est validée, elle entre dans les caisses de tous les joueurs, avec ton pseudo dans sa description. Tu la reçois aussitôt, avec 5 clés en cadeau.',
+      'Suis tes propositions dans « Mes propositions » : en attente, validée (avec sa rareté) ou refusée.',
+      'Backrooms revisitées : la route passe dans un long couloir sous un faux plafond à néons, avec des ouvertures dans les murs sur un labyrinthe de pièces vides.',
+      'Japon revisité : des villages de maisons traditionnelles, des rues commerçantes avec échoppes, lanternes rouges et enseignes verticales, des poteaux électriques et des distributeurs de boissons au bord de la route.',
+      'Nouveau décor Cyberpunk : une mégapole de nuit, tours couvertes d\'écrans, néons magenta et cyan, hologrammes au-dessus de la route, échoppes de ramen et pluie fine. Disponible dans l\'éditeur et en mode Zen.',
+      'Nouveau niveau : Néo-Shinjuku, à travers la ville cyberpunk.',
+    ],
+  },
+  {
     version: '0.4.12',
     date: '05/10/2026',
     titre: 'Plus fluide',

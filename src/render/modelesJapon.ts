@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Ambiance } from '../core/level/types';
 import { mulberry32 } from '../core/math/rng';
 import { barre, blob, boiteRot, cone, coloredBox, colorize, lumineux, merge, tube, type Part } from './formes';
+import { decorJaponVille } from './modelesJaponVille';
 
 /**
  * Modèles du thème « japon » : cerisiers en fleurs, torii, lanternes de pierre, pagodes, bambous, petits sanctuaires.
@@ -162,5 +163,5 @@ export function decorJapon(ambiance: Ambiance): Record<string, Part> {
   d.sanctuaire0 = sanctuaireGeometry();
   d.borne0 = steleGeometry();
   d.barriere = barriereJaponGeometry();
-  return d;
+  return { ...d, ...decorJaponVille(ambiance) };
 }

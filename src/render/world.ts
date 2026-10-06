@@ -7,13 +7,13 @@ import type { CarId, CarState } from '../core/physics/types';
 import type { Assets } from './assets';
 import { paletteDe, type Palette } from './palettes';
 import { decorDuTheme, THEMES_VISUELS } from './themes';
-import { Snowfall } from './weather';
+import { Snowfall, optionsMeteo } from './weather';
 import { Scintillement } from './scintillement';
 import { QUALITY, type QualityLevel } from './quality';
 import { createSky } from './sky';
 import { Eau } from './eau';
 import { buildRoad, createRoadTextures } from './road';
-import { buildTerrain, buildMountains } from './terrainMesh';
+import { buildTerrain, buildMountains, buildPlafond } from './terrainMesh';
 import { buildDecor, DecorVisible } from './decor';
 import { CarView, type CarPose } from './carView';
 import { SmokeSystem, SkidMarks } from './effects';
@@ -98,6 +98,8 @@ export class World {
     this.owned.push(tex.road, tex.curb, tex.checker);
     this.scene.add(buildRoad(track, p, tex));
     this.terrainGroup = buildTerrain(level, track, terrain, p, quality);
+    const hPlafond = THEMES_VISUELS[level.environnement].plafond;
+    if (hPlafond !== undefined) this.terrainGroup.add(...buildPlafond(terrain, hPlafond, p.plafond ?? 0xe4dcae, level.decor.graine, quality));
     this.scene.add(this.terrainGroup);
     this.scene.add(buildMountains(track, p, level.decor.graine, terrain.mer?.niveau));
     const plans = [...terrain.plans];
@@ -119,9 +121,7 @@ export class World {
     // après Scintillement : les modèles aux instances colorées une à une ne sont pas triés
     this.decorVisible = new DecorVisible(decorGroupe);
     if (meteo) {
-      this.snow = new Snowfall(meteo.nombre, 5, meteo.type === 'petales'
-        ? { couleur: 0xffb3cc, taille: 0.17, vitesse: [0.6, 1.2], derive: 1.8, petale: true, nom: 'petales' }
-        : {});
+      this.snow = new Snowfall(meteo.nombre, 5, optionsMeteo(meteo.type));
       this.snow.points.visible = quality === 'haute';
       this.scene.add(this.snow.points);
     }

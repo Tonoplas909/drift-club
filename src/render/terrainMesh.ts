@@ -167,6 +167,90 @@ export function buildTerrain(level: Level, track: TrackData, terrain: Terrain, p
   return group;
 }
 
+/**
+ * Plafond (backrooms) : un morceau carré de `taille` m qui suit le sol à `hauteur` m au-dessus, faces tournées vers le
+ * bas (invisible vu d'en haut : caméra libre, éditeur). Couleur unie légèrement nuancée.
+ */
+export function geometriePlafond(x0: number, z0: number, taille: number, step: number, sol: (x: number, z: number) => number, hauteur: number, couleur: number, graine: number): THREE.BufferGeometry {
+  const n = Math.round(taille / step), N = n + 1;
+  const pos = new Float32Array(N * N * 3), col = new Float32Array(N * N * 3), uv = new Float32Array(N * N * 2);
+  const base = new THREE.Color(couleur), c = new THREE.Color();
+  for (let j = 0; j < N; j++) {
+    for (let i = 0; i < N; i++) {
+      const k = j * N + i, x = x0 + i * step, z = z0 + j * step;
+      pos[k * 3] = x; pos[k * 3 + 1] = sol(x, z) + hauteur; pos[k * 3 + 2] = z;
+      uv[k * 2] = x / DALLE_PLAFOND; uv[k * 2 + 1] = z / DALLE_PLAFOND;
+      c.copy(base).multiplyScalar(0.94 + 0.1 * fbm(x / 24, z / 24, graine + 77));
+      col[k * 3] = c.r; col[k * 3 + 1] = c.g; col[k * 3 + 2] = c.b;
+    }
+  }
+  const idx: number[] = [];
+  for (let j = 0; j < n; j++) {
+    for (let i = 0; i < n; i++) {
+      const a = j * N + i, b = a + 1, cc = a + N, d = cc + 1;
+      idx.push(a, b, cc, b, d, cc); // ordre inverse du sol : la face regarde vers le bas
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  geo.computeBoundingSphere();
+  return geo;
+}
+
+/** Côté d'une dalle de faux plafond (m). */
+const DALLE_PLAFOND = 1.6;
+let texturePlafond: THREE.Texture | null = null;
+
+/** Dalles de faux plafond : carré clair à joints gris (texture répétée, créée une fois). */
+function dallesPlafond(): THREE.Texture | null {
+  if (texturePlafond) return texturePlafond;
+  if (typeof document === 'undefined') return null;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 64;
+  const ctx = cv.getContext('2d');
+  if (!ctx) return null;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, 64, 64);
+  // léger grain des dalles, joints sombres
+  for (let k = 0; k < 90; k++) { ctx.fillStyle = `rgba(120,110,70,${0.05 + 0.05 * ((k * 37) % 7) / 7})`; ctx.fillRect((k * 29) % 62, (k * 47) % 62, 2, 2); }
+  ctx.fillStyle = '#8a8466';
+  ctx.fillRect(0, 0, 64, 3);
+  ctx.fillRect(0, 0, 3, 64);
+  const t = new THREE.CanvasTexture(cv);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  texturePlafond = t;
+  return t;
+}
+
+/** Matériau du plafond : dalles, une seule face (vu d'en haut, il disparaît). */
+export function materiauPlafond(): THREE.MeshToonMaterial {
+  const mat = toonMaterial({ vertexColors: true });
+  const tex = dallesPlafond();
+  if (tex) mat.map = tex;
+  return mat;
+}
+
+/** Plafond de tout le terrain d'un niveau, en morceaux (cachés au loin comme ceux du terrain). */
+export function buildPlafond(terrain: Terrain, hauteur: number, couleur: number, graine: number, q: QualityLevel): THREE.Mesh[] {
+  const mat = materiauPlafond(), out: THREE.Mesh[] = [];
+  const step = q === 'haute' ? 8 : 16;
+  for (let z0 = terrain.minZ; z0 < terrain.maxZ; z0 += CHUNK) {
+    for (let x0 = terrain.minX; x0 < terrain.maxX; x0 += CHUNK) {
+      const mesh = new THREE.Mesh(geometriePlafond(x0, z0, CHUNK, step, (x, z) => terrain.heightAt(x, z), hauteur, couleur, graine), mat);
+      mesh.name = 'plafond';
+      mesh.userData.center = new THREE.Vector3(x0 + CHUNK / 2, 0, z0 + CHUNK / 2);
+      out.push(mesh);
+    }
+  }
+  return out;
+}
+
 /** Anneau de reliefs lointains (sans brouillard, couleurs déjà « noyées » dans la brume) : montagnes ou mesas selon la palette. */
 export function buildMountains(track: TrackData, p: Palette, seed: number, niveauMer?: number): THREE.Mesh {
   switch (p.reliefs.forme) {

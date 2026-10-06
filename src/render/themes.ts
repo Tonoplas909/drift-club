@@ -7,9 +7,10 @@ import {
 } from './proceduralDecor';
 import { decorVille } from './villeModeles';
 import { decorPirate } from './modelesPirate';
-import { decorBackrooms } from './modelesBackrooms';
+import { decorBackrooms, HAUTEUR_PLAFOND } from './modelesBackrooms';
 import { decorEspace } from './modelesEspace';
 import { decorJapon } from './modelesJapon';
+import { decorCyberpunk } from './modelesCyberpunk';
 
 type Decor = Record<string, THREE.BufferGeometry>;
 
@@ -47,7 +48,7 @@ export function retoucher(src: THREE.BufferGeometry, r: Retouche): THREE.BufferG
 }
 
 /** Particules de météo (léger, une seule draw call, désactivées en qualité Basse). */
-export interface Meteo { type: 'neige' | 'petales'; nombre: number }
+export interface Meteo { type: 'neige' | 'petales' | 'pluie'; nombre: number }
 
 export interface ThemeVisuel {
   /** modèles propres au thème, par clé `kind + variante` ; le reste vient des modèles de base */
@@ -55,6 +56,8 @@ export interface ThemeVisuel {
   meteo?: Meteo;
   /** quelques instances de ce modèle clignotent (néons des backrooms) */
   scintillement?: { prefixe: string; nombre: number };
+  /** plafond à cette hauteur au-dessus du sol (backrooms), couleur `plafond` de la palette */
+  plafond?: number;
 }
 
 const par3 = (kind: string, f: (i: number) => THREE.BufferGeometry, n = 3): Decor =>
@@ -115,6 +118,7 @@ export const THEMES_VISUELS: Record<Environnement, ThemeVisuel> = {
   },
   backrooms: {
     scintillement: { prefixe: 'dalleLumiere', nombre: 10 },
+    plafond: HAUTEUR_PLAFOND,
     decor: (_b, ambiance) => decorBackrooms(ambiance),
   },
   espace: {
@@ -134,10 +138,15 @@ export const THEMES_VISUELS: Record<Environnement, ThemeVisuel> = {
       ...decorJapon(ambiance),
     }),
   },
+  cyberpunk: {
+    meteo: { type: 'pluie', nombre: 700 },
+    scintillement: { prefixe: 'enseigneNeon', nombre: 6 },
+    decor: (_b, ambiance) => decorCyberpunk(ambiance),
+  },
 };
 
 /** Thèmes dont les modèles changent avec l'ambiance (fenêtres et lampadaires allumés, néons, lanternes). */
-const DEPEND_AMBIANCE: ReadonlySet<Environnement> = new Set<Environnement>(['ville', 'backrooms', 'japon']);
+const DEPEND_AMBIANCE: ReadonlySet<Environnement> = new Set<Environnement>(['ville', 'backrooms', 'japon', 'cyberpunk']);
 
 const cache = new WeakMap<Decor, Map<string, Decor>>();
 

@@ -28,6 +28,7 @@ import orbiteBasse from '../levels/orbite-basse.json';
 import cratereRouge from '../levels/cratere-rouge.json';
 import couloirsJaunes from '../levels/couloirs-jaunes.json';
 import labyrintheDeNeons from '../levels/labyrinthe-de-neons.json';
+import neoShinjuku from '../levels/neo-shinjuku.json';
 
 export interface NiveauOfficiel {
   id: string;
@@ -65,6 +66,7 @@ export const NIVEAUX_OFFICIELS: NiveauOfficiel[] = [
   { id: 'cratere-rouge', data: cratereRouge },
   { id: 'couloirs-jaunes', data: couloirsJaunes },
   { id: 'labyrinthe-de-neons', data: labyrintheDeNeons },
+  { id: 'neo-shinjuku', data: neoShinjuku },
 ];
 
 export const cleNiveauOfficiel = (id: string): string => `off:${id}`;

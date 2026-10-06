@@ -12,7 +12,8 @@ import type { Assets } from './assets';
 import { decorDuTheme } from './themes';
 import { buildDecor, DecorVisible, materiauxDecor, type MateriauxDecor } from './decor';
 import { buildRoad, type RoadTextures } from './road';
-import { chunkStep, geometrieMorceau, materiauTerrain } from './terrainMesh';
+import { chunkStep, geometriePlafond, geometrieMorceau, materiauPlafond, materiauTerrain } from './terrainMesh';
+import { THEMES_VISUELS } from './themes';
 import { PALETTES_THEMES, epauleDe, melangerPalettes, type Palette } from './palettes';
 import type { QualityLevel } from './quality';
 
@@ -49,6 +50,7 @@ export class TronconsZen {
   private readonly attente: Tuile[] = [];
   private readonly taches: (() => void)[] = [];
   private readonly matTerrain = materiauTerrain();
+  private readonly matPlafond = materiauPlafond();
   private readonly matDecor: MateriauxDecor = materiauxDecor();
   private readonly sols = new Map<string, Sol>();
   /** temps de construction (ms) des derniers morceaux de terrain et groupes de tronçon (mesures) */
@@ -159,6 +161,7 @@ export class TronconsZen {
     if (tu.mesh) {
       this.racine.remove(tu.mesh);
       tu.mesh.geometry.dispose();
+      for (const c of tu.mesh.children) (c as THREE.Mesh).geometry?.dispose();
       tu.mesh = null;
     }
     const i = this.attente.indexOf(tu);
@@ -236,6 +239,16 @@ export class TronconsZen {
     const mesh = new THREE.Mesh(geo, this.matTerrain);
     mesh.receiveShadow = true;
     mesh.name = 'tuile';
+    // plafond au-dessus des tuiles d'une région à plafond (backrooms)
+    const pc = route.proprietaire(tu.n, x0 + TUILE / 2, z0 + TUILE / 2);
+    const mc = route.regions.melange(pc.s), th = mc.t < 0.5 ? mc.a : mc.b;
+    const hPlafond = THEMES_VISUELS[th].plafond;
+    if (hPlafond !== undefined) {
+      const P = PALETTES_THEMES[th], couleur = new THREE.Color(P.jour.plafond ?? 0xe4dcae).lerp(new THREE.Color(P.coucher.plafond ?? 0xe4dcae), ambianceA(pc.s)).getHex();
+      const plafond = new THREE.Mesh(geometriePlafond(x0, z0, TUILE, this.quality === 'haute' ? 8 : 16, (x, z) => sol.heightAt(x, z), hPlafond, couleur, seed), this.matPlafond);
+      plafond.name = 'plafond';
+      mesh.add(plafond);
+    }
     mesh.userData.center = new THREE.Vector3(x0 + TUILE / 2, 0, z0 + TUILE / 2);
     return mesh;
   }
@@ -258,6 +271,7 @@ export class TronconsZen {
     }
     for (const tu of [...this.tuiles.values()]) this.libererTuile(tu);
     this.matTerrain.dispose();
+    this.matPlafond.dispose();
     this.matDecor.mat.dispose();
     this.matDecor.outline.dispose();
     this.matDecor.outlineGros.dispose();

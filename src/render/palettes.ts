@@ -37,6 +37,8 @@ export interface Palette {
   ciel?: { etoiles: number; astres: ('terre' | 'geante' | 'orange')[] };
   /** rizières en terrasses (japon) : bandes colorées sur les pentes, une tous les `pas` m d'altitude */
   terrasses?: { a: number; b: number; pas: number };
+  /** plafond (backrooms) : couleur des dalles */
+  plafond?: number;
 }
 
 /** Couleur de l'accotement d'une palette (asphalte assombri à 70 % si la palette n'en fixe pas). */
@@ -182,6 +184,7 @@ export const PALETTES_THEMES: Record<Environnement, Record<Ambiance, Palette>> =
       fumee: 0xd8cfa0, brume: 0.36,
       reliefs: { roche: 0xcbb96a, cime: 0xdccd86, ligne: 0.85, forme: 'murs' },
       vibreurs: [0x8a7a2e, 0xe8dfa4],
+      plafond: 0xd6cc96,
     },
     coucher: {
       skyTop: 0xc09a40, skyBottom: 0xb8944a, fog: 0xc09c50,
@@ -192,6 +195,7 @@ export const PALETTES_THEMES: Record<Environnement, Record<Ambiance, Palette>> =
       fumee: 0xc8b478, brume: 0.36,
       reliefs: { roche: 0xa48a48, cime: 0xc2a45a, ligne: 0.85, forme: 'murs' },
       vibreurs: [0x7a6626, 0xd8c886],
+      plafond: 0xbca770,
     },
   },
   espace: {
@@ -238,6 +242,30 @@ export const PALETTES_THEMES: Record<Environnement, Record<Ambiance, Palette>> =
       fumee: 0xeccdb4, brume: 0.88,
       reliefs: { roche: 0x7a6a9a, cime: 0xffe6dd, ligne: 0.55, forme: 'fuji' },
       terrasses: { a: 0x8ea648, b: 0xd2c070, pas: 1.4 },
+    },
+  },
+  cyberpunk: {
+    // nuit violette, bitume mouillé presque noir, marquages cyan, vibreurs magenta et cyan, brume de néons
+    jour: {
+      skyTop: 0x0b0820, skyBottom: 0x3b1858, fog: 0x2b1a46,
+      sun: 0x9fd8ff, sunIntensity: 0.9, sunDir: [0.3, 0.85, 0.4],
+      hemiSky: 0x8a6ad8, hemiGround: 0x2a2038, hemiIntensity: 1.5,
+      grassA: 0x34323e, grassB: 0x2d2b36, forestFloor: 0x2e4a40, rock: 0x45424f,
+      asphalt: 0x1f1f28, line: 0x3ff0ff, epaule: 0x3d3a4a, trottoir: 0x403d4d,
+      fumee: 0xb9a6e0, brume: 0.72,
+      reliefs: { roche: 0x241c40, cime: 0x6a2a8a, ligne: 0.8, forme: 'ville' },
+      vibreurs: [0xff2fa6, 0x1fd8ff],
+    },
+    coucher: {
+      // smog rose et orangé de fin de journée
+      skyTop: 0x2a1048, skyBottom: 0xff6a7a, fog: 0x8a3a64,
+      sun: 0xff9a6a, sunIntensity: 1.2, sunDir: [-0.6, 0.3, 0.5],
+      hemiSky: 0xff8ab8, hemiGround: 0x3a2038, hemiIntensity: 1.35,
+      grassA: 0x3e3440, grassB: 0x362d39, forestFloor: 0x3e4a3a, rock: 0x4f4250,
+      asphalt: 0x24202a, line: 0xffe14a, epaule: 0x463a48, trottoir: 0x4a3e4c,
+      fumee: 0xe0b0c8, brume: 0.75,
+      reliefs: { roche: 0x3a1f48, cime: 0xff7a6a, ligne: 0.8, forme: 'ville' },
+      vibreurs: [0xffe14a, 0xff2fa6],
     },
   },
 };

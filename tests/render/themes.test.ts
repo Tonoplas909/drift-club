@@ -34,7 +34,7 @@ describe('palettes des thèmes', () => {
     for (const env of ENVIRONNEMENTS) {
       for (const amb of ['jour', 'coucher'] as const) {
         const p = paletteDe(env, amb);
-        const facultatifs = ['epaule', 'trottoir', 'eau', 'plage', 'fondEau', 'vibreurs', 'ciel', 'terrasses'];
+        const facultatifs = ['epaule', 'trottoir', 'eau', 'plage', 'fondEau', 'vibreurs', 'ciel', 'terrasses', 'plafond'];
         expect(Object.keys(p).filter((k) => !facultatifs.includes(k)).sort()).toEqual(cles.filter((k) => !facultatifs.includes(k)));
         expect(p.brume).toBeGreaterThan(0.3);
         expect(p.brume).toBeLessThanOrEqual(1);

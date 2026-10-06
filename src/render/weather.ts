@@ -23,8 +23,8 @@ export function positionFlocon(
   out.y = cy + modulo(by - vitesse * t, H) - H * 0.35;
 }
 
-/** Réglages d'une chute de particules : neige (défaut) ou pétales de cerisier (plus gros, plus lents, portés par le vent). */
-export interface OptionsChute { couleur?: number; taille?: number; vitesse?: [number, number]; derive?: number; petale?: boolean; nom?: string }
+/** Réglages d'une chute de particules : neige (défaut), pétales de cerisier (plus gros, plus lents, portés par le vent) ou pluie (traits rapides). */
+export interface OptionsChute { couleur?: number; taille?: number; vitesse?: [number, number]; derive?: number; petale?: boolean; goutte?: boolean; nom?: string }
 
 /** Chute de neige : un seul `Points` (une draw call), quelques centaines de flocons. */
 export class Snowfall {
@@ -60,6 +60,7 @@ export class Snowfall {
       ctx.fillStyle = '#fff';
       ctx.beginPath();
       if (opts.petale) ctx.ellipse(16, 16, 14, 8, 0.6, 0, Math.PI * 2);
+      else if (opts.goutte) ctx.ellipse(16, 16, 2.2, 15, 0, 0, Math.PI * 2);
       else ctx.arc(16, 16, 14, 0, Math.PI * 2);
       ctx.fill();
     }
@@ -87,4 +88,11 @@ export class Snowfall {
     (this.points.material as THREE.Material).dispose();
     this.tex.dispose();
   }
+}
+
+/** Réglages de la chute de chaque météo de thème. */
+export function optionsMeteo(type: 'neige' | 'petales' | 'pluie'): OptionsChute {
+  if (type === 'petales') return { couleur: 0xffb3cc, taille: 0.17, vitesse: [0.6, 1.2], derive: 1.8, petale: true, nom: 'petales' };
+  if (type === 'pluie') return { couleur: 0x9fc4ff, taille: 0.32, vitesse: [16, 22], derive: 1.2, goutte: true, nom: 'pluie' };
+  return {};
 }

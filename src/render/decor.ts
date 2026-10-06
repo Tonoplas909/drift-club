@@ -159,10 +159,11 @@ export function buildDecor(env: Environment, assets: Assets, q: QualityLevel, sh
     });
   }
 
-  if (env.barriers.length > 0 && decor.barriere) {
-    const geo = decor.barriere;
-    const mesh = new THREE.InstancedMesh(geo, mat, env.barriers.length);
-    env.barriers.forEach((b, i) => {
+  // glissières, et cloisons du couloir (backrooms) : un modèle de 1 m étiré à la longueur de chaque tronçon
+  for (const [liste, geo] of [[env.barriers, decor.barriere], [env.cloisons ?? [], decor.cloison]] as const) {
+    if (liste.length === 0 || !geo) continue;
+    const mesh = new THREE.InstancedMesh(geo, mat, liste.length);
+    liste.forEach((b, i) => {
       qt.setFromAxisAngle(up, b.rot);
       s.set(1, 1, b.len);
       p.set(b.x, b.y, b.z);
@@ -171,12 +172,12 @@ export function buildDecor(env: Environment, assets: Assets, q: QualityLevel, sh
     mesh.instanceMatrix.needsUpdate = true;
     mesh.castShadow = shadows;
     mesh.computeBoundingSphere();
-    const ol = new THREE.InstancedMesh(contourDe(geo), outline, env.barriers.length);
+    const ol = new THREE.InstancedMesh(contourDe(geo), geo.userData.contour ? outlineGros : outline, liste.length);
     ol.instanceMatrix = mesh.instanceMatrix;
     ol.computeBoundingSphere();
     root.add(mesh, ol);
-    // barrières étirées en longueur : rayon à la taille du tronçon
-    enregistrer([mesh, ol], geo, env.barriers.map((b) => Math.max(1, b.len)));
+    // tronçons étirés en longueur : rayon à la taille du tronçon
+    enregistrer([mesh, ol], geo, liste.map((b) => Math.max(1, b.len)));
   }
   return root;
 }

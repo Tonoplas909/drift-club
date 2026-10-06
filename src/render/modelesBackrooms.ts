@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import type { Ambiance } from '../core/level/types';
-import { barre, boiteRot, coloredBox, colorize, lumineux, merge, tube, type Part } from './formes';
+import { boiteRot, coloredBox, colorize, lumineux, merge, tube, type Part } from './formes';
 import { outlineGeometry } from './materials';
 
 /**
- * Modèles du thème « backrooms » : cloisons en papier peint jaune rayé, piliers, lampadaires à néon, dalles lumineuses
- * suspendues, portes isolées, cartons. Le contour n'est tracé que sur le corps des murs (pas sur les rayures).
+ * Modèles du thème « backrooms » : cloisons en papier peint jaune rayé (couloir et pièces), piliers, néons du plafond,
+ * lampadaires à néon (objets posés à la main), portes isolées, cartons. Le contour n'est tracé que sur le corps des murs (pas sur les rayures).
  */
 
 /** Rayure : un simple quad (2 triangles) plaqué sur une face, tourné vers ±x (`axe` 'x') ou ±z ('z'), `sens` = ±1. */
@@ -16,6 +16,9 @@ function rayure(l: number, h: number, axe: 'x' | 'z', sens: number, x: number, y
 }
 
 const PAPIER = 0xd8c35a, RAYURE = 0xc4ad40, PLINTHE = 0x7d6b2c, MOULURE = 0xb59e3c, SOMBRE = 0x4a3a20, GRIS = 0x8a8a84;
+
+/** Hauteur du plafond au-dessus du sol (m) : assez haut pour la caméra éloignée (5,2 m au-dessus de la voiture). */
+export const HAUTEUR_PLAFOND = 6.8;
 
 /** Mur ou cloison : `longueur` m le long de z, `hauteur` m (enterré de 0,5 m), 0,35 m d'épaisseur ; rayures verticales sur les deux faces. */
 function panneau(longueur: number, hauteur: number, porte: boolean): Part {
@@ -43,9 +46,24 @@ function panneau(longueur: number, hauteur: number, porte: boolean): Part {
   return g;
 }
 
-/** Pilier carré : 1 m de côté, plinthe et moulure, rayures sur les quatre faces. */
+/** Tronçon de cloison du couloir : 1 m le long de z (étiré à la longueur du tronçon), du sol au plafond, rayures sur les deux faces. */
+function cloison(): Part {
+  const e = 0.35, h0 = -0.5, H = HAUTEUR_PLAFOND + 0.2;
+  const corps: Part[] = [
+    coloredBox(e, H - h0, 1, 0, (H + h0) / 2, 0, PAPIER),
+    coloredBox(e + 0.08, 0.26, 1, 0, 0.13, 0, PLINTHE),
+    coloredBox(e + 0.1, 0.12, 1, 0, HAUTEUR_PLAFOND - 0.25, 0, MOULURE),
+  ];
+  const details: Part[] = [];
+  for (const z of [-0.25, 0.25]) for (const s of [-1, 1]) details.push(rayure(0.2, HAUTEUR_PLAFOND - 0.9, 'x', s, s * (e / 2 + 0.005), 0.3 + (HAUTEUR_PLAFOND - 0.9) / 2, z, RAYURE));
+  const g = merge([...corps, ...details]);
+  g.userData.contour = outlineGeometry(merge(corps));
+  return g;
+}
+
+/** Pilier carré : 1 m de côté, plinthe et moulure, rayures sur les quatre faces ; du sol au plafond. */
 function pilier(): Part {
-  const H = 5.4;
+  const H = HAUTEUR_PLAFOND + 0.2;
   const corps: Part[] = [
     coloredBox(1, H + 0.5, 1, 0, (H - 0.5) / 2, 0, PAPIER),
     coloredBox(1.1, 0.26, 1.1, 0, 0.13, 0, PLINTHE),
@@ -74,17 +92,16 @@ function lampeBureau(ambiance: Ambiance): Part {
   ]);
 }
 
-/** Dalle lumineuse flottante : 0 = panneau 2,4 × 1,2 m, 1 = deux tubes fluorescents sous un boîtier. Haut de la pièce à ~7 m. */
+/** Néon encastré au plafond : 0 = dalle 2,4 × 1,2 m, 1 = deux tubes fluorescents sous un boîtier. */
 function dalle(variant: number, ambiance: Ambiance): Part {
-  const n = NEON(ambiance);
+  const n = NEON(ambiance), y = HAUTEUR_PLAFOND;
   const parts: Part[] = [];
   if (variant === 0) {
-    parts.push(coloredBox(2.6, 0.1, 1.4, 0, 6.85, 0, 0x9a9a90), lumineux(new THREE.BoxGeometry(2.4, 0.06, 1.2).translate(0, 6.78, 0), n.couleur, n.gain));
+    parts.push(coloredBox(2.6, 0.08, 1.4, 0, y - 0.06, 0, 0x9a9a90), lumineux(new THREE.BoxGeometry(2.4, 0.04, 1.2).translate(0, y - 0.08, 0), n.couleur, n.gain));
   } else {
-    parts.push(coloredBox(3.2, 0.08, 1.0, 0, 7.3, 0, 0x9a9a90));
-    for (const z of [-0.25, 0.25]) parts.push(lumineux(new THREE.BoxGeometry(3.0, 0.1, 0.14).translate(0, 7.22, z), n.couleur, n.gain));
+    parts.push(coloredBox(3.2, 0.1, 1.0, 0, y - 0.08, 0, 0x9a9a90));
+    for (const z of [-0.25, 0.25]) parts.push(lumineux(new THREE.BoxGeometry(3.0, 0.1, 0.14).translate(0, y - 0.16, z), n.couleur, n.gain));
   }
-  for (const [x, z] of variant === 0 ? [[-1.1, -0.5], [1.1, 0.5]] : [[-1.4, 0], [1.4, 0]]) parts.push(barre([x, variant === 0 ? 6.9 : 7.35, z], [x, 9, z], 0.03, 0x6a6a64, 4));
   return merge(parts);
 }
 
@@ -123,7 +140,8 @@ function barriereBureau(): Part {
 
 export function decorBackrooms(ambiance: Ambiance): Record<string, Part> {
   return {
-    mur0: panneau(8, 5, false), mur1: panneau(8, 5, true), mur2: panneau(3.2, 2.4, false),
+    mur0: panneau(8, HAUTEUR_PLAFOND + 0.2, false), mur1: panneau(8, HAUTEUR_PLAFOND + 0.2, true), mur2: panneau(3.2, 2.4, false),
+    cloison: cloison(),
     pilier0: pilier(),
     lampeBureau0: lampeBureau(ambiance),
     dalleLumiere0: dalle(0, ambiance), dalleLumiere1: dalle(1, ambiance),

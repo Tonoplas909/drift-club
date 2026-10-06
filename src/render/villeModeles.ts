@@ -12,15 +12,15 @@ import { outlineGeometry } from './materials';
  */
 
 type Part = THREE.BufferGeometry;
-type Rgb = [number, number, number];
+export type Rgb = [number, number, number];
 
-const rgb = (hex: number, gain = 1): Rgb => {
+export const rgb = (hex: number, gain = 1): Rgb => {
   const c = new THREE.Color(hex);
   return [c.r * gain, c.g * gain, c.b * gain];
 };
 
 /** Assemblage direct de boîtes et de quads colorés (un seul tampon, normales plates). */
-class Assemblage {
+export class Assemblage {
   private pos: number[] = [];
   private nor: number[] = [];
   private col: number[] = [];
