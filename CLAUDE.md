@@ -9,6 +9,17 @@ La version affichée en bas à gauche des menus (« v0.4.3 ») vient de `package
 - Mettre à jour `package.json` et `package-lock.json` ensemble (`npm version <x.y.z> --no-git-tag-version`).
 - **Notes de version** : ajouter en tête de `src/notes.ts` une entrée pour cette version (date, titre, ce qui change pour le joueur, en français). Un test vérifie que la première entrée correspond à `package.json`.
 
+## Branches et pull requests
+
+- **Une branche par modification**, partie du dernier `main` (`git fetch origin main && git checkout -B <nom> origin/main`), avec un nom court en français (`defi-du-jour`, `manette`…).
+- Une fois la modification prête (vérifications ci-dessous passées), ouvrir une **pull request** vers `main`, puis la fusionner quand le propriétaire demande la mise en ligne (« publie »).
+- **Après la fusion, supprimer la branche** (sur GitHub et en local) : le dépôt ne garde que `main` et les branches en cours.
+- Une modification qui ne touche pas le jeu (documentation seule, comme `docs/`) passe aussi par une branche et une PR, mais sans nouvelle version ni note de version.
+
+## Idées
+
+Les idées pour la suite sont dans `docs/IDEES.md` : y ajouter les nouvelles, et mettre à jour leur état (et la section « Fait ») quand l'une d'elles sort.
+
 ## Rappels
 
 - Textes du jeu et commentaires en français.
