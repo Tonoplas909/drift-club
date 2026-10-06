@@ -91,6 +91,13 @@ export class CarView {
     this.repaint();
   }
 
+  /** Couleur et livrée d'un coup (une seule reconstruction). */
+  setPeinture(color: string, skin: SkinDef | null): void {
+    this.color = color;
+    this.skin = skin;
+    this.repaint();
+  }
+
   setSkin(skin: SkinDef | null): void {
     this.skin = skin;
     this.repaint();

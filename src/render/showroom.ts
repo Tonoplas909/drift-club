@@ -3,12 +3,13 @@ import type { CarId } from '../core/physics/types';
 import type { Assets } from './assets';
 import { CarView } from './carView';
 import { toonMaterial } from './materials';
-import { skinDef, type SkinId } from '../core/skins';
+import { skinDef, type SkinDef, type SkinId } from '../core/skins';
 
 export class Showroom {
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
   private view: CarView | null = null;
+  private viewCar: CarId | null = null;
   private angle = 0.6;
   private raf = 0;
   private last = 0;
@@ -28,9 +29,20 @@ export class Showroom {
   }
 
   setCar(id: CarId, color: string, skin?: SkinId): void {
+    this.setCarDef(id, color, skinDef(id, skin));
+  }
+
+  /** Livrée en cours de création (Atelier) : même voiture → seule la peinture est refaite, sans recréer la vue. */
+  apercuLivree(id: CarId, color: string, def: SkinDef | null): void {
+    if (this.view && this.viewCar === id) { this.view.setPeinture(color, def); return; }
+    this.setCarDef(id, color, def);
+  }
+
+  private setCarDef(id: CarId, color: string, def: SkinDef | null): void {
     if (this.view) { this.scene.remove(this.view.root); this.view.dispose(); }
     const model = this.assets.cars[id];
-    this.view = new CarView(model, color, false, skinDef(id, skin));
+    this.viewCar = id;
+    this.view = new CarView(model, color, false, def);
     this.scene.add(this.view.root);
     // cadrage : la caméra recule pour les grandes voitures et s'approche des petites (4,4 m = cadrage de référence)
     const k = ((model.shape?.length ?? 4.4) + 1.6) / 6;

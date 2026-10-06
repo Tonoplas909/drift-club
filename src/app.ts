@@ -15,7 +15,8 @@ import { forcerDecor } from './game/decorUrl';
 import { NIVEAUX_OFFICIELS, cleNiveauOfficiel } from './levels';
 import { Screens, levelSummary, type NiveauCarte } from './ui/screens';
 import { formatDistance } from './ui/format';
-import { skinChoisie, choisirSkin } from './core/skins';
+import { skinChoisie, choisirSkin, ajouterLivreesAtelier } from './core/skins';
+import { defAtelier, lireLivreeOfficielle, versLigneOfficielle, type LivreeOfficielle } from './core/atelier';
 import { estFumee } from './core/caisses';
 import type { CarId } from './core/physics/types';
 import { ECONOMIE, fumeeAutorisee, gagnerCourse, ouvrirCaisse, skinsAutorises, type GainCourse, type Progression } from './core/economie';
@@ -35,6 +36,7 @@ import { ClassementService, cleEnLigne, type RangEnLigne, type Resultat } from '
 import { ProgressionEnLigne, type EchecProgression } from './online/progression';
 import { MSG_INDISPONIBLE } from './online/erreurs';
 import { NiveauxEnLigneService } from './online/niveaux';
+import { AtelierEnLigne } from './online/atelier';
 import { decoderNiveau } from './core/level/encode';
 import { lireFragment } from './share/lien';
 import { ouvrirPartage, ouvrirImport, carteNiveauPartage } from './ui/partage';
@@ -42,6 +44,7 @@ import { panneauEnLigne } from './ui/enligne';
 import { ecranCompte } from './ui/compte';
 import { ecranClassement, zoneEnLigne, textePlace } from './ui/classement';
 import { ecranCaisses, type ResultatOuverture } from './ui/caisses';
+import { ecranAtelier } from './ui/atelier';
 import { MiseAJour, lireVersionPubliee } from './online/miseAJour';
 import { BUILD_ID } from './version';
 import { zoneGains, type ZoneGains } from './ui/gains';
@@ -83,6 +86,11 @@ export class App {
   private readonly classement = new ClassementService(clientParDefaut);
   private readonly niveauxEnLigne = new NiveauxEnLigneService(clientParDefaut);
   private readonly progressionEnLigne = new ProgressionEnLigne(clientParDefaut);
+  private readonly atelier = new AtelierEnLigne(clientParDefaut);
+  /** livrées de l'Atelier : chargement en cours ou dernier fait, et quand (rechargées au plus toutes les 5 min) */
+  private livreesAtelier: Promise<void> | null = null;
+  private livreesAtelierLe = 0;
+  private empreinteLivrees = '';
   private readonly miseAJour = new MiseAJour({
     actuel: BUILD_ID,
     lire: () => lireVersionPubliee(import.meta.env.BASE_URL),
@@ -108,6 +116,8 @@ export class App {
     const s = safeStorage();
     this.store = new Store(s.kv);
     this.persistent = s.persistent;
+    // livrées de l'Atelier connues de l'appareil : avant les réglages et la progression, qui oublient les livrées inconnues
+    this.installerLivreesAtelier(this.store.loadLivreesAtelier().map(lireLivreeOfficielle).filter((l): l is LivreeOfficielle => l !== null));
     this.reglages = this.store.loadReglages(this.touch);
     this.hud.options(this.reglages);
     // clés et livrées gagnées ; une livrée choisie mais verrouillée (données modifiées à la main) retombe sur « unie »
@@ -139,6 +149,7 @@ export class App {
     // comptes en ligne : hors ligne le jeu reste jouable, `demarrer` ne lève jamais
     this.compte.onChange((e) => this.compteChange(e));
     void this.compte.demarrer();
+    void this.chargerLivreesAtelier();
 
     await this.chargerModeles();
   }
@@ -185,6 +196,30 @@ export class App {
 
   private save(): void {
     this.store.saveReglages(this.reglages);
+  }
+
+  /** Remplace les livrées de l'Atelier du jeu ; renvoie vrai si la liste a changé. */
+  private installerLivreesAtelier(liste: LivreeOfficielle[]): boolean {
+    const empreinte = JSON.stringify(liste.map((l) => [l.idServeur, l.rarete, l.livree]));
+    if (empreinte === this.empreinteLivrees) return false;
+    this.empreinteLivrees = empreinte;
+    ajouterLivreesAtelier(liste.map((l) => ({ voiture: l.livree.voiture, def: defAtelier(l) })));
+    return true;
+  }
+
+  /**
+   * Livrées de l'Atelier validées : lues sur le serveur (sans compte), gardées sur l'appareil. Une nouvelle livrée peut
+   * être dans la progression du compte : on la relit alors. Ne lève jamais ; hors ligne, on garde celles de l'appareil.
+   */
+  private chargerLivreesAtelier(force = false): Promise<void> {
+    if (this.livreesAtelier && !force && Date.now() - this.livreesAtelierLe < 5 * 60_000) return this.livreesAtelier;
+    this.livreesAtelierLe = Date.now();
+    this.livreesAtelier = this.atelier.officielles().then((r) => {
+      if (!r.ok) { this.livreesAtelierLe = 0; return; }
+      this.store.saveLivreesAtelier(r.valeur.map(versLigneOfficielle));
+      if (this.installerLivreesAtelier(r.valeur) && this.compte.etat.statut === 'connecte') void this.synchroProgression();
+    }, () => { this.livreesAtelierLe = 0; });
+    return this.livreesAtelier;
   }
 
   private libelleCompte(e: EtatCompte = this.compte.etat): string {
@@ -405,8 +440,35 @@ export class App {
       // aperçu d'une livrée verrouillée : seulement le showroom, rien n'est enregistré
       onApercu: (voiture, couleur, skin) => this.showroom?.setCar(voiture, couleur, skin),
       onCaisses: () => this.caisses(() => this.garage(retour)),
+      onAtelier: () => this.atelierEcran(() => this.garage(retour)),
       onRetour: () => { this.showroom?.stop(); retour(); },
     });
+    void this.chargerLivreesAtelier();
+  }
+
+  /** Atelier : créer et proposer une livrée (aperçu dans le showroom), suivre ses propositions, modérer (administrateurs). */
+  private atelierEcran(retour: () => void): void {
+    this.showroom?.start();
+    const connecte = (): boolean => this.compte.etat.statut === 'connecte' && !!this.compte.etat.pseudo;
+    this.screens.monter(ecranAtelier({
+      voiture: this.reglages.voiture,
+      couleur: this.reglages.couleur,
+      peutProposer: connecte,
+      brouillon: { lire: () => this.store.loadBrouillonAtelier(), ecrire: (b) => this.store.saveBrouillonAtelier(b) },
+      apercu: (voiture, couleur, def) => this.showroom?.apercuLivree(voiture, couleur, def),
+      proposer: (l) => this.atelier.proposer(l),
+      mesPropositions: () => this.atelier.mesPropositions(),
+      estAdmin: () => (connecte() ? this.atelier.estAdmin() : Promise.resolve(false)),
+      aModerer: () => this.atelier.aModerer(),
+      moderer: async (id, d) => {
+        const r = await this.atelier.moderer(id, d);
+        // la livrée validée entre dans les caisses : on la charge tout de suite (et la progression, si c'est la sienne)
+        if (r.ok && d.valider) void this.chargerLivreesAtelier(true);
+        return r;
+      },
+      onCompte: () => this.ecranCompte(() => this.atelierEcran(retour)),
+      onRetour: retour,
+    }));
   }
 
   /**
@@ -424,7 +486,8 @@ export class App {
     }
     const compte = this.compteProg;
     if (a.lectureSeule || !compte) return { ok: false, message: MSG_CONNEXION_CAISSE };
-    const r = await this.progressionEnLigne.ouvrirCaisse();
+    await this.chargerLivreesAtelier();
+    const r = await this.progressionEnLigne.ouvrirCaisse(() => this.chargerLivreesAtelier(true));
     if (!r.ok) {
       if (r.raison === 'reseau') { this.compteProg = { ...compte, synchro: 'hors-ligne' }; return { ok: false, message: MSG_CONNEXION_CAISSE }; }
       void this.synchroProgression(); // clés ou livrées différentes de ce qu'on croyait : on relit le compte

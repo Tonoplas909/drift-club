@@ -574,3 +574,38 @@ input[type=text], input[type=email], input[type=password] { user-select: text; -
 .fumee-info .ico-fumee { flex: none; width: 120px; height: 48px; display: block; }
 .skin-info .ico-fumee { flex: none; width: 64px; height: 28px; display: block; }
 @media (prefers-reduced-motion: reduce) { .fx-arc svg, .fx-etincelle { animation: none; } }
+
+/* Atelier : éditeur de livrées (panneau du Garage, aperçu dans le showroom) */
+.atelier .panel.side { width: min(430px, 94vw); }
+.atelier select, .atelier .at-reg input[type=text], .atelier .at-ajout select { font: 700 15px var(--font); padding: 4px 8px; border: 3px solid var(--ink); border-radius: 10px; background: #fff; color: var(--ink); }
+.atelier .champ input { user-select: text; -webkit-user-select: text; }
+.atelier input[type=color] { width: 40px; height: 32px; padding: 0 2px; border: 3px solid var(--ink); border-radius: 10px; background: #fff; cursor: pointer; flex: none; }
+.atelier input[type=color][hidden] { display: none; }
+.atelier .check { flex-wrap: wrap; }
+.at-motif { background: #fff; border: 3px solid var(--ink); border-radius: 14px; padding: 4px 6px; display: flex; flex-direction: column; gap: 6px; flex: none; }
+.at-motif.ouvert { box-shadow: 0 4px 0 var(--ink); }
+.at-tete { display: flex; align-items: center; gap: 4px; }
+.at-tete .btn.sm { padding: 2px 8px; font-size: 14px; min-width: 0; }
+.at-nom { flex: 1; text-align: left; font: 800 15px var(--font); background: none; border: 0; padding: 4px; cursor: pointer; color: var(--ink); }
+.at-corps { display: flex; flex-direction: column; gap: 6px; padding: 0 4px 4px; }
+.at-reg { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; }
+.at-reg > span:first-child { flex: 0 0 110px; }
+.at-reg input[type=range] { flex: 1; min-width: 0; }
+.at-reg input[type=text] { width: 5em; }
+.at-reg.col { flex-direction: column; align-items: stretch; gap: 4px; }
+.at-reg.col > span:first-child { flex: none; }
+.at-teinte { display: flex; gap: 6px; align-items: center; flex: 1; min-width: 0; }
+.at-teinte select { flex: 1; min-width: 0; }
+.at-teintes { display: flex; flex-direction: column; gap: 4px; }
+.at-ajout { align-items: center; flex: none; }
+.at-ajout select { flex: 1; min-width: 0; }
+.at-prop { background: #fff; border: 3px solid var(--rc, var(--ink)); border-radius: 14px; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; flex: none; }
+.at-prop b { font-size: 17px; }
+.at-prop small { opacity: .75; }
+.at-prop .row { align-items: center; gap: 6px; }
+.at-prop .row input[type=text] { flex: 1; min-width: 0; font: 600 14px var(--font); padding: 4px 8px; border: 3px solid var(--ink); border-radius: 10px; }
+.at-statut { font-weight: 800; font-size: 14px; }
+.at-prop.validee .at-statut { color: #1e7a3a; }
+.at-prop.refusee .at-statut { color: #b3261e; }
+.at-prop .msg:empty { display: none; }
+.atelier input[type=range] { accent-color: var(--orange); }

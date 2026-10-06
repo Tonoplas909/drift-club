@@ -259,9 +259,10 @@ insert into public.catalogue_skins (voiture, id, rarete) values
   ('turbo', 'famille', 'exotique')
 on conflict (voiture, id) do update set rarete = excluded.rarete;
 
--- livrées retirées du jeu
+-- livrées retirées du jeu (celles de l'Atelier, « atelier-… », validées dans le jeu, ne sont jamais touchées)
 delete from public.catalogue_skins
- where (voiture, id) not in (
+ where id not like 'atelier-%'
+   and (voiture, id) not in (
   ('break', 'rayures'),
   ('break', 'bicolore'),
   ('break', 'filet'),

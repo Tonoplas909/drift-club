@@ -54,6 +54,8 @@ const K_NIVEAUX = 'driftclub.v1.niveaux';
 const K_PROGRESSION = 'driftclub.v1.progression';
 /** dernière progression connue du compte en ligne (lecture seule hors ligne) ; la progression locale ci-dessus n'est jamais modifiée par le compte */
 const K_PROGRESSION_COMPTE = 'driftclub.v1.progression-compte';
+const K_LIVREES_ATELIER = 'driftclub.v1.livrees-atelier';
+const K_BROUILLON_ATELIER = 'driftclub.v1.brouillon-atelier';
 const QUALITES: Qualite[] = ['auto', 'basse', 'haute'];
 
 export function memoryKV(): KV {
@@ -175,6 +177,25 @@ export class Store {
 
   saveProgressionCompte(e: Pick<EtatProgressionCompte, 'id' | 'progression'>): void {
     this.write(K_PROGRESSION_COMPTE, { id: e.id, progression: e.progression });
+  }
+
+  /** Dernières livrées de l'Atelier reçues du serveur (lignes brutes, re-validées à la lecture par l'appelant). */
+  loadLivreesAtelier(): unknown[] {
+    const raw = this.read(K_LIVREES_ATELIER);
+    return Array.isArray(raw) ? raw.slice(0, 2000) : [];
+  }
+
+  saveLivreesAtelier(lignes: unknown[]): void {
+    this.write(K_LIVREES_ATELIER, lignes);
+  }
+
+  /** Livrée en cours dans l'éditeur de l'Atelier (relue et re-validée par l'écran). */
+  loadBrouillonAtelier(): unknown {
+    return this.read(K_BROUILLON_ATELIER);
+  }
+
+  saveBrouillonAtelier(b: unknown): void {
+    this.write(K_BROUILLON_ATELIER, b);
   }
 
   private records(): RecordsMap {

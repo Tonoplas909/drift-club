@@ -10,7 +10,8 @@ Le jeu utilise Supabase pour les comptes (email + mot de passe), le classement e
 4. Fais de même avec [`migrations/0004_mes_places.sql`](migrations/0004_mes_places.sql) (place du joueur dans chaque niveau), puis avec [`migrations/0005_progression_compte.sql`](migrations/0005_progression_compte.sql), [`migrations/0007_nouvelles_voitures.sql`](migrations/0007_nouvelles_voitures.sql) (La Kei, La Muscle, La Rotative et Le Break acceptées au classement) et enfin [`migrations/0006_catalogue_skins.sql`](migrations/0006_catalogue_skins.sql) (clés et livrées dans le compte, voir plus bas). **Ne relance pas `0002` ni `0005` après `0007`** (ils remettraient l'ancienne liste de voitures ; `0007` est sans danger à relancer) : `0005` change le résultat de `soumettre_score` (colonnes de clés ajoutées).
 5. **Vérification des scores (anti-triche)** : déploie d'abord l'Edge Function `verifier-course` (voir [« Vérification des scores »](#vérification-des-scores) plus bas), PUIS colle [`migrations/0008_scores_verifies.sql`](migrations/0008_scores_verifies.sql). **Ne relance plus `0002`, `0005` ni `0007` après `0008`** : ils rouvriraient `soumettre_score` aux joueurs.
    Puis, **après avoir redéployé la fonction de la version 0.4.5**, colle [`migrations/0009_cles_en_jouant.sql`](migrations/0009_cles_en_jouant.sql) : une même course ne rapporte qu'une fois, pas de clé plus vite qu'on ne joue, reprise de la progression locale fermée. Si tu relances `0008`, relance `0009` juste après.
-6. Clique sur **Run** après chaque collage. Chaque script peut être relancé sans danger (il est idempotent), sauf la remarque ci-dessus.
+6. **Atelier (v0.5)** : colle [`migrations/0010_atelier.sql`](migrations/0010_atelier.sql) (livrées proposées par les joueurs), puis **déclare-toi administrateur une fois** : à la fin du fichier, décommente les 3 lignes `insert into public.admins …`, mets l'email de ton compte et lance-les. L'onglet « À valider » apparaît alors dans Garage → Atelier quand tu es connecté. Relance aussi le `0006` actuel au moins une fois : les anciennes versions retiraient du catalogue les livrées qu'elles ne connaissaient pas (dont celles de l'Atelier).
+7. Clique sur **Run** après chaque collage. Chaque script peut être relancé sans danger (il est idempotent), sauf la remarque ci-dessus.
 
 Il crée :
 
@@ -35,6 +36,14 @@ La migration `0005` ajoute la progression dans le compte :
 - `importer_progression_locale(debloques, cles)` : reprenait **une seule fois** la progression de l'appareil (livrées du catalogue, 30 clés au plus) ; **fermée par `0009`** (le contenu de l'appareil est modifiable par le joueur : un compte ne gagne plus rien qu'en jouant) ;
 - `ouvrir_caisse()` : paie 3 clés, tire la rareté (79,9 / 16 / 3,2 / 0,64 / 0,26 %, poids renormalisés si une rareté est vide) puis une livrée au hasard côté serveur ; un doublon rend 1 clé ; la ligne est verrouillée pendant l'appel (pas de double dépense) ;
 - `soumettre_score(...)` (même résultat qu'avant, plus `cles_gagnees`, `cles_record`, `cles`) : +1 clé par arrivée, +1 sur un record en ligne, sans clé si la précédente date de moins de 20 s.
+
+La migration `0010` ajoute l'**Atelier** :
+
+- `admins` : les comptes qui peuvent modérer (aucun accès depuis le jeu ; à remplir dans le SQL Editor) ; `est_admin()` ;
+- `livrees_atelier` : les propositions (voiture, nom, description, motifs en JSON de 6 ko au plus, statut, rareté), **aucune lecture ni écriture directe** ;
+- `proposer_livree(voiture, nom, description, donnees)` : comptes connectés avec pseudo ; 1 à 10 motifs ; **3 propositions par 24 h et 10 en attente au plus** ;
+- `livrees_officielles()` : les livrées validées avec le pseudo du créateur, lisibles par tout le monde (le jeu les ajoute à ses livrées et re-valide chaque motif) ; `mes_livrees()` : les propositions du joueur et leur statut ;
+- `livrees_a_moderer()` et `moderer_livree(id, valider, rarete, motif)` : réservées aux administrateurs. Valider ajoute la livrée au catalogue des caisses (`atelier-…`) avec la rareté choisie et, la première fois seulement, la débloque pour son créateur avec 5 clés ; refuser la retire des caisses (ceux qui l'ont gardent leur exemplaire, mais le jeu ne l'affiche plus).
 
 **Livrées et fumées** : `0006_catalogue_skins.sql` est **générée** depuis `src/core/skins.ts` et `src/core/fumees.ts` (les fumées de pneus y sont des lignes `('fumee', id, rareté)`, tirées par les mêmes caisses). Après avoir ajouté ou retiré des livrées, relance `npx vite-node tools/gen-catalogue-sql.ts` puis colle le nouveau `0006` dans le SQL Editor (upsert et suppression, sans danger) ; sinon les nouvelles livrées ne sortent pas des caisses du compte. Un test échoue tant que le fichier n'est pas régénéré.
 

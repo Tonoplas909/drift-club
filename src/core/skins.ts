@@ -692,6 +692,23 @@ export const SKINS: Record<CarId, SkinDef[]> = Object.fromEntries(CAR_IDS.map((c
   return [car, [UNIE, ...liste]];
 })) as Record<CarId, SkinDef[]>;
 
+/**
+ * Livrées de l'Atelier validées (créées par des joueurs, chargées depuis le serveur) : ajoutées à la fin des listes
+ * de chaque voiture ; un nouvel appel remplace toutes celles d'avant. Les identifiants commencent par « atelier- ».
+ */
+export function ajouterLivreesAtelier(livrees: { voiture: CarId; def: SkinDef }[]): void {
+  for (const car of CAR_IDS) {
+    const garde = SKINS[car].filter((s) => !s.id.startsWith('atelier-'));
+    SKINS[car].length = 0;
+    SKINS[car].push(...garde, ...livrees.filter((l) => l.voiture === car && l.def.id.startsWith('atelier-')).map((l) => l.def));
+  }
+  versionLivrees++;
+}
+
+let versionLivrees = 0;
+/** Change à chaque `ajouterLivreesAtelier` (le contenu des caisses est alors recalculé). */
+export const versionDesLivrees = (): number => versionLivrees;
+
 export type SkinsChoisies = Partial<Record<CarId, SkinId>>;
 
 export const skinsDe = (car: CarId): SkinDef[] => SKINS[car];

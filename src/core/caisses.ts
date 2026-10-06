@@ -2,7 +2,7 @@ import type { CarId } from './physics/types';
 import { CAR_IDS } from './physics/cars';
 import type { Rng } from './math/rng';
 import { RARETES, RARETE_IDS, type Rarete } from './raretes';
-import { SKINS, SKIN_DEFAUT, skinDef, skinValide, type SkinId } from './skins';
+import { SKINS, SKIN_DEFAUT, skinDef, skinValide, versionDesLivrees, type SkinId } from './skins';
 import { CLE_FUMEE, FUMEES, FUMEE_DEFAUT, fumeeDef, fumeeValide } from './fumees';
 
 /** Collection d'objets des caisses : une voiture (ses livrées) ou `fumee` (les fumées de pneus). */
@@ -55,14 +55,20 @@ function construireParRarete(): Record<Rarete, Objet[]> {
   return out;
 }
 
-const PAR_RARETE = construireParRarete();
+let parRareteCache = construireParRarete();
+let versionCache = versionDesLivrees();
+/** Contenu par rareté, recalculé quand les livrées de l'Atelier changent. */
+function parRarete(): Record<Rarete, Objet[]> {
+  if (versionCache !== versionDesLivrees()) { parRareteCache = construireParRarete(); versionCache = versionDesLivrees(); }
+  return parRareteCache;
+}
 
-export const catalogue = (): Objet[] => RARETE_IDS.flatMap((r) => PAR_RARETE[r]);
-export const objetsDeRarete = (r: Rarete): readonly Objet[] => PAR_RARETE[r];
+export const catalogue = (): Objet[] => RARETE_IDS.flatMap((r) => parRarete()[r]);
+export const objetsDeRarete = (r: Rarete): readonly Objet[] => parRarete()[r];
 
 /** Rareté tirée selon les poids ; une rareté sans livrée est ignorée (les poids restants sont renormalisés). */
 export function tirerRarete(rng: Rng): Rarete {
-  const dispo = RARETE_IDS.filter((r) => PAR_RARETE[r].length > 0);
+  const dispo = RARETE_IDS.filter((r) => parRarete()[r].length > 0);
   const total = dispo.reduce((s, r) => s + RARETES[r].poids, 0);
   let x = rng() * total;
   for (const r of dispo) {
@@ -74,7 +80,7 @@ export function tirerRarete(rng: Rng): Rarete {
 
 /** Livrée tirée sans tenir compte de l'inventaire : rareté par poids, puis livrée au hasard dans la rareté. */
 export function tirerObjet(rng: Rng): Objet {
-  const liste = PAR_RARETE[tirerRarete(rng)];
+  const liste = parRarete()[tirerRarete(rng)];
   return liste[Math.min(liste.length - 1, Math.floor(rng() * liste.length))];
 }
 

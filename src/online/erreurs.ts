@@ -26,6 +26,7 @@ export function messageErreur(err: unknown): string {
   // tables ou fonctions absentes : le SQL de supabase/ n'a pas encore été appliqué
   if (code === '42P01' || code === '42883' || code.startsWith('PGRST2')) {
     if (/caisse|progression/.test(bas)) return "La progression en ligne n'est pas encore disponible.";
+    if (/livree|admin/.test(bas)) return "L'Atelier en ligne n'est pas encore disponible.";
     return /niveau|publier|retirer|compter_partie/.test(bas) ? "Les niveaux en ligne ne sont pas encore disponibles." : "Le classement en ligne n'est pas encore disponible.";
   }
   // fonction réservée aux comptes connectés appelée sans session

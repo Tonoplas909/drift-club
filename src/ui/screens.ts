@@ -189,7 +189,10 @@ export class Screens {
     onFumee(id: FumeeId): void;
     /** aperçu 3D d'une livrée non enregistrée (verrouillée) ou retour à la livrée enregistrée */
     onApercu(voiture: CarId, couleur: string, skin: SkinId): void;
-    onCaisses(): void; onRetour(): void;
+    onCaisses(): void;
+    /** éditeur de livrées (Atelier) */
+    onAtelier(): void;
+    onRetour(): void;
   }): void {
     let voiture = o.voiture, couleur = o.couleur, skins = o.skins;
     /** livrée verrouillée en cours d'aperçu (jamais enregistrée) */
@@ -260,6 +263,7 @@ export class Screens {
         ),
         h('div', { class: 'row' },
           h('button', { class: 'btn sec', onclick: o.onCaisses }, iconeCle(), `Caisses (${o.progression.cles} clé${o.progression.cles > 1 ? 's' : ''})`),
+          h('button', { class: 'btn sec', onclick: o.onAtelier, title: 'Crée ta livrée et propose-la pour les caisses' }, 'Atelier'),
           h('button', { class: 'btn', onclick: o.onRetour }, 'Retour'),
         ),
       )));

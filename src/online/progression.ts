@@ -37,14 +37,18 @@ export class ProgressionEnLigne {
     return this.appelerLigne('ma_progression', {});
   }
 
-  /** Ouvre une caisse : le serveur paie 3 clés, tire la livrée et la débloque ; l'écran n'a plus qu'à l'animer. */
-  async ouvrirCaisse(): Promise<ResultatProgression<OuvertureServeur>> {
+  /**
+   * Ouvre une caisse : le serveur paie 3 clés, tire la livrée et la débloque ; l'écran n'a plus qu'à l'animer.
+   * Livrée inconnue (une livrée de l'Atelier validée depuis le lancement) : `rafraichir` recharge les livrées, puis on relit.
+   */
+  async ouvrirCaisse(rafraichir?: () => Promise<void>): Promise<ResultatProgression<OuvertureServeur>> {
     try {
       const client = await this.fournisseur();
       if (!client) return INDISPONIBLE;
       const { data, error } = await client.rpc('ouvrir_caisse');
       if (error) return echec(error);
-      const o = lireObjetServeur(premiere(data));
+      let o = lireObjetServeur(premiere(data));
+      if (!o && rafraichir) { await rafraichir(); o = lireObjetServeur(premiere(data)); }
       return o ? { ok: true, valeur: o } : { ok: false, message: 'Cette livrée est trop récente pour ta version du jeu : recharge la page.', raison: 'autre' };
     } catch (e) {
       return echec(e);

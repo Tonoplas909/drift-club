@@ -53,6 +53,8 @@ describe('genererCatalogueSql', () => {
     expect(sql).toContain('on conflict (voiture, id) do update set rarete = excluded.rarete;');
     expect(sql).toContain('delete from public.catalogue_skins');
     expect(sql).toContain('not in (');
+    // les livrées de l'Atelier (validées en ligne, absentes du code) ne sont jamais supprimées
+    expect(sql).toContain("where id not like 'atelier-%'");
     for (const l of lignes) {
       expect(sql).toContain(`('${l.voiture}', '${l.id}', '${l.rarete}')`);
       expect(sql).toContain(`  ('${l.voiture}', '${l.id}')`);
