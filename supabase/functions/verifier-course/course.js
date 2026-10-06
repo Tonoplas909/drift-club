@@ -6236,7 +6236,9 @@ var DEFAULT_SCORE_PARAMS = {
   comboTimeout: 2,
   comboMax: 5,
   progressMin: 2,
-  timeBonusPerSec: 2500
+  timeBonusPerSec: 1e3,
+  timeBonusLimite: 1.5,
+  timeBonusPartMax: 0.5
 };
 function createScore() {
   return { total: 0, drift: 0, multiplier: 1, active: false, pending: false, inactiveTime: 0, sinceBank: 0, bestDrift: 0, driftCount: 0, driftTime: 0, driftVitesse: 0, driftAngle: 0 };
@@ -6324,7 +6326,8 @@ function finishScore(st, p = DEFAULT_SCORE_PARAMS) {
   return st.pending ? bank(st, p) : null;
 }
 function timeBonus(targetTime, time, driftPoints, p = DEFAULT_SCORE_PARAMS) {
-  return Math.min(Math.max(0, driftPoints), Math.max(0, 2 * targetTime - time) * p.timeBonusPerSec);
+  const plafond = Math.max(0, driftPoints) * p.timeBonusPartMax;
+  return Math.min(plafond, Math.max(0, p.timeBonusLimite * targetTime - time) * p.timeBonusPerSec);
 }
 
 // src/core/race/race.ts
@@ -6559,4 +6562,4 @@ async function traiterCourse(corps, empreinteServeur) {
 export {
   traiterCourse
 };
-export const EMPREINTE = '2731788d93c060f9';
+export const EMPREINTE = '3cde1dbb5c017add';

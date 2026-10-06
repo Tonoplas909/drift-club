@@ -13,6 +13,15 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.5',
+    date: '06/10/2026',
+    titre: 'Bonus de temps adouci',
+    notes: [
+      'Le bonus de temps était beaucoup trop fort : il passe à 1 000 points par seconde d\'avance sur une fois et demie le temps cible (au lieu de 2 500 points sur le double).',
+      'Il ne dépasse plus la moitié de tes points de drift : le drift reste l\'essentiel du score.',
+    ],
+  },
+  {
     version: '0.5.4',
     date: '06/10/2026',
     titre: 'Le bonus de temps compte enfin',
