@@ -149,3 +149,34 @@ describe('RaceSim : reculer puis réavancer ne rapporte rien', () => {
     expect(sim.maxProgressS - sim.progressS).toBeLessThan(MARGE_REPARCOURS);
   });
 });
+
+describe('RaceSim : arrivée franchie en glisse hors de la chaussée', () => {
+  it('la ligne compte même 1,5 m hors de la route : le combo en cours est encaissé, rien après ne l\'annule', () => {
+    // sans décor : seule compte la ligne d'arrivée (pas de borne sur le bas-côté)
+    const level = straightLevel(300);
+    const track = buildTrack(level), terrain = new Terrain(track, level.decor.graine);
+    const sim = new RaceSim({ level, track, terrain, env: { items: [], circles: [], segments: [], barriers: [] }, car: CARS.equilibree, assists: MODES.semi, countdown: 0 });
+    for (let i = 0; i < 4000 && sim.car.z < 255; i++) sim.step(GAZ);
+    // drift sur la route jusqu'à 25 m de la ligne
+    for (let i = 0; i < 4000 && sim.car.z < 275; i++) {
+      sim.car.heading = Math.atan2(sim.car.vx, sim.car.vz) + 30 * DEG;
+      sim.step(GAZ);
+    }
+    expect(sim.score.drift).toBeGreaterThan(0);
+    const avant = sim.score.total + sim.score.drift * sim.score.multiplier;
+    // la voiture déborde de 1,5 m (demi-largeur 5 m) et franchit la ligne en glisse
+    let arrivee: RaceEvent | undefined;
+    for (let i = 0; i < 600 && !arrivee; i++) {
+      sim.car.x = 6.5;
+      sim.car.heading = Math.atan2(sim.car.vx, sim.car.vz) + 30 * DEG;
+      arrivee = sim.step(GAZ).find((e) => e.type === 'arrivee');
+    }
+    expect(arrivee).toBeDefined();
+    expect(sim.car.z).toBeLessThan(302); // à la ligne, pas plus loin
+    const r = sim.result!;
+    expect(r.driftPoints).toBeGreaterThanOrEqual(Math.round(avant * 0.9));
+    // ce qui se passe derrière la ligne ne change plus rien
+    runFor(sim, 2, GAZ);
+    expect(sim.result).toEqual(r);
+  });
+});
