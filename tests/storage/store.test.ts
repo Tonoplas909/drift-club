@@ -30,7 +30,7 @@ describe('Store', () => {
   });
   it('aller-retour des reglages', () => {
     const st = new Store(memoryKV());
-    const r = { ...defaultReglages(false), voiture: 'turbo' as const, couleur: '#3a6ff0', volume: 0.3, cameraLoin: true };
+    const r = { ...defaultReglages(false), voiture: 'turbo' as const, couleur: '#3a6ff0', volume: 0.3, camera: 'conducteur' as const };
     st.saveReglages(r);
     expect(st.loadReglages(false)).toEqual(r);
   });
@@ -60,6 +60,7 @@ describe('Store', () => {
     expect(r.couleur).toBe('#3a6ff0');
     expect(r.skins).toEqual({});
     expect(skinChoisie(r.skins, 'turbo')).toBe('unie');
+    expect(r.camera).toBe('loin'); // ancien choix « caméra éloignée »
   });
   it('livrées : inconnue ou mal formée → « unie »', () => {
     const kv = memoryKV();

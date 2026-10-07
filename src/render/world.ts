@@ -18,6 +18,7 @@ import { buildDecor, DecorVisible } from './decor';
 import { CarView, type CarPose } from './carView';
 import { SmokeSystem, SkidMarks } from './effects';
 import { ChaseCamera, type ChaseConfig, type CameraTarget } from './camera';
+import { estEmbarquee, type VueCamera } from './vuesEmbarquees';
 import { SpeedGauge, gaugeRatio } from './speedGauge';
 import { CARS } from '../core/physics/cars';
 import { skinDef, type SkinId } from '../core/skins';
@@ -69,6 +70,8 @@ export class World {
   camLibre: CamLibre | null = null;
   /** caméra du mode photo (pendant la pause) : remplace la caméra de poursuite */
   camPhoto: CamLibre | null = null;
+  /** vue choisie (touche C) : poursuite, éloignée ou embarquée */
+  vue: VueCamera = 'proche';
 
   constructor(private readonly init: WorldInit) {
     const { renderer, level, track, terrain, env, assets, quality } = init;
@@ -184,6 +187,8 @@ export class World {
 
     this.setTarget(car, pose.x, pose.y, pose.z);
     this.chase.update(this.target, cfg, dt, this.init.terrain);
+    const embarquee = estEmbarquee(this.vue) && !this.camLibre && !this.camPhoto ? this.vue : null;
+    this.carView.poserCamera(this.camera, embarquee);
     if (this.camLibre) {
       this.camera.position.set(...this.camLibre.pos);
       this.camera.lookAt(...this.camLibre.cible);
@@ -193,7 +198,7 @@ export class World {
       this.camera.position.set(...this.camPhoto.pos);
       this.camera.lookAt(...this.camPhoto.cible);
     }
-    this.gauge.root.visible = !this.camPhoto;
+    this.gauge.root.visible = !this.camPhoto && (embarquee === null || embarquee === 'roue');
     this.sky.position.copy(this.camera.position);
     this.eau?.update(dt);
     if (this.snow?.points.visible) this.snow.update(dt, this.camera.position);

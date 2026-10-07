@@ -8,6 +8,7 @@ import { FUMEE_DEFAUT, validerFumee, type FumeeId } from '../core/fumees';
 import { offrirCaisse, progressionInitiale, validerProgression, type Progression } from '../core/economie';
 import type { EtatProgressionCompte } from '../core/progressionCompte';
 import { MANETTE_DEFAUT, type ReglagesManette } from '../input/gamepad';
+import { lireVue, type VueCamera } from '../render/vuesEmbarquees';
 import { lireTouches, touchesParDefaut, type Touches } from '../input/touches';
 
 export interface KV {
@@ -31,7 +32,8 @@ export interface Reglages {
   ambianceDecor: boolean;
   qualite: Qualite;
   accelAuto: boolean;
-  cameraLoin: boolean;
+  /** caméra choisie (touche C) : poursuite, éloignée ou embarquée */
+  camera: VueCamera;
   /** HUD : détail des points du drift (base × vitesse × durée × angle) */
   detailPoints: boolean;
   /** HUD : indicateur d'angle de glisse sous la voiture */
@@ -101,7 +103,7 @@ export function defaultReglages(touch: boolean): Reglages {
     qualite: 'auto',
     // désactivée par défaut : sur téléphone la voiture avançait seule dès le premier toucher
     accelAuto: false,
-    cameraLoin: false,
+    camera: 'proche',
     detailPoints: true,
     indicateurAngle: true,
     manette: { ...MANETTE_DEFAUT },
@@ -159,7 +161,8 @@ export class Store {
       qualite: QUALITES.includes(o.qualite as Qualite) ? (o.qualite as Qualite) : d.qualite,
       // avant la v2 des réglages, accelAuto valait true par défaut sans choix du joueur : on l'ignore
       accelAuto: o.v === VERSION_REGLAGES && typeof o.accelAuto === 'boolean' ? o.accelAuto : d.accelAuto,
-      cameraLoin: typeof o.cameraLoin === 'boolean' ? o.cameraLoin : d.cameraLoin,
+      // avant la 0.5.12 : simple choix « caméra éloignée »
+      camera: lireVue(o.camera, o.cameraLoin),
       detailPoints: typeof o.detailPoints === 'boolean' ? o.detailPoints : d.detailPoints,
       indicateurAngle: typeof o.indicateurAngle === 'boolean' ? o.indicateurAngle : d.indicateurAngle,
       manette: lireManette(o.manette),

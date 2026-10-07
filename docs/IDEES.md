@@ -21,7 +21,7 @@ la fonction `verifier-course` (`npx vite-node tools/gen-fonction.ts`).
 | [Carte de score à partager](#carte-de-score-à-partager) | petit | non | fait (0.5.10) |
 | [Statistiques du pilote](#statistiques-du-pilote) | petit | non | fait (0.5.11) |
 | [Défi du jour](#défi-du-jour) | moyen | oui (migration) | **recommandé** |
-| [Caméras embarquées](#caméras-embarquées) | moyen | non | nouveau |
+| [Caméras embarquées](#caméras-embarquées) | moyen | non | fait (0.5.12) |
 | [Revoir sa course](#revoir-sa-course) | moyen | non | nouveau |
 | [Fantôme de son record (local)](#fantôme-de-son-record-local) | moyen | non | nouveau |
 | [Zones de clipping](#zones-de-clipping) | moyen | oui (simulation) | **recommandé** |
@@ -105,7 +105,8 @@ touche C (et un bouton de la manette) :
 - **calandre** : au ras du pare-chocs avant, la route défile juste sous l'objectif ;
 - **conducteur** : à la place du pilote, avec le tableau de bord, le volant qui tourne avec la direction et les mains
   (il faut modéliser un intérieur simple pour chaque voiture : c'est ce qui en fait une idée moyenne) ;
-- et pourquoi pas : **roue arrière** (vue sur le pneu qui fume), **toit**, **rétroviseur** en incrustation.
+- et pourquoi pas : **roue arrière** (vue sur le pneu qui fume), **toit**, **rétroviseur** en incrustation (pas encore
+  fait : le décor derrière la voiture n'est pas dessiné, seul ce qui est devant la caméra l'est).
 
 La dernière caméra choisie est retenue dans les Réglages. Rien à changer côté serveur : la caméra ne touche pas la
 simulation.
@@ -203,3 +204,4 @@ serveur à mettre à jour.
 | 0.5.9 | **Touches personnalisables** : clavier (deux touches par commande) et boutons de la manette, dans Réglages › Touches |
 | 0.5.10 | **Carte de score** à partager depuis l'arrivée : capture de la course, niveau, score, médaille, meilleur drift, voiture |
 | 0.5.11 | **Statistiques du pilote** (accueil) : distance en course et en Zen, temps en glisse, plus long et meilleur drift, courses finies, voiture la plus jouée, médailles |
+| 0.5.12 | **Caméras embarquées** : capot, calandre, conducteur (planche de bord, volant qui tourne), roue arrière, toit ; choix retenu dans les Réglages |

@@ -6,6 +6,7 @@ import { RouteZen } from '../core/zen/route';
 import { ZenSim, type EvenementZen } from '../core/zen/zenSim';
 import { ZenWorld } from '../render/zenWorld';
 import { CAMERA_LOIN, CAMERA_PROCHE, type ChaseConfig } from '../render/camera';
+import { NOMS_VUES, vueSuivante } from '../render/vuesEmbarquees';
 import { camDepuisUrl, type CamLibre } from '../debug/camLibre';
 import { FixedStepLoop } from './loop';
 import type { InputState } from '../core/input';
@@ -48,7 +49,8 @@ export class ZenSession {
 
   constructor(private seed: number, private readonly deps: SessionDeps, private readonly cb: ZenCallbacks) {
     this.loop = new FixedStepLoop(() => this.simStep());
-    this.camCfg = deps.reglages.cameraLoin ? CAMERA_LOIN : CAMERA_PROCHE;
+    this.camCfg = deps.reglages.camera === 'loin' ? CAMERA_LOIN : CAMERA_PROCHE;
+    this.world.vue = deps.reglages.camera;
     this.construire();
     deps.debug?.attach(CARS[deps.reglages.voiture], MODES[deps.reglages.mode], this.camCfg);
     if (deps.debug) this.exposerDebug();
@@ -135,8 +137,10 @@ export class ZenSession {
     const a = this.deps.input.consumeActions();
     if (a.pause) { this.cb.onPause(); return; }
     if (a.camera) {
-      this.deps.reglages.cameraLoin = !this.deps.reglages.cameraLoin;
-      this.camCfg = this.deps.reglages.cameraLoin ? CAMERA_LOIN : CAMERA_PROCHE;
+      const vue = (this.deps.reglages.camera = vueSuivante(this.deps.reglages.camera));
+      this.camCfg = vue === 'loin' ? CAMERA_LOIN : CAMERA_PROCHE;
+      this.world.vue = vue;
+      this.deps.hud.annonce(`Caméra : ${NOMS_VUES[vue]}`);
     }
     if (a.muet) this.deps.reglages.muet = this.deps.audio.toggleMute();
     if (a.pleinEcran) toggleFullscreen();
