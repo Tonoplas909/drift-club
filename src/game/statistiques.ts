@@ -50,39 +50,52 @@ export function lireStatistiques(v: unknown): Statistiques {
 const BETA_GLISSE = 15 * Math.PI / 180;
 const VITESSE_GLISSE = 30 / 3.6;
 
-/** Compte pendant que l'on roule ; `aujourdhui` (AAAA-MM-JJ) date la première course. */
+/**
+ * Compte pendant que l'on roule ; `aujourdhui` (AAAA-MM-JJ) date la première course. `stats` : les chiffres de
+ * l'appareil ; `attente` (joueur connecté) : ce qui s'est ajouté depuis le dernier envoi au compte.
+ */
 export class CompteurPilote {
   private driftEnCours = 0;
   modifie = false;
+  /** ajouts pas encore envoyés au compte connecté (null : pas de compte) */
+  attente: Statistiques | null = null;
 
   constructor(public stats: Statistiques, private readonly aujourdhui: () => string) {}
+
+  private cibles(): Statistiques[] {
+    return this.attente ? [this.stats, this.attente] : [this.stats];
+  }
 
   /** Un pas de simulation (`dt` s) : distance, glisse. */
   pas(voiture: CarId, vitesse: number, beta: number, zen: boolean, dt: number): void {
     const d = Math.max(0, vitesse) * dt;
-    if (d > 0) {
-      const s = this.stats;
-      if (zen) s.distanceZen += d; else s.distanceCourse += d;
-      s.parVoiture[voiture] = (s.parVoiture[voiture] ?? 0) + d;
-      s.depuis ??= this.aujourdhui();
-      this.modifie = true;
+    const glisse = Math.abs(beta) > BETA_GLISSE && vitesse > VITESSE_GLISSE;
+    if (glisse) this.driftEnCours += dt; else this.driftEnCours = 0;
+    for (const s of this.cibles()) {
+      if (d > 0) {
+        if (zen) s.distanceZen += d; else s.distanceCourse += d;
+        s.parVoiture[voiture] = (s.parVoiture[voiture] ?? 0) + d;
+        s.depuis ??= this.aujourdhui();
+      }
+      if (glisse) {
+        s.tempsGlisse += dt;
+        if (this.driftEnCours > s.plusLongDrift) s.plusLongDrift = this.driftEnCours;
+      }
     }
-    if (Math.abs(beta) > BETA_GLISSE && vitesse > VITESSE_GLISSE) {
-      this.stats.tempsGlisse += dt;
-      this.driftEnCours += dt;
-      if (this.driftEnCours > this.stats.plusLongDrift) this.stats.plusLongDrift = this.driftEnCours;
-    } else this.driftEnCours = 0;
+    if (d > 0) this.modifie = true;
   }
 
   /** Drift encaissé (points, combo compris). */
   drift(points: number): void {
-    this.stats.drifts++;
-    if (points > this.stats.meilleurDrift) this.stats.meilleurDrift = points;
+    for (const s of this.cibles()) {
+      s.drifts++;
+      if (points > s.meilleurDrift) s.meilleurDrift = points;
+    }
     this.modifie = true;
   }
 
   courseFinie(): void {
-    this.stats.courses++;
+    for (const s of this.cibles()) s.courses++;
     this.modifie = true;
   }
 
@@ -90,6 +103,22 @@ export class CompteurPilote {
   couper(): void {
     this.driftEnCours = 0;
   }
+}
+
+/** Rien n'a été compté. */
+export const estVide = (s: Statistiques): boolean =>
+  s.distanceCourse + s.distanceZen + s.tempsGlisse + s.drifts + s.courses === 0 && s.meilleurDrift === 0 && s.plusLongDrift === 0;
+
+/** Ajoute `b` à `a` : sommes pour les compteurs, maximum pour les records, date la plus ancienne. */
+export function fusionnerStatistiques(a: Statistiques, b: Statistiques): Statistiques {
+  const parVoiture: Partial<Record<CarId, number>> = { ...a.parVoiture };
+  for (const id of CAR_IDS) if (b.parVoiture[id]) parVoiture[id] = (parVoiture[id] ?? 0) + (b.parVoiture[id] ?? 0);
+  return {
+    distanceCourse: a.distanceCourse + b.distanceCourse, distanceZen: a.distanceZen + b.distanceZen, tempsGlisse: a.tempsGlisse + b.tempsGlisse,
+    plusLongDrift: Math.max(a.plusLongDrift, b.plusLongDrift), meilleurDrift: Math.max(a.meilleurDrift, b.meilleurDrift),
+    drifts: a.drifts + b.drifts, courses: a.courses + b.courses, parVoiture,
+    depuis: a.depuis && b.depuis ? (a.depuis < b.depuis ? a.depuis : b.depuis) : a.depuis ?? b.depuis,
+  };
 }
 
 /** Voiture avec laquelle on a le plus roulé, ou null. */

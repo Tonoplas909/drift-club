@@ -5,8 +5,8 @@ import { formatDuree, voiturePreferee, type Statistiques } from '../game/statist
 import { iconeMedaille } from './svg';
 import type { Medaille } from '../core/medailles';
 
-/** Écran « Statistiques du pilote » (tout est compté sur cet appareil). */
-export function ecranStatistiques(o: { stats: Statistiques; medailles: Record<Medaille, number>; niveaux: number; onRetour(): void }): HTMLElement {
+/** Écran « Statistiques du pilote » (celles du compte connecté, sinon celles de l'appareil). */
+export function ecranStatistiques(o: { stats: Statistiques; /** « ton compte (Max) » ou « cet appareil » */ source: string; medailles: Record<Medaille, number>; niveaux: number; onRetour(): void }): HTMLElement {
   const s = o.stats;
   const pref = voiturePreferee(s);
   const total = s.distanceCourse + s.distanceZen;
@@ -15,7 +15,7 @@ export function ecranStatistiques(o: { stats: Statistiques; medailles: Record<Me
   const date = s.depuis ? new Date(s.depuis + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : null;
   return h('div', { class: 'screen' }, h('div', { class: 'panel wide statistiques' },
     h('h2', {}, 'Statistiques du pilote'),
-    h('p', { class: 'hint' }, date ? `Comptées sur cet appareil depuis le ${date}.` : 'Comptées sur cet appareil : joue une course pour commencer.'),
+    h('p', { class: 'hint' }, date ? `Comptées sur ${o.source} depuis le ${date}.` : `Comptées sur ${o.source} : joue une course pour commencer.`),
     h('div', { class: 'stats-grille' },
       tuile(formatDistance(total), 'parcourus', `dont ${formatDistance(s.distanceZen)} en mode Zen`),
       tuile(formatDuree(s.tempsGlisse), 'en glisse', total > 0 && s.tempsGlisse > 0 ? `${formatDistance(s.distanceCourse)} en course` : undefined),
