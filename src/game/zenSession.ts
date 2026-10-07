@@ -50,7 +50,6 @@ export class ZenSession {
   constructor(private seed: number, private readonly deps: SessionDeps, private readonly cb: ZenCallbacks) {
     this.loop = new FixedStepLoop(() => this.simStep());
     this.camCfg = deps.reglages.camera === 'loin' ? CAMERA_LOIN : CAMERA_PROCHE;
-    this.world.vue = deps.reglages.camera;
     this.construire();
     deps.debug?.attach(CARS[deps.reglages.voiture], MODES[deps.reglages.mode], this.camCfg);
     if (deps.debug) this.exposerDebug();
@@ -71,6 +70,8 @@ export class ZenSession {
       renderer: d.renderer, route: this.route, assets: d.assets, carId: r.voiture, color: r.couleur,
       skin: skinChoisie(r.skins, r.voiture), fumee: r.fumee, quality: d.quality.level,
     });
+    // caméra choisie (poursuite, éloignée ou embarquée) : le monde est recréé à chaque nouvelle route
+    this.world.vue = r.camera;
     this.world.troncons.appliquer(this.route.vider());
     this.sim = new ZenSim(this.route, CARS[r.voiture], MODES[r.mode]);
     while (this.world.troncons.travailler(this.sim.car.x, this.sim.car.z)) { /* terrain du départ */ }

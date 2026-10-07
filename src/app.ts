@@ -820,11 +820,19 @@ export class App {
     this.screens.loading('Préparation de la route…');
     await new Promise((r) => setTimeout(r, 30));
     this.session?.dispose();
+    this.session = null;
     this.current = null;
-    this.session = new ZenSession(graine, {
-      renderer: this.renderer, assets: this.assets, hud: this.hud, audio: this.audio, input: this.input,
-      quality: new QualityManager(this.reglages.qualite, this.touch), reglages: this.reglages, debug: this.debug, stats: this.stats,
-    }, { onPause: () => this.pauseRace() });
+    try {
+      this.session = new ZenSession(graine, {
+        renderer: this.renderer, assets: this.assets, hud: this.hud, audio: this.audio, input: this.input,
+        quality: new QualityManager(this.reglages.qualite, this.touch), reglages: this.reglages, debug: this.debug, stats: this.stats,
+      }, { onPause: () => this.pauseRace() });
+    } catch (e) {
+      // jamais d'écran de chargement sans fin : on le dit, et on peut revenir au menu
+      console.error(e);
+      this.screens.error('Mode Zen indisponible', 'La route n\'a pas pu être préparée. Recharge la page ; si le problème revient, signale-le.', [{ label: 'Retour', onClick: () => this.accueil() }]);
+      return;
+    }
     this.screens.clear();
     this.keyboard.capture = true;
     this.touchControls.show(this.touch || this.input.touchActive);

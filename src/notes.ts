@@ -13,6 +13,15 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.20',
+    date: '07/10/2026',
+    titre: 'Correctif : mode Zen',
+    notes: [
+      'Le mode Zen restait bloqué sur l\'écran « Préparation de la route » : c\'est réparé.',
+      'Si une route ne peut pas être préparée, un message s\'affiche désormais avec un bouton Retour, au lieu d\'un chargement sans fin.',
+    ],
+  },
+  {
     version: '0.5.19',
     date: '07/10/2026',
     titre: 'Statistiques sur ton compte',
