@@ -67,7 +67,7 @@ export function minkaGeometry(b: Batiment, ambiance: Ambiance): Part {
   const hw = b.w / 2, hd = b.d / 2, socle = 0.6, H1 = 2.9;
   corps.boite(b.w + 0.4, 4 + socle, b.d + 0.4, 0, -4, 0, rgb(PIERRE));
   corps.boite(b.w, H1, b.d, 0, socle, 0, rgb(st.mur));
-  const lit = ambiance === 'coucher';
+  const lit = ambiance !== 'jour';
   const papier = (): Rgb => (lit ? rgb(LUMIERE, 1.7) : rgb(PAPIER));
   // façades ±z : poteaux tous les ~1,8 m, panneaux de papier entre eux ; pignons ±x : poteaux seulement
   for (const f of ['pz', 'nz'] as const) {
@@ -123,7 +123,7 @@ export function machiyaGeometry(b: Batiment, ambiance: Ambiance, graine: number)
   const hw = b.w / 2, hd = b.d / 2, H1 = 3.0, H = b.etages * H1;
   corps.boite(b.w, H + 4, b.d, 0, -4, 0, rgb(st.mur));
   corps.boite(b.w + 0.1, 4.35, b.d + 0.1, 0, -4, 0, rgb(0x5a5650)); // soubassement
-  const lit = ambiance === 'coucher';
+  const lit = ambiance !== 'jour';
   const parts: Part[] = [];
   for (const [f, s] of [['pz', 1], ['nz', -1]] as const) {
     // claustra (koshi) : lattes verticales serrées devant un fond sombre (ou éclairé de l'intérieur au coucher)
@@ -179,7 +179,7 @@ export function immeubleJpGeometry(b: Batiment, ambiance: Ambiance, graine: numb
   const rng = mulberry32(graine * 53 + 11);
   const corps = new Assemblage(), det = new Assemblage();
   const hw = b.w / 2, hd = b.d / 2, HE = 3.2, H = b.etages * HE;
-  const lit = ambiance === 'coucher';
+  const lit = ambiance !== 'jour';
   corps.boite(b.w, H + 4, b.d, 0, -4, 0, rgb(st.mur));
   corps.boite(b.w + 0.3, 0.35, b.d + 0.3, 0, H, 0, rgb(0x6a6a6a)); // acrotère
   // château d'eau ou panneau sur le toit
@@ -222,7 +222,7 @@ export function immeubleJpGeometry(b: Batiment, ambiance: Ambiance, graine: numb
 /** Distributeur de boissons : 0 = blanc et bleu, 1 = rouge ; vitrine éclairée côté −z (vers la route). */
 export function distributeurGeometry(variant: number, ambiance: Ambiance): Part {
   const corpsC = variant === 0 ? 0xe8ecf0 : 0xc8282a, bande = variant === 0 ? 0x2a5ac8 : 0xf2f0e8;
-  const gain = ambiance === 'coucher' ? 2.2 : 1.35;
+  const gain = ambiance !== 'jour' ? 2.2 : 1.35;
   const parts: Part[] = [
     coloredBox(1.0, 1.9, 0.75, 0, -0.05, 0, corpsC),
     coloredBox(1.02, 0.25, 0.77, 0, 1.6, 0, bande),

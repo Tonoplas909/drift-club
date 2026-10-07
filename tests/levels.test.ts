@@ -262,9 +262,9 @@ describe('niveaux officiels', () => {
     expect(denivele(t)).toBeLessThan(25);
   });
 
-  it('touge-de-minuit : coucher de soleil, longs virages rapides et une seule épingle, à la fin', () => {
+  it('touge-de-minuit : de nuit, longs virages rapides et une seule épingle, à la fin', () => {
     const { track: t, level } = charge('touge-de-minuit');
-    expect(level.ambiance).toBe('coucher');
+    expect(level.ambiance).toBe('nuit');
     const serres = groupes(t, 25);
     expect(serres.length).toBe(1);
     expect(t.samples[serres[0].de].s).toBeGreaterThan(t.length * 0.9);

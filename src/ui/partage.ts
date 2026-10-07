@@ -8,7 +8,7 @@ import type { EtatCompte } from '../online/compte';
 import type { NiveauCharge } from '../online/niveaux';
 import type { MonNiveau } from '../storage/store';
 import { longueurRoute } from '../editor/format';
-import { formatDistance } from './format';
+import { formatDistance, libelleAmbiance } from './format';
 import { h } from './screens';
 import { modale } from './dialog';
 
@@ -240,7 +240,7 @@ export function carteNiveauPartage(o: OptionsCarte): HTMLElement {
   return h('div', { class: 'screen' }, h('div', { class: 'panel' },
     h('h2', {}, 'Niveau partagé'),
     h('p', { class: 'sub' }, 'Niveau partagé : ', h('b', {}, l.nom), o.par && `, par ${o.par}`),
-    h('p', { class: 'petit' }, `${formatDistance(longueurRoute(l))} · ${l.ambiance === 'jour' ? 'Jour' : 'Coucher de soleil'}`),
+    h('p', { class: 'petit' }, `${formatDistance(longueurRoute(l))} · ${libelleAmbiance(l)}`),
     h('div', { class: 'col-actions' },
       h('button', { class: 'btn big', onclick: o.onJouer }, 'Jouer'),
       enregistrer,

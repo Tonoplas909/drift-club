@@ -1,4 +1,8 @@
-export type Ambiance = 'jour' | 'coucher';
+/** L'ORDRE est figé : le code de partage stocke l'indice (encode.ts). */
+export const AMBIANCES = ['jour', 'coucher', 'nuit'] as const;
+export type Ambiance = (typeof AMBIANCES)[number];
+/** Météo d'un niveau : la pluie rend la route plus glissante (voir ADHERENCE_PLUIE). */
+export type Meteo = 'pluie';
 /**
  * Décors disponibles. L'ORDRE est figé : le code de partage stocke l'indice (encode.ts).
  * Ajouter un thème = l'ajouter À LA FIN ici, puis dans `THEMES` (core/env/themes.ts) et `THEMES_VISUELS` (render/themes.ts).
@@ -36,6 +40,8 @@ export interface Level {
   eau?: PlanEau[];
   /** zones de clipping (optionnel) */
   clipping?: ZoneClipping[];
+  /** météo (optionnel : beau temps si absent) */
+  meteo?: Meteo;
 }
 
 export const LIMITES = {

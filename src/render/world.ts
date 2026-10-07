@@ -5,7 +5,7 @@ import type { Terrain } from '../core/track/terrain';
 import type { Environment } from '../core/env/types';
 import type { CarId, CarState } from '../core/physics/types';
 import type { Assets } from './assets';
-import { paletteDe, type Palette } from './palettes';
+import { palettePluie, paletteDe, type Palette } from './palettes';
 import { decorDuTheme, THEMES_VISUELS } from './themes';
 import { Snowfall, optionsMeteo } from './weather';
 import { Scintillement } from './scintillement';
@@ -74,6 +74,10 @@ export class World {
   camLibre: CamLibre | null = null;
   /** caméra du mode photo (pendant la pause) : remplace la caméra de poursuite */
   camPhoto: CamLibre | null = null;
+  /** il pleut sur ce niveau (la pluie reste visible même en qualité basse) */
+  private pluie = false;
+  /** phares (nuit) */
+  private phares: THREE.SpotLight | null = null;
   /** vue choisie (touche C) : poursuite, éloignée ou embarquée */
   vue: VueCamera = 'proche';
 
@@ -81,7 +85,9 @@ export class World {
     const { renderer, level, track, terrain, env, assets, quality } = init;
     this.quality = quality;
     const q = QUALITY[quality];
-    const p = (this.palette = paletteDe(level.environnement, level.ambiance));
+    const pluie = level.meteo === 'pluie';
+    const base = paletteDe(level.environnement, level.ambiance);
+    const p = (this.palette = pluie ? palettePluie(base) : base);
 
     renderer.shadowMap.enabled = q.shadows;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -127,15 +133,23 @@ export class World {
     this.decor = decorDuTheme(assets, level.environnement, level.ambiance);
     const decorGroupe = buildDecor(env, assets, quality, q.shadows, this.decor);
     this.scene.add(decorGroupe);
-    const meteo = THEMES_VISUELS[level.environnement].meteo;
+    // pluie du niveau : elle remplace la météo du décor et reste visible quelle que soit la qualité (elle change la conduite)
+    const meteo = pluie ? { type: 'pluie' as const, nombre: 1800 } : THEMES_VISUELS[level.environnement].meteo;
     const theme = THEMES_VISUELS[level.environnement];
     if (theme.scintillement) this.scintille = new Scintillement(decorGroupe, theme.scintillement);
     // après Scintillement : les modèles aux instances colorées une à une ne sont pas triés
     this.decorVisible = new DecorVisible(decorGroupe);
     if (meteo) {
       this.snow = new Snowfall(meteo.nombre, 5, optionsMeteo(meteo.type));
-      this.snow.points.visible = quality === 'haute';
+      this.snow.points.visible = pluie || quality === 'haute';
       this.scene.add(this.snow.points);
+    }
+    this.pluie = pluie;
+    // nuit : les phares de la voiture éclairent la route devant elle
+    if (level.ambiance === 'nuit') {
+      this.phares = new THREE.SpotLight(0xfff1d6, 140, 90, 0.5, 0.55, 1.1);
+      this.phares.castShadow = false;
+      this.scene.add(this.phares, this.phares.target);
     }
 
     this.carView = new CarView(assets.cars[init.carId], init.color, q.shadows, skinDef(init.carId, init.skin));
@@ -155,7 +169,7 @@ export class World {
     const fog = this.scene.fog as THREE.Fog;
     fog.near = q.fogFar * this.palette.brume * 0.3;
     fog.far = q.fogFar * this.palette.brume;
-    if (this.snow) this.snow.points.visible = level === 'haute';
+    if (this.snow) this.snow.points.visible = this.pluie || level === 'haute';
   }
 
   resize(w: number, h: number): void {
@@ -231,6 +245,11 @@ export class World {
     const params = CARS[this.init.carId];
     this.gauge.update(pose.x, pose.y, pose.z, params.width, gaugeRatio(car.speed, car.reverse, this.gaugeMax), this.camera, dt);
 
+    if (this.phares) {
+      const fx = Math.sin(pose.heading), fz = Math.cos(pose.heading);
+      this.phares.position.set(pose.x + fx * 2, pose.y + 0.75, pose.z + fz * 2);
+      this.phares.target.position.set(pose.x + fx * 22, pose.y - 0.4, pose.z + fz * 22);
+    }
     const d = this.palette.sunDir;
     this.sun.position.set(pose.x + d[0] * 80, pose.y + d[1] * 80, pose.z + d[2] * 80);
     this.sun.target.position.set(pose.x, pose.y, pose.z);

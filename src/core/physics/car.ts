@@ -78,7 +78,8 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
   const Fzr = Math.max(0.1 * m * G, (m * G * a) / L + (m * car.ax * p.cgHeight) / L);
 
   // Adhérence
-  const surface = ctx.onRoad ? 1 : 0.7;
+  // × 1 par temps sec : exactement les mêmes forces qu'avant la pluie
+  const surface = (ctx.onRoad ? 1 : 0.7) * (ctx.adherence ?? 1);
   const muF = p.muFront * surface;
   let muR = p.muRear * surface;
   const arcadeDrift = as.arcadeDrift && input.freinAMain && speed0 > 8.3;

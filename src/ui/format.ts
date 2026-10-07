@@ -19,3 +19,10 @@ export function formatDistance(m: number): string {
 export function titreNiveau(index: number, nom: string): string {
   return index >= 0 ? `Niveau ${index + 1} · ${nom}` : nom;
 }
+
+const NOMS_AMBIANCES: Record<string, string> = { jour: 'Jour', coucher: 'Coucher de soleil', nuit: 'Nuit' };
+
+/** « Jour », « Coucher de soleil » ou « Nuit », suivi de « · Pluie » s'il pleut. */
+export function libelleAmbiance(l: { ambiance: string; meteo?: string }): string {
+  return (NOMS_AMBIANCES[l.ambiance] ?? l.ambiance) + (l.meteo === 'pluie' ? ' · Pluie' : '');
+}

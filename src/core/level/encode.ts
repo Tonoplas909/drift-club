@@ -1,4 +1,4 @@
-import { ENVIRONNEMENTS } from './types';
+import { ENVIRONNEMENTS, AMBIANCES } from './types';
 import type { Level, CoteBarriere, TypeObjet } from './types';
 import { loadLevel } from '../loadLevel';
 
@@ -9,7 +9,6 @@ export const TAILLE_MAX_DECOMPRESSE = 200_000;
 /** Longueur maximale de la partie base64url d'un code. */
 export const LONGUEUR_MAX_CODE = 150_000;
 
-const AMBIANCES = ['jour', 'coucher'] as const;
 const COTES: readonly CoteBarriere[] = ['gauche', 'droite', 'deux', 'ext'];
 const TYPES: readonly TypeObjet[] = ['arbre', 'sapin', 'rocher', 'pneus', 'barriere', 'panneau'];
 
@@ -40,6 +39,7 @@ export function normaliserNiveau(level: Level): Level {
       ? { eau: level.eau.map((l) => ({ niveau: d1(l.niveau), points: l.points.map((p) => ({ x: d1(p.x), z: d1(p.z) })) })) }
       : {}),
     ...(level.clipping && level.clipping.length > 0 ? { clipping: level.clipping.map((z) => ({ de: z.de, a: z.a, cote: z.cote })) } : {}),
+    ...(level.meteo ? { meteo: level.meteo } : {}),
   };
 }
 
@@ -80,6 +80,8 @@ function compacter(l: Level): unknown {
   }
   // zones de clipping : clé ajoutée seulement s'il y en a ; [de, a, 0 gauche / 1 droite]
   if (l.clipping && l.clipping.length > 0) compact.c = l.clipping.map((z) => [z.de, z.a, z.cote === 'gauche' ? 0 : 1]);
+  // pluie : clé ajoutée seulement s'il pleut
+  if (l.meteo === 'pluie') compact.p = 1;
   return compact;
 }
 
@@ -134,6 +136,7 @@ function developper(c: unknown): unknown | null {
     objets: o.map((t) => ({ type: TYPES[t[0]], x: t[1] / 10, z: t[2] / 10, rot: t[3] })),
     ...(eau ? { eau } : {}),
     ...(clipping ? { clipping } : {}),
+    ...(c.p === 1 ? { meteo: 'pluie' } : {}),
   };
 }
 
