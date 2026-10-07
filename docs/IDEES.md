@@ -1,6 +1,6 @@
 # Idées pour la suite de Drift Club
 
-Carnet d'idées : ce qui pourrait venir après la v0.5.3. Rien ici n'est promis ni planifié ; on pioche dedans, et on met
+Carnet d'idées : ce qui pourrait venir après la v0.5.5. Rien ici n'est promis ni planifié ; on pioche dedans, et on met
 à jour la colonne **État** (et la section « Fait » en bas) au fil des versions.
 
 Repères d'effort : **petit** = une session, **moyen** = une ou deux sessions, **gros** = une vraie mise à jour (v0.x.0).
@@ -14,13 +14,14 @@ la fonction `verifier-course` (`npx vite-node tools/gen-fonction.ts`).
 | [Manette](#manette) | petit | non | fait (0.5.3) |
 | [Mode photo](#mode-photo) | petit | non | fait (0.5.3) |
 | [Ambiance sonore par décor](#ambiance-sonore-par-décor) | petit | non | fait (0.5.3) |
+| [Niveau rappelé à l'arrivée](#niveau-rappelé-à-larrivée) | petit | non | nouveau |
 | [Médailles par niveau](#médailles-par-niveau) | petit | non | nouveau |
 | [Vibrations de la manette](#vibrations-de-la-manette) | petit | non | nouveau |
-| [Caméra capot](#caméra-capot) | petit | non | nouveau |
 | [Touches personnalisables](#touches-personnalisables) | petit | non | nouveau |
 | [Carte de score à partager](#carte-de-score-à-partager) | petit | non | nouveau |
 | [Statistiques du pilote](#statistiques-du-pilote) | petit | non | nouveau |
 | [Défi du jour](#défi-du-jour) | moyen | oui (migration) | **recommandé** |
+| [Caméras embarquées](#caméras-embarquées) | moyen | non | nouveau |
 | [Revoir sa course](#revoir-sa-course) | moyen | non | nouveau |
 | [Fantôme de son record (local)](#fantôme-de-son-record-local) | moyen | non | nouveau |
 | [Zones de clipping](#zones-de-clipping) | moyen | oui (simulation) | **recommandé** |
@@ -56,6 +57,13 @@ Un fond sonore léger par thème, en boucle et en mélange avec le moteur : vent
 cigales (japon), vagues (pirate), bourdonnement électrique des néons (backrooms), rumeur de ville et pluie (cyberpunk).
 Sons générés comme le reste de l'audio (`src/audio/`), volume lié au réglage existant.
 
+### Niveau rappelé à l'arrivée
+
+L'écran de victoire affiche seulement « Arrivée ! » : y réafficher le numéro et le nom du niveau (par exemple
+« Niveau 3 · Col du Loup »), pour savoir d'un coup d'œil quelle course on vient de finir, surtout avant
+« Niveau suivant » ou une capture d'écran. Pour un niveau de l'éditeur ou le mode Zen, son nom seul. À faire dans
+`resultats()` (`src/ui/screens.ts`), appelé depuis `src/app.ts`.
+
 ### Médailles par niveau
 
 Bronze, argent et or sur chaque niveau officiel (seuils de score fixés par niveau, l'or demandant un vrai bon run),
@@ -67,11 +75,6 @@ classement en ligne. Les records locaux suffisent ; récompenser les médailles 
 
 Prolonge la manette : petite vibration quand un drift est encaissé (plus forte avec le multiplicateur), secousse au
 choc, grondement léger hors piste (`gamepad.vibrationActuator`, Chrome et Edge ; ignoré ailleurs). Réglage pour la couper.
-
-### Caméra capot
-
-Une troisième caméra sur la touche C : posée sur le capot, très basse, sensation de vitesse maximale. Le reste du rendu
-ne change pas (la caméra de poursuite et la caméra éloignée existent déjà dans `src/render/camera.ts`).
 
 ### Touches personnalisables
 
@@ -92,6 +95,20 @@ courses finies, voiture la plus jouée, kilomètres en mode Zen. Tout est compt�
 chiffres pourraient nourrir les succès ou la saison.
 
 ## Moyennes
+
+### Caméras embarquées
+
+Plusieurs caméras en plus de la poursuite et de la vue éloignée (`src/render/camera.ts`), qu'on fait défiler avec la
+touche C (et un bouton de la manette) :
+
+- **capot** : posée sur le capot, très basse, sensation de vitesse maximale ;
+- **calandre** : au ras du pare-chocs avant, la route défile juste sous l'objectif ;
+- **conducteur** : à la place du pilote, avec le tableau de bord, le volant qui tourne avec la direction et les mains
+  (il faut modéliser un intérieur simple pour chaque voiture : c'est ce qui en fait une idée moyenne) ;
+- et pourquoi pas : **roue arrière** (vue sur le pneu qui fume), **toit**, **rétroviseur** en incrustation.
+
+La dernière caméra choisie est retenue dans les Réglages. Rien à changer côté serveur : la caméra ne touche pas la
+simulation.
 
 ### Revoir sa course
 
