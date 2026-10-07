@@ -66,4 +66,25 @@ describe('AtelierEnLigne', () => {
       { p_id: ID, p_valider: false, p_rarete: null, p_motif: 'Non' },
     ]);
   });
+
+  it('votes : propositions en attente avec les votes, vote envoyé, livrée de la semaine', async () => {
+    const { m, s } = svc({
+      'rpc.livrees_en_vote': { data: [ligne({ statut: 'proposee', rarete: null, pour: 4, contre: 1, mon_vote: 1, mienne: false })], error: null },
+      'rpc.voter_livree': { data: [{ pour: 3, contre: 1, mon_vote: null }], error: null },
+      'rpc.livree_de_la_semaine': { data: [{ id: ID, voiture: 'kei', nom: 'Néon', pseudo: 'Max', pour: 12 }], error: null },
+    });
+    const r = await s.enVote();
+    expect(r.ok && r.valeur[0]).toMatchObject({ pseudo: 'Max', pour: 4, contre: 1, monVote: 1, mienne: false });
+    expect(await s.voter(ID, 0)).toEqual({ ok: true, valeur: { pour: 3, contre: 1 } });
+    expect(m.appels.find((a) => a.nom === 'rpc.voter_livree')?.args).toEqual(['voter_livree', { p_id: ID, p_vote: 0 }]);
+    expect(await s.livreeDeLaSemaine()).toEqual({ voiture: 'kei', nom: 'Néon', pseudo: 'Max', pour: 12 });
+  });
+
+  it('votes : migration 0012 absente → pas de livrée de la semaine, message clair', async () => {
+    const err = { data: null, error: { code: 'PGRST202', message: 'Could not find the function public.livrees_en_vote' } };
+    const { s } = svc({ 'rpc.livrees_en_vote': err, 'rpc.livree_de_la_semaine': err });
+    expect(await s.livreeDeLaSemaine()).toBeNull();
+    const r = await s.enVote();
+    expect(r.ok).toBe(false);
+  });
 });

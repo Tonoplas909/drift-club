@@ -25,7 +25,7 @@ la fonction `verifier-course` (`npx vite-node tools/gen-fonction.ts`).
 | [Revoir sa course](#revoir-sa-course) | moyen | non | fait (0.5.13) |
 | [Fantôme de son record (local)](#fantôme-de-son-record-local) | moyen | non | fait (0.5.14) |
 | [Zones de clipping](#zones-de-clipping) | moyen | oui (simulation) | fait (0.5.15) |
-| [Votes dans l'Atelier](#votes-dans-latelier) | moyen | oui (migration) | à faire |
+| [Votes dans l'Atelier](#votes-dans-latelier) | moyen | oui (migration) | fait (0.5.18) |
 | [Pluie et nuit](#pluie-et-nuit) | moyen | oui (simulation) | fait (0.5.16) |
 | [Fantômes et tandem](#fantômes-et-tandem) | gros | oui (migration + stockage) | à faire |
 | [Clubs](#clubs) | gros | oui (migration) | à faire |
@@ -143,7 +143,7 @@ sur les niveaux qui en reçoivent (nouveaux classements, ou zones seulement sur 
 
 Les joueurs voient les propositions en attente et votent (j'aime / j'aime pas) ; l'administrateur les trie par
 popularité avant de valider. Une « livrée de la semaine » mise en avant (bannière sur l'écran des caisses, chances un peu
-plus hautes ?). Serveur : table des votes (un vote par joueur et par proposition), fonctions dédiées, RLS comme le reste.
+plus hautes ? — pas encore fait : le tirage des caisses du compte se fait sur le serveur). Serveur : table des votes (un vote par joueur et par proposition), fonctions dédiées, RLS comme le reste.
 Attention à ne pas exposer d'adresses email : on ne montre que le pseudo de l'auteur.
 
 ### Pluie et nuit
@@ -210,3 +210,4 @@ serveur à mettre à jour.
 | 0.5.15 | **Zones de clipping** : bords de route à frôler en glisse (jusqu'à × 2 sur les points du drift), sur tous les niveaux officiels (records gardés) et dans l'éditeur |
 | 0.5.16 | **Nuit** (ciel étoilé, lune, phares, fenêtres et lampadaires allumés ; Touge de Minuit passe de nuit) et **pluie** (route mouillée, adhérence −20 %, simulation et serveur) dans l'éditeur |
 | 0.5.17 | **Défi du jour** : un niveau tiré de la date (dessinateur du mode Zen) avec voiture, ambiance et météo imposées, classement du jour vérifié par le serveur, podium récompensé (5, 3, 2 clés), défis passés (migration 0011) |
+| 0.5.18 | **Votes dans l'Atelier** : j'aime / j'aime pas sur les propositions en attente, modération triée par popularité, livrée de la semaine sur l'écran des caisses (migration 0012) |
