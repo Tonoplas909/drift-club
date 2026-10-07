@@ -10,7 +10,8 @@ import { accentSkin, choisirSkin, couleurEffective, skinChoisie, skinDef, skinsD
 import { RARETES } from '../core/raretes';
 import { FUMEES, fumeeDef, type FumeeId } from '../core/fumees';
 import { ECONOMIE, fumeeDebloquee, livreeDebloquee, type GainCourse, type Progression } from '../core/economie';
-import { fondFumee, iconeCadenas, iconeCle, iconeFumee } from './svg';
+import { fondFumee, iconeCadenas, iconeCle, iconeFumee, iconeMedaille } from './svg';
+import { NOMS_MEDAILLES, medaille, prochaineMedaille, type Medaille } from '../core/medailles';
 import { formatScore, formatTime } from './format';
 
 export function levelSummary(data: unknown): { nom: string; longueur: number; ambiance: 'jour' | 'coucher'; theme: string } | null {
@@ -53,7 +54,7 @@ const DESCRIPTIONS_MODES: Record<ModeId, string> = {
   exigeant: 'Aucune aide. Tout se dose à la main.',
 };
 
-export interface NiveauCarte { nom: string; detail: string; /** place du joueur dans le classement en ligne (texte prêt à afficher) */ place: string; /** raison pour laquelle le niveau ne se lance pas */ desactive?: string }
+export interface NiveauCarte { nom: string; detail: string; /** meilleure médaille obtenue (niveaux officiels) */ medaille?: Medaille | null; /** place du joueur dans le classement en ligne (texte prêt à afficher) */ place: string; /** raison pour laquelle le niveau ne se lance pas */ desactive?: string }
 
 /** Bloc « clés gagnées » de l'écran des résultats (aussi réutilisé par la version mise à jour après la réponse du serveur). */
 export function blocGains(c: GainCourse, onCaisses?: () => void): HTMLElement {
@@ -65,6 +66,17 @@ export function blocGains(c: GainCourse, onCaisses?: () => void): HTMLElement {
       h('small', {}, `Total : ${s(c.total)}`, c.total >= ECONOMIE.coutCaisse ? ' · une caisse est prête !' : ''),
     ),
     onCaisses && h('button', { class: 'btn sm' + (c.total >= ECONOMIE.coutCaisse ? '' : ' sec'), onclick: onCaisses }, 'Caisses'),
+  );
+}
+
+/** Médaille de la course et points qui manquent pour la suivante (écran d'arrivée). */
+function ligneMedaille(score: number, seuils: readonly [number, number, number]): HTMLElement {
+  const m = medaille(score, seuils), p = prochaineMedaille(score, seuils);
+  const suite = p && `encore ${formatScore(p.manque)} points pour ${p.medaille === 'or' ? 'l\'or' : p.medaille === 'argent' ? 'l\'argent' : 'le bronze'}`;
+  return h('div', { class: 'ligne-medaille' + (m ? ' ' + m : '') },
+    m && iconeMedaille(m),
+    m ? h('b', {}, `Médaille ${m === 'or' ? 'd\'or' : m === 'argent' ? 'd\'argent' : 'de bronze'}`) : null,
+    suite ? h('span', {}, m ? ` · ${suite}` : `Pas de médaille : ${suite}`) : null,
   );
 }
 
@@ -140,6 +152,7 @@ export class Screens {
       h('div', { class: 'cardw' },
         h('button', { class: 'card' + (c.desactive ? ' off' : ''), title: c.desactive ?? '', onclick: () => (c.desactive ? this.toast(c.desactive) : choisir(i)) },
           h('span', { class: 'num' }, String(i + 1)),
+          c.medaille && h('span', { class: 'medaille-carte', title: `Médaille : ${NOMS_MEDAILLES[c.medaille]}` }, iconeMedaille(c.medaille)),
           h('b', {}, c.nom),
           h('small', {}, c.detail),
           h('span', { class: 'rec' }, c.place),
@@ -349,7 +362,7 @@ export class Screens {
     )));
   }
 
-  resultats(o: { result: RaceResult; /** niveau qu'on vient de finir (« Niveau 3 · Col du Loup ») */ niveau?: string; record: boolean; persistent: boolean; /** clés gagnées à l'arrivée et total */ cles?: GainCourse; /** bloc de clés du compte, mis à jour après la réponse du serveur (prioritaire sur `cles`) */ gainsEnLigne?: HTMLElement | null; onCaisses?: () => void; onRecommencer(): void; onSuivant: (() => void) | null; onMenu(): void; menuLabel?: string; /** bloc classement en ligne, rempli après l'envoi du score */ enLigne?: HTMLElement | null }): void {
+  resultats(o: { result: RaceResult; /** niveau qu'on vient de finir (« Niveau 3 · Col du Loup ») */ niveau?: string; /** seuils [bronze, argent, or] du niveau (niveaux officiels) */ seuils?: readonly [number, number, number]; record: boolean; persistent: boolean; /** clés gagnées à l'arrivée et total */ cles?: GainCourse; /** bloc de clés du compte, mis à jour après la réponse du serveur (prioritaire sur `cles`) */ gainsEnLigne?: HTMLElement | null; onCaisses?: () => void; onRecommencer(): void; onSuivant: (() => void) | null; onMenu(): void; menuLabel?: string; /** bloc classement en ligne, rempli après l'envoi du score */ enLigne?: HTMLElement | null }): void {
     const r = o.result;
     const ecart = r.time - r.targetTime;
     // deux colonnes (score | clés et boutons) sur téléphone en paysage, sinon une seule pile (voir styles.css)
@@ -359,6 +372,7 @@ export class Screens {
       o.niveau && h('p', { class: 'sub niveau-fini' }, o.niveau),
       o.record && h('div', { class: 'badge' }, o.persistent ? 'Nouveau record !' : 'Nouveau record (non enregistré)'),
       h('div', { class: 'score' }, formatScore(r.score)),
+      o.seuils && ligneMedaille(r.score, o.seuils),
       h('table', { class: 'detail' },
         h('tr', {}, h('td', {}, 'Points de drift'), h('td', {}, formatScore(r.driftPoints))),
         h('tr', {}, h('td', {}, 'Bonus de temps'), h('td', {}, formatScore(r.bonus))),

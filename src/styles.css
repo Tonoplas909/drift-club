@@ -180,6 +180,7 @@ html, body {
   .panel.liste .card b { font-size: 16px; }
   .panel.liste .card small { font-size: 11px; }
   .panel.liste .card .rec { font-size: 12px; }
+  .panel.liste .card .medaille-carte { font-size: 20px; top: 6px; }
   .panel.liste .cardw { gap: 4px; }
   .panel.liste .row .btn { font-size: 16px; padding: 6px 14px; }
 }
@@ -189,6 +190,9 @@ html, body {
 .card b { font-size: 20px; }
 .card small { opacity: .7; }
 .card .rec { font-size: 14px; font-weight: 700; color: #7a5a00; }
+.card .medaille-carte { position: absolute; right: 10px; top: 8px; font-size: 26px; line-height: 0; }
+.ligne-medaille { display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; font-size: 15px; }
+.ligne-medaille .ico-medaille { font-size: 26px; line-height: 0; }
 .choices { display: flex; flex-direction: column; gap: 8px; }
 .choices.row3 { flex-direction: row; flex-wrap: wrap; }
 .choices.row3 .choice { flex: 1 1 180px; }

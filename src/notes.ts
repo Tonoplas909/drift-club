@@ -13,6 +13,15 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.7',
+    date: '07/10/2026',
+    titre: 'Médailles',
+    notes: [
+      'Chaque niveau officiel a ses médailles de bronze, d\'argent et d\'or. L\'or demande une course digne du haut du classement.',
+      'À l\'arrivée, tu vois la médaille gagnée et les points qui manquent pour la suivante. Ta meilleure médaille s\'affiche sur la liste des niveaux, tous modes confondus.',
+    ],
+  },
+  {
     version: '0.5.6',
     date: '07/10/2026',
     titre: 'Le niveau rappelé à l\'arrivée',

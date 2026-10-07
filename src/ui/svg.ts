@@ -2,6 +2,7 @@
 
 import type { CarId } from '../core/physics/types';
 import type { FumeeStyle } from '../core/fumees';
+import type { Medaille } from '../core/medailles';
 
 const enSpan = (classe: string, svg: string): HTMLSpanElement => {
   const s = document.createElement('span');
@@ -16,6 +17,14 @@ const hexOk = (c: string, repli: string): string => (/^#[0-9a-f]{6}$/i.test(c) ?
 /** Clé (monnaie du jeu). */
 export function iconeCle(classe = 'ico-cle'): HTMLSpanElement {
   return enSpan(classe, '<svg viewBox="0 0 24 24" width="1em" height="1em"><circle cx="8" cy="12" r="5" fill="#ffd23f" stroke="#15131c" stroke-width="2"/><circle cx="8" cy="12" r="1.6" fill="#15131c"/><path d="M12.5 12H22M18 12v4M21 12v3" fill="none" stroke="#15131c" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 12H22M18 12v4M21 12v3" fill="none" stroke="#ffd23f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+}
+
+const TEINTES_MEDAILLES: Record<Medaille, [string, string]> = { bronze: ['#d08a4e', '#8a4f22'], argent: ['#e3e7ee', '#8b93a3'], or: ['#ffd23f', '#c48a00'] };
+
+/** Médaille d'un niveau (bronze, argent, or). */
+export function iconeMedaille(m: Medaille, classe = 'ico-medaille'): HTMLSpanElement {
+  const [clair, fonce] = TEINTES_MEDAILLES[m];
+  return enSpan(classe + ' ' + m, `<svg viewBox="0 0 24 24" width="1em" height="1em"><path d="M7 1.5h4l2 7h-4zM17 1.5h-4l-2 7h4z" fill="#e2483d" stroke="#15131c" stroke-width="1.4" stroke-linejoin="round"/><circle cx="12" cy="15" r="7.3" fill="${clair}" stroke="#15131c" stroke-width="2"/><circle cx="12" cy="15" r="4.4" fill="none" stroke="${fonce}" stroke-width="1.6"/></svg>`);
 }
 
 /** Cadenas des livrées verrouillées. */
