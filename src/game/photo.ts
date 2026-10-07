@@ -1,5 +1,6 @@
 import type { CamLibre } from '../debug/camLibre';
 import { h } from '../ui/screens';
+import { enregistrerImage } from '../ui/partageImage';
 import { FILTRES_PHOTO, appliquerFiltre, nomPhoto, type FiltrePhoto } from '../ui/photoFiltres';
 
 /** Ce que la course en pause donne au mode photo. */
@@ -187,25 +188,8 @@ export class ModePhoto {
   }
 
   private async enregistrer(blob: Blob, nom: string): Promise<void> {
-    if (this.o.partager && typeof File !== 'undefined') {
-      const fichier = new File([blob], nom, { type: 'image/png' });
-      if (navigator.canShare?.({ files: [fichier] })) {
-        try {
-          await navigator.share({ files: [fichier], title: 'Drift Club' });
-          return;
-        } catch (e) {
-          // partage annulé par le joueur : rien d'autre à faire
-          if (e instanceof DOMException && e.name === 'AbortError') return;
-        }
-      }
-    }
-    const url = URL.createObjectURL(blob);
-    const a = h('a', { href: url, download: nom });
-    document.body.append(a);
-    a.click();
-    a.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
-    this.o.toast('Photo enregistrée');
+    const msg = await enregistrerImage(blob, nom, this.o.partager);
+    if (msg) this.o.toast('Photo enregistrée');
   }
 
   quitter(): void {

@@ -13,6 +13,15 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.10',
+    date: '07/10/2026',
+    titre: 'Carte de score à partager',
+    notes: [
+      'À l\'arrivée, le bouton « Partager » crée une image de ta course : ta voiture sur la ligne d\'arrivée, avec le niveau, ton score, ta médaille, ton meilleur drift, ton temps, ta voiture et l\'adresse du jeu.',
+      'Sur téléphone, elle se partage directement ; sur ordinateur, elle s\'enregistre.',
+    ],
+  },
+  {
     version: '0.5.9',
     date: '07/10/2026',
     titre: 'Touches personnalisables',
