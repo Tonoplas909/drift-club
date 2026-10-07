@@ -1,6 +1,6 @@
 # Idées pour la suite de Drift Club
 
-Carnet d'idées : ce qui pourrait venir après la v0.5.3. Rien ici n'est promis ni planifié ; on pioche dedans, et on met
+Carnet d'idées : ce qui pourrait venir après la v0.5.5. Rien ici n'est promis ni planifié ; on pioche dedans, et on met
 à jour la colonne **État** (et la section « Fait » en bas) au fil des versions.
 
 Repères d'effort : **petit** = une session, **moyen** = une ou deux sessions, **gros** = une vraie mise à jour (v0.x.0).
@@ -14,6 +14,7 @@ la fonction `verifier-course` (`npx vite-node tools/gen-fonction.ts`).
 | [Manette](#manette) | petit | non | fait (0.5.3) |
 | [Mode photo](#mode-photo) | petit | non | fait (0.5.3) |
 | [Ambiance sonore par décor](#ambiance-sonore-par-décor) | petit | non | fait (0.5.3) |
+| [Niveau rappelé à l'arrivée](#niveau-rappelé-à-larrivée) | petit | non | nouveau |
 | [Médailles par niveau](#médailles-par-niveau) | petit | non | nouveau |
 | [Vibrations de la manette](#vibrations-de-la-manette) | petit | non | nouveau |
 | [Caméra capot](#caméra-capot) | petit | non | nouveau |
@@ -55,6 +56,13 @@ l'Atelier. Option : quelques filtres (noir et blanc, grain, vignette).
 Un fond sonore léger par thème, en boucle et en mélange avec le moteur : vent et oiseaux (montagne), vent glacé (neige),
 cigales (japon), vagues (pirate), bourdonnement électrique des néons (backrooms), rumeur de ville et pluie (cyberpunk).
 Sons générés comme le reste de l'audio (`src/audio/`), volume lié au réglage existant.
+
+### Niveau rappelé à l'arrivée
+
+L'écran de victoire affiche seulement « Arrivée ! » : y réafficher le numéro et le nom du niveau (par exemple
+« Niveau 3 · Col du Loup »), pour savoir d'un coup d'œil quelle course on vient de finir, surtout avant
+« Niveau suivant » ou une capture d'écran. Pour un niveau de l'éditeur ou le mode Zen, son nom seul. À faire dans
+`resultats()` (`src/ui/screens.ts`), appelé depuis `src/app.ts`.
 
 ### Médailles par niveau
 
