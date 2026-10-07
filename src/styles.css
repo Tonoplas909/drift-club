@@ -683,3 +683,24 @@ input[type=text], input[type=email], input[type=password] { user-select: text; -
 .film-barre { flex: 1; min-width: 160px; accent-color: var(--orange); }
 .film-temps { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 128px; text-align: right; }
 .film-ligne .seg .tab { padding: 4px 10px; font-size: 14px; }
+
+/* Défi du jour */
+.panel.defi { max-height: 94vh; overflow-y: auto; }
+.defi-carte { display: flex; align-items: center; justify-content: space-between; gap: 16px; background: #fff; border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 5px 0 var(--ink); padding: 12px 16px; text-align: left; }
+.defi-carte > div { display: flex; flex-direction: column; gap: 2px; }
+.defi-nom { font-size: 24px; }
+.defi-carte small { opacity: .7; }
+.defi-voiture { font-weight: 600; }
+.defi-carte .rec { font-size: 14px; font-weight: 700; color: #7a5a00; }
+.defi-recompenses { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; text-align: left; }
+.defi-recompenses .ico-cle { font-size: 22px; flex: none; }
+.defi-colonnes { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; text-align: left; }
+.defi-colonnes h3 { margin: 0 0 4px; }
+.defi-table { width: 100%; font-size: 15px; }
+.defi-table td:nth-child(3), .defi-table td:nth-child(4) { text-align: right; }
+.defi-table tr.moi { background: var(--yellow); }
+.menu .btn.defi-btn { background: var(--yellow); }
+@media (max-width: 720px), (max-height: 500px) {
+  .defi-colonnes { grid-template-columns: 1fr; }
+  .defi-nom { font-size: 19px; }
+}

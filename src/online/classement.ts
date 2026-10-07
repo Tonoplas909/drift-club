@@ -3,6 +3,7 @@ import type { Fournisseur } from './client';
 import { messageErreur, MSG_INDISPONIBLE } from './erreurs';
 import { EMPREINTE_SIMULATION } from './empreinteSimulation';
 import { compresserReplay, versBase64 } from '../core/replay/replay';
+import { MSG_DEFI_PAS_PRET } from './defi';
 
 export type Resultat<T> = { ok: true; valeur: T } | { ok: false; message: string };
 
@@ -60,9 +61,9 @@ export interface MaPlace {
   mode: string;
 }
 
-/** Seuls les niveaux officiels et perso ont un classement (même règle que le SQL). */
+/** Seuls les niveaux officiels, perso et les défis du jour ont un classement (même règle que le SQL). */
 export function cleEnLigne(cle: string): boolean {
-  return /^(off|perso):[A-Za-z0-9_-]{1,80}$/.test(cle);
+  return /^((off|perso):[A-Za-z0-9_-]{1,80}|jour:\d{4}-\d{2}-\d{2})$/.test(cle);
 }
 
 const nombre = (v: unknown): number => (typeof v === 'number' ? v : Number(v));
@@ -94,6 +95,13 @@ export class ClassementService {
    * si la fonction n'est pas (encore) déployée, on retombe sur l'ancienne fonction SQL `soumettre_score`.
    */
   async soumettreScore(s: ScoreEnvoye): Promise<Resultat<RangEnLigne>> {
+    const r = await this.soumettre(s);
+    // défi du jour refusé par un serveur sans la migration 0011 : on le dit clairement
+    if (!r.ok && s.niveau.startsWith('jour:') && r.message === 'Niveau invalide.') return { ok: false, message: MSG_DEFI_PAS_PRET };
+    return r;
+  }
+
+  private async soumettre(s: ScoreEnvoye): Promise<Resultat<RangEnLigne>> {
     if (!cleEnLigne(s.niveau)) return { ok: false, message: "Ce niveau n'a pas de classement en ligne." };
     try {
       const client = await this.fournisseur();

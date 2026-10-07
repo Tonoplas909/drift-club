@@ -63,9 +63,13 @@ import { ecranTouches, aideTouches } from './ui/touches';
 import { CompteurPilote, lireStatistiques } from './game/statistiques';
 import { ecranStatistiques } from './ui/statistiques';
 import { ecranRevoir } from './ui/revoir';
+import { ecranDefi } from './ui/defi';
+import { DefiService } from './online/defi';
+import { defiDuJour, cleDefi, jourEnClair } from './core/defi';
+import { jourParis } from './jour';
 
 /** D'où vient la course : `index` ≥ 0 pour un niveau officiel, `retour` ramène à l'écran d'origine. */
-interface Contexte { index: number; retour: () => void; menuLabel: string }
+interface Contexte { index: number; retour: () => void; menuLabel: string; /** voiture imposée (défi du jour) */ voiture?: CarId }
 
 /** Message quand le compte est connecté mais injoignable : la progression du compte reste en lecture seule. */
 export const MSG_CONNEXION_CAISSE = 'Connexion requise pour ouvrir une caisse avec ton compte';
@@ -108,6 +112,7 @@ export class App {
   private readonly niveauxEnLigne = new NiveauxEnLigneService(clientParDefaut);
   private readonly progressionEnLigne = new ProgressionEnLigne(clientParDefaut);
   private readonly atelier = new AtelierEnLigne(clientParDefaut);
+  private readonly defis = new DefiService(clientParDefaut);
   /** livrées de l'Atelier : chargement en cours ou dernier fait, et quand (rechargées au plus toutes les 5 min) */
   private livreesAtelier: Promise<void> | null = null;
   private livreesAtelierLe = 0;
@@ -345,6 +350,7 @@ export class App {
       compte: this.libelleCompte(),
       onCompte: () => this.ecranCompte(() => this.accueil()),
       onJouer: () => this.niveaux(),
+      onDefi: () => this.defiEcran(() => this.accueil()),
       onZen: () => void this.lancerZen(),
       onGarage: () => this.garage(() => this.accueil()),
       onCaisses: () => this.caisses(() => this.accueil()),
@@ -629,6 +635,42 @@ export class App {
     });
   }
 
+  /** Défi du jour : niveau tiré de la date (heure de Paris), voiture imposée, classement, podium récompensé. */
+  private defiEcran(retour: () => void): void {
+    this.showroom?.stop();
+    this.screens.loading('Préparation du défi du jour…');
+    window.setTimeout(() => {
+      const jour = jourParis(new Date());
+      const defi = defiDuJour(jour);
+      const cle = cleDefi(jour);
+      const prep = prepareLevel(cle, defi.level);
+      const records = MODE_IDS.map((m) => this.store.getRecord(cle, m)).filter((r) => r !== null);
+      const record = records.length ? records.reduce((a, b) => (b!.score > a!.score ? b : a))! : null;
+      const e = this.compte.etat;
+      const montrer = (): void => this.defiEcran(retour);
+      this.screens.monter(ecranDefi({
+        defi, longueur: prep.ok ? prep.prepared.track.length : 0,
+        record: record && { score: record.score, temps: record.temps },
+        moi: e.statut === 'connecte' ? e.id : null,
+        classement: () => this.classement.chargerClassement(cle, 10),
+        passes: () => this.defis.passes(7),
+        onJouer: () => void this.demarrer(cle, defi.level, { index: -1, retour: montrer, menuLabel: 'Défi du jour', voiture: defi.voiture }),
+        onClassement: () => this.ecranClassement(cle, defi.level.nom, montrer),
+        onRetour: retour,
+      }));
+      // podium des défis passés : clés créditées par le serveur, une fois par défi
+      if (e.statut === 'connecte' && e.pseudo) {
+        void this.defis.reclamer().then((r) => {
+          if (!r.ok || r.valeur.length === 0) return;
+          const total = r.valeur.reduce((n, x) => n + x.cles, 0);
+          const premier = r.valeur[0];
+          this.screens.toast(`+${total} clé${total > 1 ? 's' : ''} : ${premier.rang === 1 ? '1er' : `${premier.rang}e`} au défi du ${jourEnClair(premier.jour)}${r.valeur.length > 1 ? ' (et d\'autres)' : ''} !`);
+          void this.synchroProgression();
+        });
+      }
+    }, 30);
+  }
+
   /** Statistiques du pilote, avec les médailles gagnées (records de l'appareil). */
   private statistiquesEcran(retour: () => void): void {
     this.showroom?.stop();
@@ -674,9 +716,12 @@ export class App {
     }
     this.session?.dispose();
     this.current = { index: contexte.index, prepared: res.prepared, contexte };
+    // voiture imposée (défi du jour) : la course a ses propres réglages, la voiture du Garage ne change pas
+    const reglages = contexte.voiture ? { ...this.reglages, voiture: contexte.voiture } : this.reglages;
+    this.reglagesCourse = reglages;
     this.session = new GameSession(res.prepared, {
       renderer: this.renderer, assets: this.assets, hud: this.hud, audio: this.audio, input: this.input,
-      quality: new QualityManager(this.reglages.qualite, this.touch), reglages: this.reglages, debug: this.debug, stats: this.stats,
+      quality: new QualityManager(this.reglages.qualite, this.touch), reglages, debug: this.debug, stats: this.stats,
     }, {
       onFinish: (r) => this.arrivee(r),
       onPause: () => this.pauseRace(),
@@ -919,12 +964,12 @@ export class App {
     this.save();
     this.touchControls.show(false);
     const record = this.store.submitRecord(cur.prepared.key, this.reglages.mode, {
-      score: r.score, temps: r.time, voiture: this.reglages.voiture, meilleurDrift: r.bestDrift, date: new Date().toISOString().slice(0, 10),
+      score: r.score, temps: r.time, voiture: this.voitureCourse(), meilleurDrift: r.bestDrift, date: new Date().toISOString().slice(0, 10),
     });
     // nouveau record : sa course devient le fantôme de ce niveau
     const replayRecord = record ? this.session.replay() : null;
     if (replayRecord) {
-      this.store.saveFantome(cur.prepared.key, this.reglages.mode, { voiture: this.reglages.voiture, replay: versBase64(replayRecord), score: r.score });
+      this.store.saveFantome(cur.prepared.key, this.reglages.mode, { voiture: this.voitureCourse(), replay: versBase64(replayRecord), score: r.score });
       this.fantomeAJour = true;
     }
     const next = cur.index >= 0 && cur.index + 1 < NIVEAUX_OFFICIELS.length ? cur.index + 1 : -1;
@@ -1001,7 +1046,7 @@ export class App {
       capture.width = src.width; capture.height = src.height;
       capture.getContext('2d')?.drawImage(src, 0, 0);
       s.rendrePhoto(null);
-      const voiture = this.reglages.voiture;
+      const voiture = this.voitureCourse();
       const seuils = index >= 0 ? SEUILS_MEDAILLES[NIVEAUX_OFFICIELS[index].id] : undefined;
       const carte = dessinerCarte(capture, {
         niveau, score: r.score, meilleurDrift: r.bestDrift, temps: r.time,
@@ -1032,7 +1077,7 @@ export class App {
       zone.envoi();
       gains?.envoi();
       void this.classement.soumettreScore({
-        niveau: cle, mode: this.reglages.mode, score: r.score, temps: r.time, voiture: this.reglages.voiture, meilleurDrift: r.bestDrift,
+        niveau: cle, mode: this.reglages.mode, score: r.score, temps: r.time, voiture: this.voitureCourse(), meilleurDrift: r.bestDrift,
         // replay : le serveur rejoue la course pour vérifier le score
         ...(course.replay ? { course: { replay: course.replay, level: course.level } } : {}),
       }).then((res) => {
@@ -1060,7 +1105,19 @@ export class App {
   }
 
   /** Ferme la course et renvoie l'écran où retourner. */
+  /** Voiture de la course en cours : celle du Garage, ou celle imposée par le défi du jour. */
+  private voitureCourse(): CarId {
+    return this.current?.contexte.voiture ?? this.reglages.voiture;
+  }
+
+  /** réglages de la course en cours (une copie quand la voiture est imposée) */
+  private reglagesCourse: Reglages | null = null;
+
   private terminerCourse(): () => void {
+    // caméra et son changés en course (touches C, M) : gardés aussi quand la course avait sa copie des réglages
+    const rc = this.reglagesCourse;
+    if (rc && rc !== this.reglages) { this.reglages.camera = rc.camera; this.reglages.muet = rc.muet; }
+    this.reglagesCourse = null;
     this.save();
     this.keyboard.capture = false;
     this.touchControls.show(false);

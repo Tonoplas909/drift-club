@@ -123,13 +123,14 @@ export class Screens {
     )));
   }
 
-  accueil(o: { onJouer(): void; onZen(): void; onGarage(): void; onCaisses(): void; onEditeur(): void; onStatistiques(): void; onCompte(): void; onReglages(): void; persistent: boolean; compte: string; /** rappel des touches */ aide: string }): void {
+  accueil(o: { onJouer(): void; onDefi(): void; onZen(): void; onGarage(): void; onCaisses(): void; onEditeur(): void; onStatistiques(): void; onCompte(): void; onReglages(): void; persistent: boolean; compte: string; /** rappel des touches */ aide: string }): void {
     const compte = h('button', { class: 'btn sec', onclick: o.onCompte }, o.compte);
     this.boutonCompte = compte;
     this.show(h('div', { class: 'screen accueil' },
       h('h1', { class: 'logo big' }, 'Drift', h('span', {}, 'Club')),
       h('div', { class: 'menu' },
         h('button', { class: 'btn big', onclick: o.onJouer }, 'Jouer'),
+        h('button', { class: 'btn defi-btn', title: 'Un nouveau niveau chaque jour, voiture imposée, podium récompensé', onclick: o.onDefi }, 'Défi du jour'),
         h('button', { class: 'btn sec', title: 'Balade sans fin, sans score : la route se dessine au fil des kilomètres', onclick: o.onZen }, 'Mode Zen'),
         h('div', { class: 'duo' },
           h('button', { class: 'btn sec', onclick: o.onGarage }, 'Garage'),

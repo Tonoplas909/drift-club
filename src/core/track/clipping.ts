@@ -1,4 +1,4 @@
-import type { Level } from '../level/types';
+import type { Level, ZoneClipping } from '../level/types';
 import type { TrackData } from './buildTrack';
 
 /**
@@ -34,4 +34,30 @@ export function proximiteClipping(zones: readonly ZonePiste[], index: number, la
     if (p > best) best = p;
   }
   return best;
+}
+
+/**
+ * Zones placées automatiquement : à l'extérieur des `nb` plus grands virages (tronçons consécutifs qui tournent du
+ * même côté avec un rayon moyen < 90 m), en évitant les 40 premiers mètres. Sert aux niveaux officiels et au défi
+ * du jour.
+ */
+export function zonesAutomatiques(level: Level, track: TrackData, nb: number): ZoneClipping[] {
+  const ps = track.pointSample, S = track.samples;
+  const virages: { de: number; a: number; ang: number }[] = [];
+  let cur: { de: number; a: number; ang: number } | null = null;
+  for (let i = 0; i < level.route.length - 1; i++) {
+    let ang = 0, len = 0;
+    for (let j = ps[i]; j < ps[i + 1]; j++) { const ds = S[j + 1].s - S[j].s; ang += S[j].k * ds; len += ds; }
+    const tourne = len > 0 && Math.abs(ang / len) > 1 / 90;
+    if (tourne && cur && (cur.ang > 0) === (ang > 0)) { cur.a = i + 1; cur.ang += ang; continue; }
+    cur = tourne ? { de: i, a: i + 1, ang } : null;
+    if (cur) virages.push(cur);
+  }
+  return virages
+    .filter((v) => S[ps[v.de]].s > 40)
+    .sort((a, b) => Math.abs(b.ang) - Math.abs(a.ang) || a.de - b.de)
+    .slice(0, nb)
+    .sort((a, b) => a.de - b.de)
+    // extérieur : virage à gauche (angle > 0) → bord droit
+    .map((v) => ({ de: v.de, a: v.a, cote: v.ang > 0 ? 'droite' : 'gauche' }));
 }
