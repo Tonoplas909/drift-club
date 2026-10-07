@@ -1,6 +1,6 @@
 # Idées pour la suite de Drift Club
 
-Carnet d'idées : ce qui pourrait venir après la v0.5.5. Rien ici n'est promis ni planifié ; on pioche dedans, et on met
+Carnet d'idées : ce qui pourrait venir après la v0.5.18. Rien ici n'est promis ni planifié ; on pioche dedans, et on met
 à jour la colonne **État** (et la section « Fait » en bas) au fil des versions.
 
 Repères d'effort : **petit** = une session, **moyen** = une ou deux sessions, **gros** = une vraie mise à jour (v0.x.0).
@@ -32,9 +32,9 @@ la fonction `verifier-course` (`npx vite-node tools/gen-fonction.ts`).
 | [Saison](#saison) | gros | oui (migration) | à faire |
 | [Réglages de voiture](#réglages-de-voiture) | gros | oui (simulation) | à discuter |
 
-Recommandation actuelle : **défi du jour** puis **zones de clipping**.
-Le défi du jour fait revenir les joueurs chaque jour ; les zones de clipping rendent le drift plus riche à jouer ; les deux
-réutilisent ce qui existe (dessinateur du mode Zen, éditeur, rejeu des courses par le serveur).
+Recommandation actuelle : toutes les petites et moyennes idées sont faites (0.5.6 à 0.5.18). Pour la suite, **fantômes
+et tandem** : les replays, le film (« Revoir ») et le fantôme local existent déjà, il reste à stocker les replays sur le
+serveur pour courir contre le premier du classement.
 
 ## Petites
 
