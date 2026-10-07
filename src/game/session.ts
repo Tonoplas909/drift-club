@@ -10,6 +10,7 @@ import { CAMERA_LOIN, CAMERA_PROCHE, type ChaseConfig } from '../render/camera';
 import type { QualityManager } from '../render/quality';
 import type { AudioEngine } from '../audio/audio';
 import type { InputManager } from '../input/manager';
+import { vibrationChoc, vibrationDrift, vibrationHorsPiste } from '../input/gamepad';
 import type { Reglages } from '../storage/store';
 import { FixedStepLoop } from './loop';
 import { interpolatePose } from './pose';
@@ -136,6 +137,7 @@ export class GameSession {
     this.world.render();
     this.deps.hud.update(this.race.hud());
     this.deps.audio.updateEngine(car.rpm, car.throttle, car.rearSlip, car.speed, { gear: car.gear, onRoad: this.race.onRoad });
+    if (this.race.phase === 'course' && !this.race.onRoad) this.deps.input.gamepad?.vibrer(vibrationHorsPiste(car.speed), now);
     this.deps.debug?.frame(car, dt);
     if (this.race.phase === 'course' && this.deps.quality.sample(dt)) this.world.setQuality(this.deps.quality.level);
 
@@ -162,6 +164,7 @@ export class GameSession {
         break;
       case 'bank':
         this.deps.audio.playBank(e.multiplier);
+        this.deps.input.gamepad?.vibrer(vibrationDrift(e.multiplier), performance.now());
         this.deps.hud.flash('bank', e.points);
         break;
       case 'lose':
@@ -171,6 +174,7 @@ export class GameSession {
       case 'choc':
         this.deps.audio.playCrash(e.impact);
         this.world.shake(e.impact);
+        this.deps.input.gamepad?.vibrer(vibrationChoc(e.impact), performance.now());
         break;
       case 'replace':
         this.world.resetCamera(this.race.car);
@@ -208,6 +212,7 @@ export class GameSession {
   pause(): void {
     this.paused = true;
     this.deps.audio.stopEngine();
+    this.deps.input.gamepad?.arreterVibrations();
   }
 
   resume(): void {

@@ -111,6 +111,7 @@ function lireManette(v: unknown): ReglagesManette {
   return {
     zoneMorte: entre(o.zoneMorte, 0, 0.4) ? o.zoneMorte : MANETTE_DEFAUT.zoneMorte,
     sensibilite: entre(o.sensibilite, 0, 1) ? o.sensibilite : MANETTE_DEFAUT.sensibilite,
+    vibrations: typeof o.vibrations === 'boolean' ? o.vibrations : MANETTE_DEFAUT.vibrations,
   };
 }
 

@@ -330,6 +330,7 @@ export class Screens {
           h('input', { type: 'range', min: '0', max: '0.4', step: '0.01', value: String(r.manette.zoneMorte), oninput: (e: Event) => { r.manette = { ...r.manette, zoneMorte: parseFloat((e.target as HTMLInputElement).value) }; o.onChange({ ...r }); } })),
         h('label', { class: 'line' }, h('span', {}, 'Direction : précise ↔ vive'),
           h('input', { type: 'range', min: '0', max: '1', step: '0.05', value: String(r.manette.sensibilite), oninput: (e: Event) => { r.manette = { ...r.manette, sensibilite: parseFloat((e.target as HTMLInputElement).value) }; o.onChange({ ...r }); } })),
+        h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.manette.vibrations, onchange: (e: Event) => { r.manette = { ...r.manette, vibrations: (e.target as HTMLInputElement).checked }; change(); } }), 'Vibrations (drift encaissé, choc, hors piste)'),
         h('button', { class: 'btn', onclick: o.onRetour }, 'Retour'),
       )));
     };

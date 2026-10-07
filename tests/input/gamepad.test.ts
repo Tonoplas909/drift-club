@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { GamepadInput, MANETTE_DEFAUT, courbeStick, etatManette, type ManetteBrute } from '../../src/input/gamepad';
+import { GamepadInput, MANETTE_DEFAUT, courbeStick, etatManette, vibrationChoc, vibrationDrift, vibrationHorsPiste, type ManetteBrute } from '../../src/input/gamepad';
 import { InputManager } from '../../src/input/manager';
 import { KeyboardInput, NO_ACTIONS } from '../../src/input/keyboard';
 import { quantifier } from '../../src/core/replay/replay';
@@ -70,5 +70,35 @@ describe('manette', () => {
     expect(m.state(false).gaz).toBeGreaterThan(0.5);
     k.keyDown('KeyA');
     expect(m.state(false).direction).toBe(1);
+  });
+});
+
+describe('vibrations de la manette', () => {
+  it('drift : plus fort avec le multiplicateur ; choc selon l\'impact ; hors piste seulement en roulant', () => {
+    expect(vibrationDrift(5).fort).toBeGreaterThan(vibrationDrift(1).fort);
+    expect(vibrationChoc(20).fort).toBe(1);
+    expect(vibrationChoc(2).fort).toBeLessThan(1);
+    expect(vibrationHorsPiste(0)).toBeNull();
+    expect(vibrationHorsPiste(20)!.fort).toBeGreaterThan(vibrationHorsPiste(5)!.fort);
+  });
+  it('vibre la manette qui pilote, sans couper une secousse plus forte, et jamais si c\'est désactivé', () => {
+    const effets: number[] = [];
+    const pad = { ...manette({ boutons: { 7: 1 } }), vibrationActuator: { playEffect: (_t: string, p: { strongMagnitude: number }) => { effets.push(p.strongMagnitude); return Promise.resolve(); } } };
+    const g = new GamepadInput(() => [pad]);
+    g.vibrer(vibrationChoc(20), 0);
+    expect(effets).toEqual([]); // aucune manette n'a encore piloté
+    g.poll();
+    g.vibrer(vibrationChoc(20), 0);
+    g.vibrer(vibrationHorsPiste(10), 50); // plus faible, pendant la secousse : ignoré
+    g.vibrer(vibrationHorsPiste(10), 1000);
+    expect(effets.length).toBe(2);
+    g.reglages = { ...g.reglages, vibrations: false };
+    g.vibrer(vibrationChoc(20), 5000);
+    expect(effets.length).toBe(2);
+  });
+  it('sans moteur de vibration (Firefox, Safari) : rien ne casse', () => {
+    const g = new GamepadInput(() => [manette({ boutons: { 7: 1 } })]);
+    g.poll();
+    expect(() => { g.vibrer(vibrationChoc(10), 0); g.arreterVibrations(); }).not.toThrow();
   });
 });

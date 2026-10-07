@@ -14,9 +14,36 @@ export interface ReglagesManette {
   zoneMorte: number;
   /** sensibilité de la direction (0 = précise au centre, 1 = linéaire et vive) */
   sensibilite: number;
+  /** vibrations (drift encaissé, choc, hors piste) sur les manettes qui en ont */
+  vibrations: boolean;
 }
 
-export const MANETTE_DEFAUT: Readonly<ReglagesManette> = Object.freeze({ zoneMorte: 0.15, sensibilite: 0.5 });
+export const MANETTE_DEFAUT: Readonly<ReglagesManette> = Object.freeze({ zoneMorte: 0.15, sensibilite: 0.5, vibrations: true });
+
+/** Une vibration : moteurs lourd (basses fréquences) et léger (aigus) de 0 à 1, durée en ms. */
+export interface Vibration { fort: number; faible: number; duree: number }
+
+/** Drift encaissé : petite impulsion, plus forte avec le multiplicateur (x1 à x5). */
+export function vibrationDrift(multiplicateur: number): Vibration {
+  const m = borne((multiplicateur - 1) / 4, 0, 1);
+  return { fort: 0.15 + 0.45 * m, faible: 0.35 + 0.4 * m, duree: 90 + 90 * m };
+}
+
+/** Choc : secousse selon la violence de l'impact (m/s de vitesse perdue). */
+export function vibrationChoc(impact: number): Vibration {
+  const k = borne(impact / 12, 0.3, 1);
+  return { fort: k, faible: 0.6 * k, duree: 120 + 180 * k };
+}
+
+/** Hors piste : grondement léger qui grandit avec la vitesse (null à l'arrêt). Rejoué en continu tant qu'on y roule. */
+export function vibrationHorsPiste(vitesse: number): Vibration | null {
+  if (!(vitesse > 3)) return null;
+  const k = borne(vitesse / 25, 0, 1);
+  return { fort: 0.08 + 0.17 * k, faible: 0.04 + 0.1 * k, duree: 140 };
+}
+
+/** Moteur de vibration d'une manette (Chrome, Edge) ; ailleurs absent. */
+interface Vibreur { playEffect(type: 'dual-rumble', p: { duration: number; strongMagnitude: number; weakMagnitude: number }): Promise<unknown> }
 
 /** Ce que l'on lit d'une manette (sous-ensemble de `Gamepad`, pour les tests). */
 export interface ManetteBrute {
@@ -33,7 +60,7 @@ const ZONE_GACHETTE = 0.05;
 const borne = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > hi ? hi : v);
 
 /** Axe du stick → direction (−1..1) : zone morte, puis courbe de réponse (exposant 2,2 → 1 selon la sensibilité). */
-export function courbeStick(x: number, r: ReglagesManette): number {
+export function courbeStick(x: number, r: Pick<ReglagesManette, 'zoneMorte' | 'sensibilite'>): number {
   if (!Number.isFinite(x)) return 0;
   const zm = borne(r.zoneMorte, 0, 0.4);
   const a = Math.abs(x);
@@ -80,6 +107,10 @@ export class GamepadInput {
   private actions: Actions = { ...NO_ACTIONS };
   private precedents: boolean[] = [];
   private index = -1;
+  /** vibration en cours : jusqu'à quand (ms) et sa force, pour ne pas écraser une secousse par un grondement */
+  private vibreJusqua = 0;
+  private vibreForce = 0;
+  private dernierePad: Gamepad | ManetteBrute | null = null;
 
   constructor(private readonly lire: () => readonly (Gamepad | ManetteBrute | null)[] = lireManettes) {}
 
@@ -92,6 +123,7 @@ export class GamepadInput {
       if (p?.connected && i !== this.index && sollicitee(p)) { this.index = i; this.precedents = []; }
     }
     const gp = this.index >= 0 ? pads[this.index] : null;
+    this.dernierePad = gp && gp.connected ? gp : null;
     if (!gp || !gp.connected) {
       this.index = -1; this.nom = null; this.etat = { ...NO_INPUT }; this.precedents = [];
       return;
@@ -117,6 +149,32 @@ export class GamepadInput {
     const a = this.actions;
     this.actions = { ...NO_ACTIONS };
     return a;
+  }
+
+  /**
+   * Fait vibrer la manette qui pilote (si les vibrations sont activées et que le navigateur sait le faire).
+   * Une vibration plus faible que celle en cours ne la coupe pas. `maintenant` en ms.
+   */
+  vibrer(v: Vibration | null, maintenant: number): void {
+    if (!v || !this.reglages.vibrations || this.index < 0) return;
+    const force = Math.max(v.fort, v.faible);
+    if (maintenant < this.vibreJusqua && force < this.vibreForce) return;
+    const act = (this.dernierePad as { vibrationActuator?: Vibreur | null } | null)?.vibrationActuator;
+    if (!act || typeof act.playEffect !== 'function') return;
+    this.vibreJusqua = maintenant + v.duree;
+    this.vibreForce = force;
+    try {
+      void act.playEffect('dual-rumble', { duration: Math.round(v.duree), strongMagnitude: borne(v.fort, 0, 1), weakMagnitude: borne(v.faible, 0, 1) }).catch(() => {});
+    } catch {
+      // effet refusé par le navigateur : tant pis
+    }
+  }
+
+  /** Arrête toute vibration (pause, arrivée). */
+  arreterVibrations(): void {
+    this.vibreJusqua = 0; this.vibreForce = 0;
+    const act = (this.dernierePad as { vibrationActuator?: (Vibreur & { reset?: () => Promise<unknown> }) | null } | null)?.vibrationActuator;
+    try { void act?.reset?.().catch(() => {}); } catch { /* rien */ }
   }
 
   /** Oublie les appuis pas encore lus. */
