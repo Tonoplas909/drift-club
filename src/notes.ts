@@ -13,6 +13,15 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.14',
+    date: '07/10/2026',
+    titre: 'Fantôme de ton record',
+    notes: [
+      'Bats-toi contre toi-même : sur un niveau où tu as un record, une voiture translucide refait ta meilleure course en même temps que toi.',
+      'Un fantôme par niveau et par mode de conduite, gardé sur ton appareil ; un nouveau record le remplace. Il se coupe dans les Réglages.',
+    ],
+  },
+  {
     version: '0.5.13',
     date: '07/10/2026',
     titre: 'Revoir sa course',

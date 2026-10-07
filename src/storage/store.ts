@@ -42,6 +42,8 @@ export interface Reglages {
   manette: ReglagesManette;
   /** touches du clavier et boutons de la manette choisis par le joueur */
   touches: Touches;
+  /** fantôme de son record pendant la course */
+  fantome: boolean;
 }
 
 export interface RecordEntry {
@@ -50,6 +52,13 @@ export interface RecordEntry {
   voiture: CarId;
   meilleurDrift: number;
   date: string;
+}
+
+/** Replay d'un record (base64), rejoué en voiture translucide pendant la course. */
+export interface Fantome {
+  voiture: CarId;
+  replay: string;
+  score: number;
 }
 
 export interface MonNiveau {
@@ -63,6 +72,10 @@ const K_RECORDS = 'driftclub.v1.records';
 const K_NIVEAUX = 'driftclub.v1.niveaux';
 const K_PROGRESSION = 'driftclub.v1.progression';
 const K_STATISTIQUES = 'driftclub.v1.statistiques';
+/** replay du record de chaque niveau et mode (fantôme), le plus récent en dernier */
+const K_FANTOMES = 'driftclub.v1.fantomes';
+/** fantômes gardés au plus (quelques ko chacun) */
+export const FANTOMES_MAX = 30;
 /** dernière progression connue du compte en ligne (lecture seule hors ligne) ; la progression locale ci-dessus n'est jamais modifiée par le compte */
 const K_PROGRESSION_COMPTE = 'driftclub.v1.progression-compte';
 const K_LIVREES_ATELIER = 'driftclub.v1.livrees-atelier';
@@ -108,6 +121,7 @@ export function defaultReglages(touch: boolean): Reglages {
     indicateurAngle: true,
     manette: { ...MANETTE_DEFAUT },
     touches: touchesParDefaut(),
+    fantome: true,
   };
 }
 
@@ -167,6 +181,7 @@ export class Store {
       indicateurAngle: typeof o.indicateurAngle === 'boolean' ? o.indicateurAngle : d.indicateurAngle,
       manette: lireManette(o.manette),
       touches: lireTouches(o.touches),
+      fantome: typeof o.fantome === 'boolean' ? o.fantome : d.fantome,
     };
   }
 
@@ -209,6 +224,27 @@ export class Store {
   }
 
   /** Dernières livrées de l'Atelier reçues du serveur (lignes brutes, re-validées à la lecture par l'appelant). */
+  /** Fantôme (replay du record) d'un niveau dans un mode, ou null. */
+  loadFantome(levelKey: string, mode: ModeId): Fantome | null {
+    const f = this.fantomes()[`${levelKey}|${mode}`];
+    return f && typeof f.replay === 'string' && CAR_IDS.includes(f.voiture) && typeof f.score === 'number' ? f : null;
+  }
+
+  /** Garde le replay du nouveau record ; les plus anciens fantômes partent au-delà de FANTOMES_MAX. */
+  saveFantome(levelKey: string, mode: ModeId, f: Fantome): void {
+    const tous = this.fantomes();
+    delete tous[`${levelKey}|${mode}`];
+    tous[`${levelKey}|${mode}`] = f;
+    const cles = Object.keys(tous);
+    for (const k of cles.slice(0, Math.max(0, cles.length - FANTOMES_MAX))) delete tous[k];
+    this.write(K_FANTOMES, tous);
+  }
+
+  private fantomes(): Record<string, Fantome> {
+    const r = this.read(K_FANTOMES);
+    return typeof r === 'object' && r !== null && !Array.isArray(r) ? (r as Record<string, Fantome>) : {};
+  }
+
   /** Statistiques du pilote (relues et validées par `lireStatistiques`). */
   loadStatistiques(): unknown {
     return this.read(K_STATISTIQUES);

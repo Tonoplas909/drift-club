@@ -3,7 +3,8 @@ import { RaceSim, type RaceEvent, type RaceResult } from '../core/race/race';
 import { CARS } from '../core/physics/cars';
 import { MODES } from '../core/physics/assists';
 import { skinChoisie } from '../core/skins';
-import type { AssistParams, CarParams, CarState } from '../core/physics/types';
+import type { AssistParams, CarId, CarParams, CarState } from '../core/physics/types';
+import type { CarPose } from '../render/carView';
 import type { Assets } from '../render/assets';
 import { World } from '../render/world';
 import { CAMERA_LOIN, CAMERA_PROCHE, type ChaseConfig } from '../render/camera';
@@ -84,6 +85,10 @@ export class GameSession {
   private enregistreur = new Enregistreur();
   /** « Revoir sa course » en cours (null : course normale) */
   private film: LectureFilm | null = null;
+  /** fantôme du record : une image par pas depuis le départ (décompte compris) */
+  private fantome: Film | null = null;
+  /** pas de simulation joués depuis le départ */
+  private pas = 0;
 
   constructor(private readonly level: PreparedLevel, private readonly deps: SessionDeps, private readonly cb: SessionCallbacks) {
     this.world = new World({
@@ -162,6 +167,7 @@ export class GameSession {
     const alpha = this.loop.advance(dt);
     const car = this.race.car;
     const pose = interpolatePose(this.race.prevCar, car, alpha, this.level.terrain);
+    this.world.placerFantome(this.poseFantome(alpha));
     this.world.update(pose, car, dt, this.camCfg);
     this.world.render();
     this.deps.hud.update(this.race.hud());
@@ -181,6 +187,7 @@ export class GameSession {
     const input = quantifier(this.deps.input.state(this.deps.reglages.accelAuto));
     if (this.race.phase !== 'arrivee') this.enregistreur.ajouter(input, this.pendingReplace);
     const events = this.race.step(input, this.pendingReplace);
+    this.pas++;
     if (this.pendingReplace) this.deps.stats?.couper();
     this.pendingReplace = false;
     if (this.race.phase === 'course') this.deps.stats?.pas(this.deps.reglages.voiture, this.race.car.speed, this.race.car.beta, false, SIM_DT);
@@ -269,6 +276,25 @@ export class GameSession {
     this.last = performance.now();
   }
 
+  // --- Fantôme du record ---------------------------------------------------------------------------------
+
+  /** Rejoue le record (replay) en voiture translucide ; false s'il ne mène plus à l'arrivée (jeu modifié depuis). */
+  installerFantome(voiture: CarId, replay: Uint8Array): boolean {
+    const f = tournerFilm(this.level, voiture, this.deps.reglages.mode, replay, { depuisDebut: true });
+    if (!f) return false;
+    this.fantome = f;
+    this.world.ajouterFantome(voiture);
+    return true;
+  }
+
+  /** Pose du fantôme au même instant de course que le joueur (null : pas de fantôme, ou il a fini). */
+  private poseFantome(alpha: number): CarPose | null {
+    const f = this.fantome;
+    const i = this.pas - 1;
+    if (!f || i < 0 || i >= f.images.length) return null;
+    return interpolatePose(f.images[Math.max(0, i - 1)].car, f.images[i].car, alpha, this.level.terrain);
+  }
+
   // --- Revoir sa course ------------------------------------------------------------------------------------
 
   /**
@@ -280,6 +306,7 @@ export class GameSession {
     if (!replay) return false;
     const film = tournerFilm(this.level, this.deps.reglages.voiture, this.deps.reglages.mode, replay);
     if (!film) return false;
+    this.world.placerFantome(null);
     this.film = { ...film, t: 0, vitesse: 1, pause: false, camera: 'tele', photo: false, postes: postesBordDeRoute(this.level.track, (x, z) => this.level.terrain.heightAt(x, z)), cap: film.images[0].car.heading, temps: 0 };
     this.world.resetEffects();
     this.world.resetCamera(film.images[0].car);
@@ -368,6 +395,7 @@ export class GameSession {
 
   restart(): void {
     this.film = null;
+    this.pas = 0;
     this.world.camPhoto = null;
     this.race = this.newRace();
     this.enregistreur = new Enregistreur();

@@ -327,6 +327,7 @@ export class Screens {
         h('p', { class: 'sub' }, 'Caméra (la touche C passe à la suivante en course)'),
         h('div', { class: 'seg vues' }, ...VUES_CAMERA.map((v) =>
           h('button', { class: 'tab' + (v === r.camera ? ' on' : ''), onclick: () => { r.camera = v; change(); } }, NOMS_VUES[v]))),
+        h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.fantome, onchange: (e: Event) => { r.fantome = (e.target as HTMLInputElement).checked; change(); } }), 'Fantôme de mon record (voiture translucide qui refait ta meilleure course)'),
         h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.detailPoints, onchange: (e: Event) => { r.detailPoints = (e.target as HTMLInputElement).checked; change(); } }), 'Détail des points de drift (vitesse, durée, angle)'),
         h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.indicateurAngle, onchange: (e: Event) => { r.indicateurAngle = (e.target as HTMLInputElement).checked; change(); } }), 'Indicateur d\'angle sous la voiture'),
         o.touch && h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.accelAuto, onchange: (e: Event) => { r.accelAuto = (e.target as HTMLInputElement).checked; change(); } }), 'Accélération automatique (tactile)'),
