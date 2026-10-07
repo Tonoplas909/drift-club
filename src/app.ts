@@ -530,6 +530,8 @@ export class App {
       mesPropositions: () => this.atelier.mesPropositions(),
       estAdmin: () => (connecte() ? this.atelier.estAdmin() : Promise.resolve(false)),
       aModerer: () => this.atelier.aModerer(),
+      enVote: () => this.atelier.enVote(),
+      voter: (id, v) => this.atelier.voter(id, v),
       moderer: async (id, d) => {
         const r = await this.atelier.moderer(id, d);
         // la livrée validée entre dans les caisses : on la charge tout de suite (et la progression, si c'est la sienne)
@@ -581,6 +583,7 @@ export class App {
       audio: { tick: (k) => this.audio.playTick(k), ouvrir: () => this.audio.playOuvrirCaisse(), reveal: (r) => this.audio.playReveal(r) },
       couleur: () => this.reglages.couleur,
       onApercu: (x) => this.apercuCaisse(x),
+      livreeSemaine: () => this.atelier.livreeDeLaSemaine(),
       onEquiper: (x) => {
         if (estFumee(x)) this.reglages.fumee = x.skin;
         else {

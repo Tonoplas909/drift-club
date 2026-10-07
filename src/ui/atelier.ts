@@ -35,12 +35,15 @@ export interface OptionsAtelier {
   mesPropositions(): Promise<Resultat<Proposition[]>>;
   estAdmin(): Promise<boolean>;
   aModerer(): Promise<Resultat<Proposition[]>>;
+  /** propositions en attente soumises au vote, et vote (1, -1, 0 : retirer) */
+  enVote(): Promise<Resultat<Proposition[]>>;
+  voter(id: string, vote: -1 | 0 | 1): Promise<Resultat<{ pour: number; contre: number }>>;
   moderer(id: string, decision: { valider: true; rarete: Rarete } | { valider: false; motif: string }): Promise<Resultat<null>>;
   onCompte(): void;
   onRetour(): void;
 }
 
-type Onglet = 'creer' | 'miennes' | 'moderer';
+type Onglet = 'creer' | 'miennes' | 'votes' | 'moderer';
 
 const NOMS_TEINTES: Record<(typeof TEINTES_RELATIVES)[number], string> = {
   principale: 'Couleur de la voiture', contraste: 'Contraste', sombre: 'Plus sombre', clair: 'Plus clair',
@@ -109,6 +112,7 @@ export function ecranAtelier(o: OptionsAtelier): HTMLElement {
   let message: { texte: string; err: boolean } | null = null;
   let mesPropositions: Resultat<Proposition[]> | null = null;
   let aModerer: Resultat<Proposition[]> | null = null;
+  let enVote: Resultat<Proposition[]> | null = null;
 
   const ecran = h('div', { class: 'screen garage atelier' });
   const panneau = h('div', { class: 'panel side' });
@@ -268,12 +272,50 @@ export function ecranAtelier(o: OptionsAtelier): HTMLElement {
     ];
   };
 
-  const charger = (quoi: 'miennes' | 'moderer'): void => {
-    const p = quoi === 'miennes' ? o.mesPropositions() : o.aModerer();
+  const charger = (quoi: 'miennes' | 'moderer' | 'votes'): void => {
+    const p = quoi === 'miennes' ? o.mesPropositions() : quoi === 'votes' ? o.enVote() : o.aModerer();
     void p.then((r) => {
-      if (quoi === 'miennes') mesPropositions = r; else aModerer = r;
+      if (quoi === 'miennes') mesPropositions = r; else if (quoi === 'votes') enVote = r; else aModerer = r;
       if (onglet === quoi) dessiner();
     });
+  };
+
+  /** Compteur des votes d'une proposition (« 👍 3 · 👎 1 »), si le serveur les donne. */
+  const compteVotes = (p: Proposition): string => (p.pour === undefined ? '' : `👍 ${p.pour} · 👎 ${p.contre ?? 0}`);
+
+  const votes = (): (HTMLElement | null)[] => {
+    if (!enVote) { charger('votes'); return [h('p', { class: 'petit' }, 'Chargement…')]; }
+    if (!enVote.ok) return [h('p', { class: 'msg err' }, enVote.message.includes('pas encore disponible') ? 'Les votes de l\'Atelier arrivent bientôt.' : enVote.message)];
+    if (!enVote.valeur.length) return [h('p', {}, 'Aucune proposition en attente : crée la tienne dans l\'onglet « Créer » !')];
+    const peutVoter = o.peutProposer();
+    return [
+      h('p', { class: 'petit' }, 'Les propositions des joueurs en attente de validation. Donne ton avis : les plus aimées passent en premier devant l\'administrateur, et la plus aimée de la semaine est mise en avant à l\'écran des caisses.'),
+      ...enVote.valeur.map((p) => {
+        const msg = h('p', { class: 'msg err' });
+        const compte = h('span', { class: 'at-votes' }, compteVotes(p));
+        const voter = async (v: -1 | 1): Promise<void> => {
+          const nouveau: -1 | 0 | 1 = p.monVote === v ? 0 : v;
+          const r = await o.voter(p.id, nouveau);
+          if (!r.ok) { msg.textContent = r.message; return; }
+          p.pour = r.valeur.pour; p.contre = r.valeur.contre; p.monVote = nouveau;
+          dessiner();
+        };
+        return h('div', { class: 'at-prop' },
+          h('b', {}, p.livree.nom), h('small', {}, `${CARS[p.livree.voiture].nom} · par ${p.pseudo} · ${p.livree.description}`),
+          h('div', { class: 'row' },
+            h('button', { class: 'btn sm sec', onclick: () => voir(p) }, 'Voir'),
+            p.mienne
+              ? h('span', { class: 'petit' }, 'Ta proposition')
+              : peutVoter
+                ? h('span', { class: 'row at-vote' },
+                  h('button', { class: 'btn sm' + (p.monVote === 1 ? '' : ' sec'), title: 'J\'aime', 'aria-pressed': String(p.monVote === 1), onclick: () => void voter(1) }, '👍'),
+                  h('button', { class: 'btn sm' + (p.monVote === -1 ? '' : ' sec'), title: 'J\'aime pas', 'aria-pressed': String(p.monVote === -1), onclick: () => void voter(-1) }, '👎'))
+                : h('button', { class: 'btn sm sec', onclick: o.onCompte }, 'Connecte-toi pour voter'),
+            compte),
+          msg,
+        );
+      }),
+    ];
   };
 
   const voir = (p: Proposition): void => o.apercu(p.livree.voiture, b.couleurEssai, defDeLivree(p.livree));
@@ -306,10 +348,11 @@ export function ecranAtelier(o: OptionsAtelier): HTMLElement {
       const decider = async (d: { valider: true; rarete: Rarete } | { valider: false; motif: string }): Promise<void> => {
         const r = await o.moderer(p.id, d);
         if (!r.ok) { msg.textContent = r.message; return; }
-        aModerer = null; mesPropositions = null; dessiner();
+        aModerer = null; mesPropositions = null; enVote = null; dessiner();
       };
       return h('div', { class: 'at-prop' },
         h('b', {}, p.livree.nom), h('small', {}, `${CARS[p.livree.voiture].nom} · par ${p.pseudo} · ${p.livree.description}`),
+        p.pour !== undefined && h('span', { class: 'at-votes' }, compteVotes(p)),
         h('div', { class: 'row' },
           h('button', { class: 'btn sm sec', onclick: () => voir(p) }, 'Voir'),
           rarete,
@@ -322,7 +365,7 @@ export function ecranAtelier(o: OptionsAtelier): HTMLElement {
 
   const dessiner = (): void => {
     const ancien = panneau.querySelector('.garage-corps')?.scrollTop ?? 0;
-    const corps = h('div', { class: 'garage-corps' }, ...(onglet === 'creer' ? creer() : onglet === 'miennes' ? miennes() : moderer()));
+    const corps = h('div', { class: 'garage-corps' }, ...(onglet === 'creer' ? creer() : onglet === 'miennes' ? miennes() : onglet === 'votes' ? votes() : moderer()));
     const tab = (id: Onglet, nom: string): HTMLElement => h('button', { class: 'tab' + (onglet === id ? ' on' : ''), onclick: () => {
       onglet = id;
       if (id === 'creer') majApercu();
@@ -330,7 +373,7 @@ export function ecranAtelier(o: OptionsAtelier): HTMLElement {
     } }, nom);
     panneau.replaceChildren(
       h('h2', {}, 'Atelier'),
-      h('div', { class: 'tabs' }, tab('creer', 'Créer'), tab('miennes', 'Mes propositions'), admin && tab('moderer', 'À valider')),
+      h('div', { class: 'tabs' }, tab('creer', 'Créer'), tab('miennes', 'Mes propositions'), tab('votes', 'Votes'), admin && tab('moderer', 'À valider')),
       corps,
       h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => { if (apercuDemande) cancelAnimationFrame(apercuDemande); o.onRetour(); } }, 'Retour')),
     );

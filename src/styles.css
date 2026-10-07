@@ -704,3 +704,6 @@ input[type=text], input[type=email], input[type=password] { user-select: text; -
   .defi-colonnes { grid-template-columns: 1fr; }
   .defi-nom { font-size: 19px; }
 }
+.cs-semaine { margin: 4px 0 0; padding: 4px 12px; border-radius: 12px; background: rgba(255, 210, 63, .18); border: 2px solid var(--yellow); font-weight: 600; font-size: 14px; }
+.at-votes { font-weight: 700; font-size: 14px; margin-left: auto; }
+.at-vote .btn { min-width: 44px; }

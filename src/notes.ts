@@ -13,6 +13,15 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.18',
+    date: '07/10/2026',
+    titre: 'Votes dans l\'Atelier',
+    notes: [
+      'Nouvel onglet « Votes » dans l\'Atelier : regarde les livrées proposées par les autres joueurs et donne ton avis (j\'aime / j\'aime pas). Un vote par livrée, et pas sur les tiennes.',
+      'Les livrées les plus aimées passent en premier pour la validation, et la plus aimée de la semaine est mise en avant sur l\'écran des caisses.',
+    ],
+  },
+  {
     version: '0.5.17',
     date: '07/10/2026',
     titre: 'Défi du jour',

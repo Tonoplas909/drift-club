@@ -13,10 +13,18 @@ export interface Proposition {
   statut: StatutProposition;
   rarete: Rarete | null;
   motifRefus: string | null;
-  /** pseudo de l'auteur (modération seulement) */
+  /** pseudo de l'auteur (modération et votes) */
   pseudo: string;
   creeLe: string;
+  /** votes (migration 0012) : j'aime, j'aime pas, vote du joueur connecté ; vrai si c'est sa proposition */
+  pour?: number;
+  contre?: number;
+  monVote?: -1 | 0 | 1;
+  mienne?: boolean;
 }
+
+/** Livrée de la semaine (la plus aimée des livrées validées ces 7 derniers jours). */
+export interface LivreeSemaine { voiture: string; nom: string; pseudo: string; pour: number }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const STATUTS: StatutProposition[] = ['proposee', 'validee', 'refusee'];
@@ -36,6 +44,9 @@ function lireProposition(r: unknown): Proposition | null {
     motifRefus: typeof o.motif_refus === 'string' ? o.motif_refus.slice(0, 200) : null,
     pseudo: typeof o.pseudo === 'string' ? o.pseudo : '',
     creeLe: typeof o.cree_le === 'string' ? o.cree_le : '',
+    ...(o.pour !== undefined ? { pour: Number(o.pour) || 0, contre: Number(o.contre) || 0 } : {}),
+    ...(o.mon_vote !== undefined ? { monVote: o.mon_vote === 1 ? 1 : o.mon_vote === -1 ? -1 : 0 } : {}),
+    ...(o.mienne !== undefined ? { mienne: o.mienne === true } : {}),
   };
 }
 
@@ -88,6 +99,27 @@ export class AtelierEnLigne {
 
   aModerer(): Promise<Resultat<Proposition[]>> {
     return this.appeler('livrees_a_moderer', {}, (d) => lignes(d, lireProposition));
+  }
+
+  /** Propositions en attente soumises au vote (lisibles sans compte). */
+  enVote(): Promise<Resultat<Proposition[]>> {
+    return this.appeler('livrees_en_vote', { p_limite: 40 }, (d) => lignes(d, lireProposition));
+  }
+
+  /** Vote : 1 j'aime, -1 j'aime pas, 0 retire le vote ; renvoie les nouveaux totaux. */
+  voter(id: string, vote: -1 | 0 | 1): Promise<Resultat<{ pour: number; contre: number }>> {
+    return this.appeler('voter_livree', { p_id: id, p_vote: vote }, (d) => {
+      const l = objet(Array.isArray(d) ? d[0] : d) ?? {};
+      return { pour: Number(l.pour) || 0, contre: Number(l.contre) || 0 };
+    });
+  }
+
+  /** Livrée de la semaine, ou null (aucune, ou migration 0012 pas encore passée). */
+  async livreeDeLaSemaine(): Promise<LivreeSemaine | null> {
+    const r = await this.appeler('livree_de_la_semaine', {}, (d) => objet(Array.isArray(d) ? d[0] : d));
+    const l = r.ok ? r.valeur : null;
+    if (!l || typeof l.nom !== 'string' || typeof l.pseudo !== 'string' || typeof l.voiture !== 'string') return null;
+    return { voiture: l.voiture, nom: l.nom.slice(0, 24), pseudo: l.pseudo.slice(0, 20), pour: Number(l.pour) || 0 };
   }
 
   /** Valide (avec la rareté choisie) ou refuse (avec un motif facultatif) une proposition. */
