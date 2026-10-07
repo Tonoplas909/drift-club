@@ -4,6 +4,7 @@ import { CARS, CAR_IDS } from '../core/physics/cars';
 import { MODE_IDS, MODE_NOMS } from '../core/physics/assists';
 import type { RaceResult } from '../core/race/race';
 import { validateLevel } from '../core/level/validate';
+import type { Ambiance } from '../core/level/types';
 import type { Reglages, Qualite } from '../storage/store';
 import { COULEURS } from './couleurs';
 import { accentSkin, choisirSkin, couleurEffective, skinChoisie, skinDef, skinsDe, type SkinId, type SkinsChoisies } from '../core/skins';
@@ -15,13 +16,13 @@ import { NOMS_MEDAILLES, medaille, prochaineMedaille, type Medaille } from '../c
 import { formatScore, formatTime } from './format';
 import { NOMS_VUES, VUES_CAMERA } from '../render/vuesEmbarquees';
 
-export function levelSummary(data: unknown): { nom: string; longueur: number; ambiance: 'jour' | 'coucher'; theme: string } | null {
+export function levelSummary(data: unknown): { nom: string; longueur: number; ambiance: Ambiance; pluie: boolean; theme: string } | null {
   const v = validateLevel(data);
   if (!v.ok) return null;
   let l = 0;
   const r = v.level.route;
   for (let i = 1; i < r.length; i++) l += Math.hypot(r[i].x - r[i - 1].x, r[i].y - r[i - 1].y, r[i].z - r[i - 1].z);
-  return { nom: v.level.nom, longueur: l, ambiance: v.level.ambiance, theme: THEMES[v.level.environnement].nom };
+  return { nom: v.level.nom, longueur: l, ambiance: v.level.ambiance, pluie: v.level.meteo === 'pluie', theme: THEMES[v.level.environnement].nom };
 }
 
 type Child = Node | string | null | undefined | false;

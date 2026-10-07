@@ -107,7 +107,20 @@ function ajouterCiel(sky: THREE.Mesh, p: Palette, quality: QualityLevel): void {
   const soleil = new THREE.Vector3(...p.sunDir).normalize();
   // deux astres, de part et d'autre : une grande planète pleine et une géante
   const places: [THREE.Vector3, number][] = [[new THREE.Vector3(0.55, 0.3, -0.7).normalize(), 150], [new THREE.Vector3(-0.75, 0.22, 0.55).normalize(), 95]];
-  ciel.astres.forEach((a, i) => {
+  // nuit sur Terre : la lune, là d'où vient la lumière
+  if (ciel.astres.includes('lune')) {
+    const dir = soleil.clone();
+    const lune = new THREE.Mesh(new THREE.CircleGeometry(38, 32), new THREE.MeshBasicMaterial({ color: 0xeef2ff, fog: false }));
+    const halo = new THREE.Mesh(new THREE.CircleGeometry(95, 32), new THREE.MeshBasicMaterial({ color: 0x8fa4ff, transparent: true, opacity: 0.12, fog: false, depthWrite: false }));
+    for (const m of [halo, lune]) {
+      m.position.copy(dir).multiplyScalar(m === lune ? 1380 : 1390);
+      m.lookAt(0, 0, 0);
+      m.frustumCulled = false;
+      m.name = m === lune ? 'lune' : 'halo-lune';
+      sky.add(m);
+    }
+  }
+  ciel.astres.filter((a) => a !== 'lune').forEach((a, i) => {
     const [dir, r] = places[i] ?? places[0];
     const astre = planete(r, dir, soleil, a === 'terre' ? terre : a === 'geante' ? geante : orange);
     astre.name = `astre-${a}`;

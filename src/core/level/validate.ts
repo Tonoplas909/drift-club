@@ -1,11 +1,10 @@
-import { LIMITES, ENVIRONNEMENTS } from './types';
+import { LIMITES, ENVIRONNEMENTS, AMBIANCES } from './types';
 import type { Level, PointRoute, Barriere, ObjetPlace, Ambiance, CoteBarriere, TypeObjet, Environnement, PlanEau, ZoneClipping, CoteClipping } from './types';
 import { aire, autoIntersection } from '../env/eau';
 import * as dm from '../math/dmath';
 
 export type ResultatValidation = { ok: true; level: Level } | { ok: false; erreurs: string[] };
 
-const AMBIANCES: readonly string[] = ['jour', 'coucher'];
 const COTES: readonly string[] = ['gauche', 'droite', 'deux', 'ext'];
 const TYPES_OBJETS: readonly string[] = ['arbre', 'sapin', 'rocher', 'pneus', 'barriere', 'panneau'];
 
@@ -33,9 +32,10 @@ export function validateLevel(raw: unknown): ResultatValidation {
   if (typeof raw.environnement !== 'string' || !(ENVIRONNEMENTS as readonly string[]).includes(raw.environnement)) {
     e.push(`environnement : valeur inconnue (attendu : ${ENVIRONNEMENTS.join(', ')}).`);
   }
-  if (typeof raw.ambiance !== 'string' || !AMBIANCES.includes(raw.ambiance)) {
-    e.push('ambiance : « jour » ou « coucher ».');
+  if (typeof raw.ambiance !== 'string' || !(AMBIANCES as readonly string[]).includes(raw.ambiance)) {
+    e.push('ambiance : « jour », « coucher » ou « nuit ».');
   }
+  if (raw.meteo !== undefined && raw.meteo !== 'pluie') e.push('meteo : « pluie » ou absente.');
 
   // Route
   const route: PointRoute[] = [];
@@ -186,6 +186,7 @@ export function validateLevel(raw: unknown): ResultatValidation {
       objets,
       ...(eau.length > 0 ? { eau } : {}),
       ...(clipping.length > 0 ? { clipping } : {}),
+      ...(raw.meteo === 'pluie' ? { meteo: 'pluie' as const } : {}),
     },
   };
 }

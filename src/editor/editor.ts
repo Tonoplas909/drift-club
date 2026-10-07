@@ -828,8 +828,12 @@ export class Editeur {
         return [
           titre('Décor'),
           h('div', { class: 'ed-f' }, h('span', {}, 'Ambiance'),
-            this.segments([{ id: 'jour', nom: 'Jour' }, { id: 'coucher', nom: 'Coucher' }], () => this.doc.level.ambiance,
+            this.segments([{ id: 'jour', nom: 'Jour' }, { id: 'coucher', nom: 'Coucher' }, { id: 'nuit', nom: 'Nuit' }], () => this.doc.level.ambiance,
               (id) => this.doc.apply((l) => { l.ambiance = id as Level['ambiance']; }))),
+          h('div', { class: 'ed-f' }, h('span', {}, 'Météo'),
+            this.segments([{ id: 'beau', nom: 'Beau temps' }, { id: 'pluie', nom: 'Pluie' }], () => this.doc.level.meteo ?? 'beau',
+              (id) => this.doc.apply((l) => { if (id === 'pluie') l.meteo = 'pluie'; else delete l.meteo; }))),
+          aide('Sous la pluie, la route est mouillée : les pneus accrochent 20 % de moins.'),
           this.curseur({
             label: 'Densité', min: 0, max: 1, step: 0.05, lire: () => this.doc.level.decor.densite,
             ecrire: (l, v) => { l.decor.densite = Math.round(v * 100) / 100; }, format: (v) => `${Math.round(v * 100)} %`,

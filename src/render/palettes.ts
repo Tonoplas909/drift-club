@@ -34,7 +34,7 @@ export interface Palette {
   /** couleurs des deux bandes des vibreurs ; absent : rouge et blanc */
   vibreurs?: [number, number];
   /** ciel étoilé avec des astres (espace) */
-  ciel?: { etoiles: number; astres: ('terre' | 'geante' | 'orange')[] };
+  ciel?: { etoiles: number; astres: ('terre' | 'geante' | 'orange' | 'lune')[] };
   /** rizières en terrasses (japon) : bandes colorées sur les pentes, une tous les `pas` m d'altitude */
   terrasses?: { a: number; b: number; pas: number };
   /** plafond (backrooms) : couleur des dalles */
@@ -46,8 +46,8 @@ export function epauleDe(p: Palette): THREE.Color {
   return p.epaule !== undefined ? new THREE.Color(p.epaule) : new THREE.Color(p.asphalt).multiplyScalar(0.7);
 }
 
-/** Palettes de chaque décor et de chaque ambiance ; le décor est le choix `environnement` du niveau. */
-export const PALETTES_THEMES: Record<Environnement, Record<Ambiance, Palette>> = {
+/** Palettes dessinées à la main (jour et coucher) ; la nuit en est tirée par `paletteNuit`. */
+const PALETTES_DESSINEES: Record<Environnement, Record<'jour' | 'coucher', Palette>> = {
   // Palettes historiques : ne pas y toucher
   montagne: {
     jour: {
@@ -269,6 +269,59 @@ export const PALETTES_THEMES: Record<Environnement, Record<Ambiance, Palette>> =
     },
   },
 };
+
+const NUIT = 0x0b1128;
+const nuit = (c: number, t: number): number => melangerCouleur(c, NUIT, t);
+
+/**
+ * Nuit : tirée du jour, couleurs assombries vers un bleu nuit, lumière de lune froide et basse, ciel étoilé avec la
+ * lune. Le Cyberpunk et l'Espace sont déjà nocturnes : leur « jour » un peu plus sombre ; les Backrooms : leur soir
+ * plus sombre (néons seuls).
+ */
+export function paletteNuit(env: Environnement, p: Record<'jour' | 'coucher', Palette>): Palette {
+  if (env === 'cyberpunk' || env === 'espace') return { ...p.jour, sunIntensity: p.jour.sunIntensity * 0.75, hemiIntensity: p.jour.hemiIntensity * 0.85 };
+  if (env === 'backrooms') {
+    const c = p.coucher;
+    return { ...c, skyTop: nuit(c.skyTop, 0.5), skyBottom: nuit(c.skyBottom, 0.5), fog: nuit(c.fog, 0.55), hemiIntensity: c.hemiIntensity * 0.6, sunIntensity: c.sunIntensity * 0.6 };
+  }
+  const j = p.jour;
+  const sol = (c: number): number => nuit(c, 0.58);
+  return {
+    ...j,
+    skyTop: 0x03050f, skyBottom: 0x18213f, fog: nuit(j.fog, 0.86),
+    sun: 0xb4c4ff, sunIntensity: 0.75, sunDir: [0.35, 0.72, -0.45],
+    hemiSky: 0x3a4878, hemiGround: 0x14151f, hemiIntensity: 0.75,
+    grassA: sol(j.grassA), grassB: sol(j.grassB), forestFloor: sol(j.forestFloor), rock: sol(j.rock),
+    asphalt: nuit(j.asphalt, 0.3), line: nuit(j.line, 0.22),
+    ...(j.epaule !== undefined ? { epaule: nuit(j.epaule, 0.45) } : {}),
+    ...(j.trottoir !== undefined ? { trottoir: nuit(j.trottoir, 0.45) } : {}),
+    fumee: nuit(j.fumee, 0.35), brume: j.brume * 0.8,
+    reliefs: { ...j.reliefs, roche: nuit(j.reliefs.roche, 0.7), cime: nuit(j.reliefs.cime, 0.55) },
+    ...(j.eau !== undefined ? { eau: nuit(j.eau, 0.6) } : {}),
+    ...(j.plage !== undefined ? { plage: nuit(j.plage, 0.6) } : {}),
+    ...(j.fondEau !== undefined ? { fondEau: nuit(j.fondEau, 0.6) } : {}),
+    ...(j.vibreurs ? { vibreurs: [nuit(j.vibreurs[0], 0.35), nuit(j.vibreurs[1], 0.35)] as [number, number] } : {}),
+    ...(j.terrasses ? { terrasses: { ...j.terrasses, a: sol(j.terrasses.a), b: sol(j.terrasses.b) } } : {}),
+    ciel: { etoiles: 1300, astres: ['lune'] },
+  };
+}
+
+/** Pluie : ciel et brume gris, lumière voilée, route mouillée (plus sombre), fumée des pneus en embruns. */
+export function palettePluie(p: Palette): Palette {
+  const gris = (c: number, t: number): number => melangerCouleur(c, 0x59606c, t);
+  return {
+    ...p,
+    skyTop: gris(p.skyTop, 0.55), skyBottom: gris(p.skyBottom, 0.6), fog: gris(p.fog, 0.55),
+    sunIntensity: p.sunIntensity * 0.55, hemiIntensity: p.hemiIntensity * 0.92,
+    asphalt: melangerCouleur(p.asphalt, 0x121319, 0.4),
+    fumee: melangerCouleur(p.fumee, 0xc9d3de, 0.65), brume: p.brume * 0.7,
+  };
+}
+
+/** Palettes de chaque décor et de chaque ambiance ; le décor est le choix `environnement` du niveau. */
+export const PALETTES_THEMES: Record<Environnement, Record<Ambiance, Palette>> = Object.fromEntries(
+  (Object.keys(PALETTES_DESSINEES) as Environnement[]).map((env) => [env, { ...PALETTES_DESSINEES[env], nuit: paletteNuit(env, PALETTES_DESSINEES[env]) }]),
+) as Record<Environnement, Record<Ambiance, Palette>>;
 
 /** Palettes de la montagne (le décor historique). */
 export const PALETTES: Record<Ambiance, Palette> = PALETTES_THEMES.montagne;

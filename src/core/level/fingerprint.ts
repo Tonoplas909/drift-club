@@ -17,6 +17,8 @@ export async function empreinteNiveau(level: Level): Promise<string> {
       : {}),
     // de même pour les zones de clipping
     ...(level.clipping && level.clipping.length > 0 ? { clipping: level.clipping.map((z) => ({ de: z.de, a: z.a, cote: z.cote })) } : {}),
+    // et pour la météo
+    ...(level.meteo ? { meteo: level.meteo } : {}),
   };
 
   // Sérialise en JSON canonique (clés fixes, minifié)

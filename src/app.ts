@@ -17,7 +17,7 @@ import { prepareLevel, type PreparedLevel } from './game/prepare';
 import { forcerDecor } from './game/decorUrl';
 import { NIVEAUX_OFFICIELS, cleNiveauOfficiel } from './levels';
 import { Screens, levelSummary, type NiveauCarte } from './ui/screens';
-import { formatDistance, formatScore, titreNiveau } from './ui/format';
+import { formatDistance, formatScore, libelleAmbiance, titreNiveau } from './ui/format';
 import { depuisBase64, versBase64 } from './core/replay/replay';
 import { skinChoisie, choisirSkin, ajouterLivreesAtelier, skinDef } from './core/skins';
 import { fumeeDef } from './core/fumees';
@@ -379,7 +379,7 @@ export class App {
       const s = levelSummary(n.data);
       return {
         nom: s?.nom ?? n.id,
-        detail: s ? `${formatDistance(s.longueur)} · ${s.theme} · ${s.ambiance === 'jour' ? 'Jour' : 'Coucher de soleil'}` : '',
+        detail: s ? `${formatDistance(s.longueur)} · ${s.theme} · ${libelleAmbiance({ ambiance: s.ambiance, meteo: s.pluie ? 'pluie' : undefined })}` : '',
         place: attente,
         medaille: this.meilleureMedaille(n.id),
       };

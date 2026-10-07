@@ -2079,7 +2079,7 @@ var touge_de_minuit_default = {
   nom: "Touge de Minuit",
   auteur: "Drift Club",
   environnement: "montagne",
-  ambiance: "coucher",
+  ambiance: "nuit",
   route: [
     { x: 0, z: 0, y: 115, l: 9.5 },
     { x: 24, z: 0, y: 114.1, l: 9.5 },
@@ -3547,6 +3547,7 @@ var NIVEAUX_OFFICIELS = [
 ];
 
 // src/core/level/types.ts
+var AMBIANCES = ["jour", "coucher", "nuit"];
 var ENVIRONNEMENTS = ["montagne", "neige", "desert", "automne", "ville", "pirate", "backrooms", "espace", "japon", "cyberpunk"];
 var LIMITES = {
   pointsMin: 2,
@@ -3868,7 +3869,6 @@ function hypot(a, b, c = 0) {
 }
 
 // src/core/level/validate.ts
-var AMBIANCES = ["jour", "coucher"];
 var COTES = ["gauche", "droite", "deux", "ext"];
 var TYPES_OBJETS = ["arbre", "sapin", "rocher", "pneus", "barriere", "panneau"];
 var isObj = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -3892,8 +3892,9 @@ function validateLevel(raw) {
     e.push(`environnement : valeur inconnue (attendu : ${ENVIRONNEMENTS.join(", ")}).`);
   }
   if (typeof raw.ambiance !== "string" || !AMBIANCES.includes(raw.ambiance)) {
-    e.push("ambiance : « jour » ou « coucher ».");
+    e.push("ambiance : « jour », « coucher » ou « nuit ».");
   }
+  if (raw.meteo !== void 0 && raw.meteo !== "pluie") e.push("meteo : « pluie » ou absente.");
   const route = [];
   if (!Array.isArray(raw.route)) {
     e.push("route : liste de points manquante.");
@@ -4021,7 +4022,8 @@ function validateLevel(raw) {
       decor,
       objets,
       ...eau.length > 0 ? { eau } : {},
-      ...clipping.length > 0 ? { clipping } : {}
+      ...clipping.length > 0 ? { clipping } : {},
+      ...raw.meteo === "pluie" ? { meteo: "pluie" } : {}
     }
   };
 }
@@ -5760,7 +5762,9 @@ async function empreinteNiveau(level) {
     // les lacs n'entrent dans l'empreinte que s'il y en a : les niveaux sans eau gardent leur empreinte d'avant
     ...level.eau && level.eau.length > 0 ? { eau: level.eau.map((l) => ({ niveau: l.niveau, points: l.points.map((p) => ({ x: p.x, z: p.z })) })) } : {},
     // de même pour les zones de clipping
-    ...level.clipping && level.clipping.length > 0 ? { clipping: level.clipping.map((z) => ({ de: z.de, a: z.a, cote: z.cote })) } : {}
+    ...level.clipping && level.clipping.length > 0 ? { clipping: level.clipping.map((z) => ({ de: z.de, a: z.a, cote: z.cote })) } : {},
+    // et pour la météo
+    ...level.meteo ? { meteo: level.meteo } : {}
   };
   const json = JSON.stringify(canonical);
   const encoder = new TextEncoder();
@@ -6183,7 +6187,7 @@ function stepCar(car, input, ctx, dt) {
   const drive = car.throttleSmooth;
   const Fzf = Math.max(0.1 * m * G, m * G * b / L - m * car.ax * p.cgHeight / L);
   const Fzr = Math.max(0.1 * m * G, m * G * a / L + m * car.ax * p.cgHeight / L);
-  const surface = ctx.onRoad ? 1 : 0.7;
+  const surface = (ctx.onRoad ? 1 : 0.7) * (ctx.adherence ?? 1);
   const muF = p.muFront * surface;
   let muR = p.muRear * surface;
   const arcadeDrift = as.arcadeDrift && input.freinAMain && speed0 > 8.3;
@@ -6534,6 +6538,12 @@ function proximiteClipping(zones, index, lateral, w, demiLargeur) {
   return best;
 }
 
+// src/core/physics/meteo.ts
+var ADHERENCE_PLUIE = 0.8;
+function adherenceDe(level) {
+  return level.meteo === "pluie" ? ADHERENCE_PLUIE : 1;
+}
+
 // src/core/race/race.ts
 var ZONE_LIMIT = 35;
 var FROZEN_LIMIT = 5;
@@ -6568,7 +6578,7 @@ var RaceSim = class {
     this.countdown = cfg.countdown ?? 3;
     this.world = buildCollisionWorld(cfg.env);
     this.zones = zonesPiste(cfg.level, cfg.track);
-    this.ctx = { params: cfg.car, assists: cfg.assists, ground: cfg.terrain, onRoad: true };
+    this.ctx = { params: cfg.car, assists: cfg.assists, ground: cfg.terrain, onRoad: true, adherence: adherenceDe(cfg.level) };
     const idx = Math.min(6, cfg.track.samples.length - 1);
     const s0 = cfg.track.samples[idx];
     this.car = createCarState(s0.x, s0.z, atan2(s0.tx, s0.tz), cfg.terrain.heightAt(s0.x, s0.z));
@@ -6772,4 +6782,4 @@ async function traiterCourse(corps, empreinteServeur) {
 export {
   traiterCourse
 };
-export const EMPREINTE = '97210b93134b75d3';
+export const EMPREINTE = '968b4f24dff6bc97';

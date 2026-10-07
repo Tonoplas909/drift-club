@@ -125,7 +125,7 @@ export function batimentGeometry(b: Batiment, graine: number, ambiance: Ambiance
 
   // Fenêtres
   const larg = st.verre ? 2.2 : 1.5, haut = st.verre ? 2.0 : 1.5, pas = 3.0;
-  const lit = ambiance === 'coucher';
+  const lit = ambiance !== 'jour';
   const pLit = st.verre ? 0.3 : 0.4;
   const teinte = (rez: boolean): Rgb => {
     const r = rng();
@@ -171,7 +171,7 @@ export function lampadaireGeometry(ambiance: Ambiance): Part {
     coloredBox(0.4, 0.5, 0.4, 0, 0.25, 0, 0x5b606b),
     tube(0.1, 0.07, 6.2, 0, 0, 0, 0x6b7280, 6),
     coloredBox(1.6, 0.1, 0.1, -0.75, 6.2, 0, 0x6b7280),
-    ambiance === 'coucher' ? colorizeGain(tete, 0xffd98a, 2.2) : colorize(tete, 0xe6eaee),
+    ambiance !== 'jour' ? colorizeGain(tete, 0xffd98a, 2.2) : colorize(tete, 0xe6eaee),
   ]);
 }
 

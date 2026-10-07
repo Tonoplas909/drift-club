@@ -62,7 +62,7 @@ export function toriiGeometry(variant: number): Part {
 
 /** Lanterne de pierre (tōrō) : socle, fût, chambre à quatre fenêtres lumineuses, toit à quatre pans, bouton. 1,7 m. */
 export function toroGeometry(ambiance: Ambiance): Part {
-  const gain = ambiance === 'coucher' ? 2.6 : 1.5;
+  const gain = ambiance !== 'jour' ? 2.6 : 1.5;
   const fen = (x: number, z: number, w: number, d: number): Part => lumineux(new THREE.BoxGeometry(w, 0.24, d).translate(x, 1.17, z), 0xffd27a, gain);
   return merge([
     coloredBox(0.8, 0.16, 0.8, 0, 0, 0, PIERRE_SOMBRE), tube(0.14, 0.12, 0.7, 0, 0.1, 0, PIERRE, 6),

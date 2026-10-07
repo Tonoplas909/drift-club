@@ -1,7 +1,7 @@
 import type { Screens } from '../ui/screens';
 import { h } from '../ui/screens';
 import { dialogue } from '../ui/dialog';
-import { formatDistance } from '../ui/format';
+import { formatDistance, libelleAmbiance } from '../ui/format';
 import type { Level } from '../core/level/types';
 import { LIMITES } from '../core/level/types';
 import { validateLevel } from '../core/level/validate';
@@ -44,7 +44,7 @@ export function afficherHub(screens: Screens, o: OptionsHub): void {
   const copierOfficiel = async (): Promise<void> => {
     const choix = NIVEAUX_OFFICIELS.flatMap((n) => {
       const v = validateLevel(n.data);
-      return v.ok ? [{ label: v.level.nom, detail: `${formatDistance(longueurRoute(v.level))} · ${v.level.ambiance === 'jour' ? 'Jour' : 'Coucher de soleil'}`, valeur: n.id }] : [];
+      return v.ok ? [{ label: v.level.nom, detail: `${formatDistance(longueurRoute(v.level))} · ${libelleAmbiance(v.level)}`, valeur: n.id }] : [];
     });
     const r = await dialogue(o.root, { titre: 'Copier un niveau officiel', choix, ok: '' });
     if (!r.ok || !r.choix) return;

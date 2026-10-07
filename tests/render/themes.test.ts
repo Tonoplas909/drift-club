@@ -206,7 +206,8 @@ describe('aperçu ?theme= et ?ambiance=', () => {
     expect(decorDepuisUrl('?theme=desert&ambiance=coucher')).toEqual({ environnement: 'desert', ambiance: 'coucher' });
     expect(decorDepuisUrl('?debug&theme=neige')).toEqual({ environnement: 'neige' });
     expect(decorDepuisUrl('?theme=ville&ambiance=coucher')).toEqual({ environnement: 'ville', ambiance: 'coucher' });
-    expect(decorDepuisUrl('?theme=lune&ambiance=nuit')).toEqual({});
+    expect(decorDepuisUrl('?theme=lune&ambiance=aube')).toEqual({});
+    expect(decorDepuisUrl('?ambiance=nuit&meteo=pluie')).toEqual({ ambiance: 'nuit', meteo: 'pluie' });
     expect(decorDepuisUrl('')).toEqual({});
   });
   it('remplace l’environnement d’un niveau sans le modifier', () => {

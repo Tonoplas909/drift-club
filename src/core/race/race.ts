@@ -14,6 +14,7 @@ import {
 } from '../scoring/score';
 import { clamp, DEG } from '../math/vec';
 import { zonesPiste, proximiteClipping, type ZonePiste } from '../track/clipping';
+import { adherenceDe } from '../physics/meteo';
 import * as dm from '../math/dmath';
 
 export type RacePhase = 'compte' | 'course' | 'arrivee';
@@ -107,7 +108,7 @@ export class RaceSim {
     this.countdown = cfg.countdown ?? 3;
     this.world = buildCollisionWorld(cfg.env);
     this.zones = zonesPiste(cfg.level, cfg.track);
-    this.ctx = { params: cfg.car, assists: cfg.assists, ground: cfg.terrain, onRoad: true };
+    this.ctx = { params: cfg.car, assists: cfg.assists, ground: cfg.terrain, onRoad: true, adherence: adherenceDe(cfg.level) };
     const idx = Math.min(6, cfg.track.samples.length - 1);
     const s0 = cfg.track.samples[idx];
     this.car = createCarState(s0.x, s0.z, dm.atan2(s0.tx, s0.tz), cfg.terrain.heightAt(s0.x, s0.z));

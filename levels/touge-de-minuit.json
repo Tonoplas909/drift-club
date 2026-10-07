@@ -3,7 +3,7 @@
   "nom": "Touge de Minuit",
   "auteur": "Drift Club",
   "environnement": "montagne",
-  "ambiance": "coucher",
+  "ambiance": "nuit",
   "route": [
     { "x": 0, "z": 0, "y": 115, "l": 9.5 },
     { "x": 24, "z": 0, "y": 114.1, "l": 9.5 },

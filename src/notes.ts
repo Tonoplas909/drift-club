@@ -13,6 +13,16 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.16',
+    date: '07/10/2026',
+    titre: 'Pluie et nuit',
+    notes: [
+      'Nouvelle ambiance « Nuit » : ciel étoilé et lune, tes phares éclairent la route, fenêtres et lampadaires allumés en ville et au Japon. Le Touge de Minuit se court enfin… à minuit.',
+      'Nouvelle météo « Pluie » : ciel gris, route mouillée, embruns, et surtout 20 % d\'adhérence en moins : le drift se déclenche plus tôt et se rattrape plus tard.',
+      'Les deux se choisissent dans l\'éditeur (Décor › Ambiance et Météo).',
+    ],
+  },
+  {
     version: '0.5.15',
     date: '07/10/2026',
     titre: 'Zones de clipping',
