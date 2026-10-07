@@ -16,7 +16,7 @@ la fonction `verifier-course` (`npx vite-node tools/gen-fonction.ts`).
 | [Ambiance sonore par décor](#ambiance-sonore-par-décor) | petit | non | fait (0.5.3) |
 | [Niveau rappelé à l'arrivée](#niveau-rappelé-à-larrivée) | petit | non | fait (0.5.6) |
 | [Médailles par niveau](#médailles-par-niveau) | petit | non | fait (0.5.7) |
-| [Vibrations de la manette](#vibrations-de-la-manette) | petit | non | nouveau |
+| [Vibrations de la manette](#vibrations-de-la-manette) | petit | non | fait (0.5.8) |
 | [Touches personnalisables](#touches-personnalisables) | petit | non | nouveau |
 | [Carte de score à partager](#carte-de-score-à-partager) | petit | non | nouveau |
 | [Statistiques du pilote](#statistiques-du-pilote) | petit | non | nouveau |
@@ -199,3 +199,4 @@ serveur à mettre à jour.
 | 0.5.5 | Bonus de temps adouci : 1 000 points par seconde d'avance sur 1,5 × le temps cible, plafonné à la moitié des points de drift |
 | 0.5.6 | Numéro et nom du niveau rappelés sur l'écran d'arrivée |
 | 0.5.7 | **Médailles** bronze, argent et or sur les niveaux officiels (seuils calés sur le temps cible), sur la liste des niveaux et à l'arrivée |
+| 0.5.8 | **Vibrations de la manette** : drift encaissé (plus fort avec le combo), choc, grondement hors piste ; réglage pour les couper |

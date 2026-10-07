@@ -13,6 +13,7 @@ import { clamp, wrapAngle } from '../core/math/vec';
 import { interpolatePose } from './pose';
 import { toggleFullscreen, type SessionDeps } from './session';
 import type { ScenePhoto } from './photo';
+import { vibrationChoc, vibrationHorsPiste } from '../input/gamepad';
 
 export interface ZenCallbacks {
   onPause(): void;
@@ -147,6 +148,7 @@ export class ZenSession {
     this.world.render();
     this.deps.hud.updateZen(this.sim.hud());
     this.deps.audio.updateEngine(car.rpm, car.throttle, car.rearSlip, car.speed, { gear: car.gear, onRoad: this.sim.onRoad });
+    if (!this.sim.onRoad) this.deps.input.gamepad?.vibrer(vibrationHorsPiste(car.speed), now);
     this.deps.debug?.frame(car, dt);
     if (this.deps.quality.sample(dt)) this.world.setQuality(this.deps.quality.level);
     this.travailler();
@@ -207,6 +209,7 @@ export class ZenSession {
       case 'choc':
         this.deps.audio.playCrash(e.impact);
         this.world.shake(e.impact);
+        this.deps.input.gamepad?.vibrer(vibrationChoc(e.impact), performance.now());
         break;
       case 'replace':
         this.world.resetCamera(this.sim.car);
@@ -238,6 +241,7 @@ export class ZenSession {
   pause(): void {
     this.paused = true;
     this.deps.audio.stopEngine();
+    this.deps.input.gamepad?.arreterVibrations();
   }
 
   resume(): void {

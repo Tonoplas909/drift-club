@@ -13,6 +13,15 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.8',
+    date: '07/10/2026',
+    titre: 'Vibrations de la manette',
+    notes: [
+      'La manette vibre : une petite impulsion quand un drift est encaissé (plus forte avec le combo), une secousse aux chocs et un grondement léger hors piste. Ça marche dans Chrome et Edge.',
+      'Les vibrations se coupent dans Réglages › Manette.',
+    ],
+  },
+  {
     version: '0.5.7',
     date: '07/10/2026',
     titre: 'Médailles',
