@@ -13,6 +13,7 @@ import { ECONOMIE, fumeeDebloquee, livreeDebloquee, type GainCourse, type Progre
 import { fondFumee, iconeCadenas, iconeCle, iconeFumee, iconeMedaille } from './svg';
 import { NOMS_MEDAILLES, medaille, prochaineMedaille, type Medaille } from '../core/medailles';
 import { formatScore, formatTime } from './format';
+import { NOMS_VUES, VUES_CAMERA } from '../render/vuesEmbarquees';
 
 export function levelSummary(data: unknown): { nom: string; longueur: number; ambiance: 'jour' | 'coucher'; theme: string } | null {
   const v = validateLevel(data);
@@ -323,7 +324,9 @@ export class Screens {
         h('div', { class: 'seg' }, ...QUALITES.map(([q, label]) =>
           h('button', { class: 'tab' + (q === r.qualite ? ' on' : ''), onclick: () => { r.qualite = q; change(); } }, label))),
         h('h3', {}, 'Conduite'),
-        h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.cameraLoin, onchange: (e: Event) => { r.cameraLoin = (e.target as HTMLInputElement).checked; change(); } }), 'Caméra éloignée (touche C)'),
+        h('p', { class: 'sub' }, 'Caméra (la touche C passe à la suivante en course)'),
+        h('div', { class: 'seg vues' }, ...VUES_CAMERA.map((v) =>
+          h('button', { class: 'tab' + (v === r.camera ? ' on' : ''), onclick: () => { r.camera = v; change(); } }, NOMS_VUES[v]))),
         h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.detailPoints, onchange: (e: Event) => { r.detailPoints = (e.target as HTMLInputElement).checked; change(); } }), 'Détail des points de drift (vitesse, durée, angle)'),
         h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.indicateurAngle, onchange: (e: Event) => { r.indicateurAngle = (e.target as HTMLInputElement).checked; change(); } }), 'Indicateur d\'angle sous la voiture'),
         o.touch && h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.accelAuto, onchange: (e: Event) => { r.accelAuto = (e.target as HTMLInputElement).checked; change(); } }), 'Accélération automatique (tactile)'),

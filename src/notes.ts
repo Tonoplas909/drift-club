@@ -13,6 +13,15 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.12',
+    date: '07/10/2026',
+    titre: 'Caméras embarquées',
+    notes: [
+      'Cinq nouvelles caméras, à faire défiler avec la touche C (ou Y / Triangle) : capot, calandre au ras du pare-chocs, conducteur (planche de bord et volant qui tourne avec toi), roue arrière pour voir le pneu fumer, et toit.',
+      'La caméra choisie est retenue, et se choisit aussi dans les Réglages.',
+    ],
+  },
+  {
     version: '0.5.11',
     date: '07/10/2026',
     titre: 'Statistiques du pilote',

@@ -7,6 +7,7 @@ import type { AssistParams, CarParams, CarState } from '../core/physics/types';
 import type { Assets } from '../render/assets';
 import { World } from '../render/world';
 import { CAMERA_LOIN, CAMERA_PROCHE, type ChaseConfig } from '../render/camera';
+import { NOMS_VUES, vueSuivante } from '../render/vuesEmbarquees';
 import type { QualityManager } from '../render/quality';
 import type { AudioEngine } from '../audio/audio';
 import type { InputManager } from '../input/manager';
@@ -71,7 +72,8 @@ export class GameSession {
     });
     this.race = this.newRace();
     this.loop = new FixedStepLoop(() => this.simStep());
-    this.camCfg = deps.reglages.cameraLoin ? CAMERA_LOIN : CAMERA_PROCHE;
+    this.camCfg = deps.reglages.camera === 'loin' ? CAMERA_LOIN : CAMERA_PROCHE;
+    this.world.vue = deps.reglages.camera;
     deps.debug?.attach(CARS[deps.reglages.voiture], MODES[deps.reglages.mode], this.camCfg);
     if (deps.debug) this.exposerDebug();
     window.addEventListener('resize', this.onResize);
@@ -127,8 +129,10 @@ export class GameSession {
     if (a.recommencer) { this.restart(); return; }
     if (a.pause && this.race.phase !== 'arrivee') { this.cb.onPause(); return; }
     if (a.camera) {
-      this.deps.reglages.cameraLoin = !this.deps.reglages.cameraLoin;
-      this.camCfg = this.deps.reglages.cameraLoin ? CAMERA_LOIN : CAMERA_PROCHE;
+      const vue = (this.deps.reglages.camera = vueSuivante(this.deps.reglages.camera));
+      this.camCfg = vue === 'loin' ? CAMERA_LOIN : CAMERA_PROCHE;
+      this.world.vue = vue;
+      this.deps.hud.annonce(`Caméra : ${NOMS_VUES[vue]}`);
     }
     if (a.muet) this.deps.reglages.muet = this.deps.audio.toggleMute();
     if (a.pleinEcran) toggleFullscreen();
