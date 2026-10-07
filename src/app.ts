@@ -17,7 +17,8 @@ import { prepareLevel, type PreparedLevel } from './game/prepare';
 import { forcerDecor } from './game/decorUrl';
 import { NIVEAUX_OFFICIELS, cleNiveauOfficiel } from './levels';
 import { Screens, levelSummary, type NiveauCarte } from './ui/screens';
-import { formatDistance, titreNiveau } from './ui/format';
+import { formatDistance, formatScore, titreNiveau } from './ui/format';
+import { depuisBase64, versBase64 } from './core/replay/replay';
 import { skinChoisie, choisirSkin, ajouterLivreesAtelier, skinDef } from './core/skins';
 import { fumeeDef } from './core/fumees';
 import { defAtelier, lireLivreeOfficielle, versLigneOfficielle, type LivreeOfficielle } from './core/atelier';
@@ -680,10 +681,20 @@ export class App {
       onFinish: (r) => this.arrivee(r),
       onPause: () => this.pauseRace(),
     });
+    const fantome = this.installerFantome(this.session, key);
     this.screens.clear();
     this.keyboard.capture = true;
     this.touchControls.show(this.touch || this.input.touchActive);
     this.session.start();
+    if (fantome) this.hud.annonce(fantome);
+  }
+
+  /** Fantôme du record de ce niveau (dans le mode choisi) ; renvoie le texte à annoncer, ou null. */
+  private installerFantome(session: GameSession, key: string): string | null {
+    const f = this.reglages.fantome ? this.store.loadFantome(key, this.reglages.mode) : null;
+    const octets = f ? depuisBase64(f.replay) : null;
+    if (!f || !octets || !session.installerFantome(f.voiture, octets)) return null;
+    return `Fantôme : ton record (${formatScore(f.score)})`;
   }
 
   /** Mode Zen : balade sans fin sur une route générée au fil de l'eau (graine tirée au hasard, ou donnée). */
@@ -824,8 +835,15 @@ export class App {
     this.onEscape = null;
     this.screens.clear();
     this.touchControls.show(this.touch || this.input.touchActive);
+    // un record vient peut-être d'être battu : le fantôme prend la nouvelle course
+    const fantome = this.current && this.fantomeAJour ? this.installerFantome(this.session, this.current.prepared.key) : null;
+    this.fantomeAJour = false;
     this.session.restart();
+    if (fantome) this.hud.annonce(fantome);
   }
+
+  /** vrai quand l'arrivée vient d'enregistrer un nouveau fantôme */
+  private fantomeAJour = false;
 
   private pauseRace(): void {
     if (!this.session) return;
@@ -903,6 +921,12 @@ export class App {
     const record = this.store.submitRecord(cur.prepared.key, this.reglages.mode, {
       score: r.score, temps: r.time, voiture: this.reglages.voiture, meilleurDrift: r.bestDrift, date: new Date().toISOString().slice(0, 10),
     });
+    // nouveau record : sa course devient le fantôme de ce niveau
+    const replayRecord = record ? this.session.replay() : null;
+    if (replayRecord) {
+      this.store.saveFantome(cur.prepared.key, this.reglages.mode, { voiture: this.reglages.voiture, replay: versBase64(replayRecord), score: r.score });
+      this.fantomeAJour = true;
+    }
     const next = cur.index >= 0 && cur.index + 1 < NIVEAUX_OFFICIELS.length ? cur.index + 1 : -1;
     // Non connecté : clés locales, 1 par arrivée, +1 si nouveau record local (une seule fois par arrivée, pas à chaque retour d'écran).
     // Connecté : les clés du compte sont créditées par le serveur en réponse à l'envoi du score (voir envoyerScore).

@@ -29,15 +29,18 @@ export interface Film {
 const AVANT = 0.6;
 const APRES = 2.5;
 
-/** Rejoue la course ; null si le replay ne mène pas à l'arrivée (niveau modifié, replay abîmé). */
-export function tournerFilm(n: NiveauPrepare, voiture: CarId, mode: ModeId, replay: Uint8Array): Film | null {
+/**
+ * Rejoue la course ; null si le replay ne mène pas à l'arrivée (niveau modifié, replay abîmé).
+ * `depuisDebut` : une image par pas depuis le tout premier (décompte compris), pour caler un fantôme sur la course.
+ */
+export function tournerFilm(n: NiveauPrepare, voiture: CarId, mode: ModeId, replay: Uint8Array, o: { depuisDebut?: boolean } = {}): Film | null {
   const sim = new RaceSim({ level: n.level, track: n.track, terrain: n.terrain, env: n.env, car: CARS[voiture], assists: MODES[mode] });
   const images: ImageFilm[] = [];
   const garder = (): void => { images.push({ car: copyCarState(sim.car), hud: sim.hud(), s: sim.progressS }); };
   let depart = -1;
   const lu = lireReplay(replay, PAS_MAX, (p) => {
     sim.step(p.input, p.replacer);
-    if (depart < 0 && sim.phase === 'compte' && sim.countdown > AVANT) return true;
+    if (depart < 0 && !o.depuisDebut && sim.phase === 'compte' && sim.countdown > AVANT) return true;
     if (depart < 0) depart = images.length;
     garder();
     return sim.phase !== 'arrivee';

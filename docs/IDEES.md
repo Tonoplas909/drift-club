@@ -23,7 +23,7 @@ la fonction `verifier-course` (`npx vite-node tools/gen-fonction.ts`).
 | [Défi du jour](#défi-du-jour) | moyen | oui (migration) | **recommandé** |
 | [Caméras embarquées](#caméras-embarquées) | moyen | non | fait (0.5.12) |
 | [Revoir sa course](#revoir-sa-course) | moyen | non | fait (0.5.13) |
-| [Fantôme de son record (local)](#fantôme-de-son-record-local) | moyen | non | nouveau |
+| [Fantôme de son record (local)](#fantôme-de-son-record-local) | moyen | non | fait (0.5.14) |
 | [Zones de clipping](#zones-de-clipping) | moyen | oui (simulation) | **recommandé** |
 | [Votes dans l'Atelier](#votes-dans-latelier) | moyen | oui (migration) | à faire |
 | [Pluie et nuit](#pluie-et-nuit) | moyen | oui (simulation) | à faire |
@@ -206,3 +206,4 @@ serveur à mettre à jour.
 | 0.5.11 | **Statistiques du pilote** (accueil) : distance en course et en Zen, temps en glisse, plus long et meilleur drift, courses finies, voiture la plus jouée, médailles |
 | 0.5.12 | **Caméras embarquées** : capot, calandre, conducteur (planche de bord, volant qui tourne), roue arrière, toit ; choix retenu dans les Réglages |
 | 0.5.13 | **Revoir sa course** depuis l'arrivée : la course rejouée avec des caméras de télévision (bord de route, hélicoptère, poursuite, embarquée), ralenti, accéléré, mode photo |
+| 0.5.14 | **Fantôme de son record** (sur l'appareil) : voiture translucide qui refait la meilleure course du niveau dans le mode choisi |

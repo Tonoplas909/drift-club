@@ -56,6 +56,8 @@ export class World {
   private readonly scintille: Scintillement | null = null;
   private readonly terrainGroup: THREE.Group;
   private readonly carView: CarView;
+  /** fantôme du record (voiture translucide), s'il y en a un */
+  private fantome: CarView | null = null;
   private readonly gauge = new SpeedGauge();
   /** vitesse à laquelle la jauge est pleine (m/s) */
   private readonly gaugeMax: number;
@@ -167,6 +169,22 @@ export class World {
     this.chase.reset(this.target, { dist: 7, height: 2.8, lookAhead: 4, fovMin: 60, fovMax: 72 }, this.init.terrain);
   }
 
+  /** Ajoute le fantôme du record : une voiture translucide qui rejoue la meilleure course. */
+  ajouterFantome(carId: CarId): void {
+    if (this.fantome) { this.scene.remove(this.fantome.root); this.fantome.dispose(); }
+    this.fantome = new CarView(this.init.assets.cars[carId], '#bfe6ff', false);
+    this.fantome.devenirFantome();
+    this.fantome.root.visible = false;
+    this.scene.add(this.fantome.root);
+  }
+
+  /** Place le fantôme (null : caché, par exemple après son arrivée). */
+  placerFantome(pose: CarPose | null): void {
+    if (!this.fantome) return;
+    this.fantome.root.visible = pose !== null;
+    if (pose) this.fantome.update(pose);
+  }
+
   resetEffects(): void {
     this.skids.reset();
   }
@@ -234,6 +252,7 @@ export class World {
       for (const w of m.wheels) shared.add(w.geometry);
     }
     this.carView.dispose();
+    this.fantome?.dispose();
     this.gauge.dispose();
     this.smoke.dispose();
     this.skids.dispose();

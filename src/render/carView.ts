@@ -122,6 +122,24 @@ export class CarView {
     this.braquage = p.steer;
   }
 
+  /** Fantôme d'une course enregistrée : voiture translucide, sans contour, sans ombre ni décors de livrée. */
+  devenirFantome(opacite = 0.38): void {
+    for (const m of [this.mat, this.decalMat]) {
+      m.transparent = true;
+      m.opacity = opacite;
+      m.depthWrite = false;
+      m.needsUpdate = true;
+    }
+    this.root.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      mesh.castShadow = false;
+      if (mesh.material === this.outlineMat) mesh.visible = false;
+    });
+    if (this.decals) this.decals.visible = false;
+    this.root.renderOrder = 2;
+  }
+
   /**
    * Pose `cam` sur une vue embarquée (null : caméra extérieure, intérieur caché). En vue conducteur, l'intérieur
    * apparaît et le contour de la carrosserie (dessiné par l'intérieur de sa coque) disparaît.

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Store, memoryKV, safeStorage, defaultReglages, cleNiveauPerso, type KV } from '../../src/storage/store';
+import { Store, memoryKV, safeStorage, defaultReglages, cleNiveauPerso, FANTOMES_MAX, type KV } from '../../src/storage/store';
 import { skinChoisie } from '../../src/core/skins';
 import { straightLevel } from '../fixtures/levels';
 
@@ -190,5 +190,24 @@ describe('réglages du HUD (v0.3.9)', () => {
     const kv = memoryKV();
     kv.setItem('driftclub.v1.reglages', JSON.stringify({ mode: 'semi' }));
     expect(new Store(kv).loadReglages(false).detailPoints).toBe(true);
+  });
+});
+
+describe('fantômes', () => {
+  it('garde le replay du record par niveau et mode, et oublie les plus anciens', () => {
+    const kv = memoryKV();
+    const st = new Store(kv);
+    expect(st.loadFantome('off:a', 'semi')).toBeNull();
+    st.saveFantome('off:a', 'semi', { voiture: 'legere', replay: 'AQ==', score: 10 });
+    expect(st.loadFantome('off:a', 'semi')).toEqual({ voiture: 'legere', replay: 'AQ==', score: 10 });
+    expect(st.loadFantome('off:a', 'arcade')).toBeNull();
+    for (let i = 0; i < FANTOMES_MAX + 5; i++) st.saveFantome(`off:n${i}`, 'semi', { voiture: 'kei', replay: 'AQ==', score: i });
+    expect(st.loadFantome('off:a', 'semi')).toBeNull();
+    expect(st.loadFantome(`off:n${FANTOMES_MAX + 4}`, 'semi')?.score).toBe(FANTOMES_MAX + 4);
+  });
+  it('fantôme mal formé : ignoré', () => {
+    const kv = memoryKV();
+    kv.setItem('driftclub.v1.fantomes', JSON.stringify({ 'off:a|semi': { voiture: 'inconnue', replay: 'AQ==', score: 1 } }));
+    expect(new Store(kv).loadFantome('off:a', 'semi')).toBeNull();
   });
 });
