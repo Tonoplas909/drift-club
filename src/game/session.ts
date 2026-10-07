@@ -19,6 +19,8 @@ import type { PreparedLevel } from './prepare';
 import { camDepuisUrl, type CamLibre } from '../debug/camLibre';
 import { Enregistreur, quantifier } from '../core/replay/replay';
 import type { ScenePhoto } from './photo';
+import type { CompteurPilote } from './statistiques';
+import { SIM_DT } from '../core/constants';
 
 export interface DebugHook {
   attach(car: CarParams, assists: AssistParams, cam: ChaseConfig): void;
@@ -34,6 +36,8 @@ export interface SessionDeps {
   quality: QualityManager;
   reglages: Reglages;
   debug?: DebugHook | null;
+  /** statistiques du pilote (distance, glisse, drifts…) */
+  stats?: CompteurPilote | null;
 }
 
 export interface SessionCallbacks {
@@ -152,7 +156,9 @@ export class GameSession {
     const input = quantifier(this.deps.input.state(this.deps.reglages.accelAuto));
     if (this.race.phase !== 'arrivee') this.enregistreur.ajouter(input, this.pendingReplace);
     const events = this.race.step(input, this.pendingReplace);
+    if (this.pendingReplace) this.deps.stats?.couper();
     this.pendingReplace = false;
+    if (this.race.phase === 'course') this.deps.stats?.pas(this.deps.reglages.voiture, this.race.car.speed, this.race.car.beta, false, SIM_DT);
     for (const e of events) this.handle(e);
   }
 
@@ -166,6 +172,7 @@ export class GameSession {
         this.deps.audio.playBank(e.multiplier);
         this.deps.input.gamepad?.vibrer(vibrationDrift(e.multiplier), performance.now());
         this.deps.hud.flash('bank', e.points);
+        this.deps.stats?.drift(e.points);
         break;
       case 'lose':
         this.deps.audio.playLose();
@@ -181,6 +188,7 @@ export class GameSession {
         break;
       case 'arrivee':
         this.deps.audio.playFinish();
+        this.deps.stats?.courseFinie();
         this.finishDelay = 1.5;
         break;
     }
@@ -228,6 +236,7 @@ export class GameSession {
     this.enregistreur = new Enregistreur();
     this.finishDelay = -1;
     this.pendingReplace = false;
+    this.deps.stats?.couper();
     this.world.resetEffects();
     this.world.resetCamera(this.race.car);
     this.deps.hud.reset();

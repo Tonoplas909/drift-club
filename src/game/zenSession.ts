@@ -14,6 +14,7 @@ import { interpolatePose } from './pose';
 import { toggleFullscreen, type SessionDeps } from './session';
 import type { ScenePhoto } from './photo';
 import { vibrationChoc, vibrationHorsPiste } from '../input/gamepad';
+import { SIM_DT } from '../core/constants';
 
 export interface ZenCallbacks {
   onPause(): void;
@@ -190,7 +191,9 @@ export class ZenSession {
   private simStep(): void {
     const input = this.pilote > 0 ? this.autopilote() : this.deps.input.state(this.deps.reglages.accelAuto);
     const events = this.sim.step(input, this.pendingReplace);
+    if (this.pendingReplace) this.deps.stats?.couper();
     this.pendingReplace = false;
+    if (this.pilote === 0) this.deps.stats?.pas(this.deps.reglages.voiture, this.sim.car.speed, this.sim.car.beta, true, SIM_DT);
     for (const e of events) this.handle(e);
   }
 

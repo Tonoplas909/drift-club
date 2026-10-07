@@ -121,7 +121,7 @@ export class Screens {
     )));
   }
 
-  accueil(o: { onJouer(): void; onZen(): void; onGarage(): void; onCaisses(): void; onEditeur(): void; onCompte(): void; onReglages(): void; persistent: boolean; compte: string; /** rappel des touches */ aide: string }): void {
+  accueil(o: { onJouer(): void; onZen(): void; onGarage(): void; onCaisses(): void; onEditeur(): void; onStatistiques(): void; onCompte(): void; onReglages(): void; persistent: boolean; compte: string; /** rappel des touches */ aide: string }): void {
     const compte = h('button', { class: 'btn sec', onclick: o.onCompte }, o.compte);
     this.boutonCompte = compte;
     this.show(h('div', { class: 'screen accueil' },
@@ -133,7 +133,10 @@ export class Screens {
           h('button', { class: 'btn sec', onclick: o.onGarage }, 'Garage'),
           h('button', { class: 'btn sec', onclick: o.onCaisses }, 'Caisses'),
         ),
-        h('button', { class: 'btn sec', onclick: o.onEditeur }, 'Éditeur'),
+        h('div', { class: 'duo' },
+          h('button', { class: 'btn sec', onclick: o.onEditeur }, 'Éditeur'),
+          h('button', { class: 'btn sec', onclick: o.onStatistiques }, 'Statistiques'),
+        ),
         compte,
         h('button', { class: 'btn sec', onclick: o.onReglages }, 'Réglages'),
       ),

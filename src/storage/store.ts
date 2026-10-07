@@ -60,6 +60,7 @@ const K_REGLAGES = 'driftclub.v1.reglages';
 const K_RECORDS = 'driftclub.v1.records';
 const K_NIVEAUX = 'driftclub.v1.niveaux';
 const K_PROGRESSION = 'driftclub.v1.progression';
+const K_STATISTIQUES = 'driftclub.v1.statistiques';
 /** dernière progression connue du compte en ligne (lecture seule hors ligne) ; la progression locale ci-dessus n'est jamais modifiée par le compte */
 const K_PROGRESSION_COMPTE = 'driftclub.v1.progression-compte';
 const K_LIVREES_ATELIER = 'driftclub.v1.livrees-atelier';
@@ -205,6 +206,15 @@ export class Store {
   }
 
   /** Dernières livrées de l'Atelier reçues du serveur (lignes brutes, re-validées à la lecture par l'appelant). */
+  /** Statistiques du pilote (relues et validées par `lireStatistiques`). */
+  loadStatistiques(): unknown {
+    return this.read(K_STATISTIQUES);
+  }
+
+  saveStatistiques(s: unknown): void {
+    this.write(K_STATISTIQUES, s);
+  }
+
   loadLivreesAtelier(): unknown[] {
     const raw = this.read(K_LIVREES_ATELIER);
     return Array.isArray(raw) ? raw.slice(0, 2000) : [];
