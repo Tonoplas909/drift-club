@@ -364,7 +364,7 @@ export class Screens {
     )));
   }
 
-  resultats(o: { result: RaceResult; /** niveau qu'on vient de finir (« Niveau 3 · Col du Loup ») */ niveau?: string; /** seuils [bronze, argent, or] du niveau (niveaux officiels) */ seuils?: readonly [number, number, number]; record: boolean; persistent: boolean; /** clés gagnées à l'arrivée et total */ cles?: GainCourse; /** bloc de clés du compte, mis à jour après la réponse du serveur (prioritaire sur `cles`) */ gainsEnLigne?: HTMLElement | null; onCaisses?: () => void; onRecommencer(): void; onSuivant: (() => void) | null; onMenu(): void; menuLabel?: string; /** bloc classement en ligne, rempli après l'envoi du score */ enLigne?: HTMLElement | null }): void {
+  resultats(o: { result: RaceResult; /** niveau qu'on vient de finir (« Niveau 3 · Col du Loup ») */ niveau?: string; /** seuils [bronze, argent, or] du niveau (niveaux officiels) */ seuils?: readonly [number, number, number]; record: boolean; persistent: boolean; /** clés gagnées à l'arrivée et total */ cles?: GainCourse; /** bloc de clés du compte, mis à jour après la réponse du serveur (prioritaire sur `cles`) */ gainsEnLigne?: HTMLElement | null; onCaisses?: () => void; onRecommencer(): void; onSuivant: (() => void) | null; onMenu(): void; menuLabel?: string; /** carte de score à partager */ onPartager?: () => void; /** bloc classement en ligne, rempli après l'envoi du score */ enLigne?: HTMLElement | null }): void {
     const r = o.result;
     const ecart = r.time - r.targetTime;
     // deux colonnes (score | clés et boutons) sur téléphone en paysage, sinon une seule pile (voir styles.css)
@@ -388,6 +388,7 @@ export class Screens {
       h('div', { class: 'row' },
         h('button', { class: 'btn', onclick: o.onRecommencer }, 'Recommencer'),
         o.onSuivant && h('button', { class: 'btn', onclick: o.onSuivant }, 'Niveau suivant'),
+        o.onPartager && h('button', { class: 'btn sec', title: 'Une image de ta course avec ton score, à partager', onclick: o.onPartager }, 'Partager'),
         h('button', { class: 'btn sec', onclick: o.onMenu }, o.menuLabel ?? 'Menu'),
       ),
       ),

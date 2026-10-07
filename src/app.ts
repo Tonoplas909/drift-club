@@ -8,7 +8,7 @@ import { KeyboardInput } from './input/keyboard';
 import { TouchControls } from './input/touch';
 import { InputManager } from './input/manager';
 import { GamepadInput } from './input/gamepad';
-import { ModePhoto } from './game/photo';
+import { ModePhoto, orbiteDepuis, camOrbite } from './game/photo';
 import { Store, safeStorage, cleNiveauPerso, type Reglages, type MonNiveau } from './storage/store';
 import { Hud } from './game/hud';
 import { GameSession, type DebugHook } from './game/session';
@@ -52,7 +52,11 @@ import { ecranAtelier } from './ui/atelier';
 import { MiseAJour, lireVersionPubliee } from './online/miseAJour';
 import { BUILD_ID } from './version';
 import { SEUILS_MEDAILLES, medaille, type Medaille } from './core/medailles';
-import { MODE_IDS } from './core/physics/assists';
+import { MODE_IDS, MODE_NOMS } from './core/physics/assists';
+import { CARS } from './core/physics/cars';
+import { dessinerCarte, nomCarte } from './ui/carteScore';
+import { enregistrerImage } from './ui/partageImage';
+import { SITE_URL } from './online/config';
 import { zoneGains, type ZoneGains } from './ui/gains';
 import { ecranTouches, aideTouches } from './ui/touches';
 
@@ -906,10 +910,46 @@ export class App {
         onSuivant: next >= 0 ? () => void this.lancer(next) : null,
         onMenu: () => this.quitterCourse(),
         menuLabel: cur.contexte.menuLabel,
+        onPartager: () => void this.partagerCarte(r, titreNiveau(cur.index, cur.prepared.level.nom), record, cur.index),
         enLigne,
       });
     };
     montrer();
+  }
+
+  /** Carte de score : capture de la course (vue de trois quarts), niveau, score, médaille, voiture ; partagée ou téléchargée. */
+  private partageEnCours = false;
+  private async partagerCarte(r: RaceResult, niveau: string, record: boolean, index: number): Promise<void> {
+    const s = this.session;
+    if (!(s instanceof GameSession) || this.partageEnCours) return;
+    this.partageEnCours = true;
+    try {
+      await document.fonts?.load("800 40px 'Baloo 2'").catch(() => undefined);
+      const scene = s.scenePhoto();
+      const o = orbiteDepuis(scene);
+      // rendu et copie dans la même tâche : le tampon WebGL n'est lisible que juste après le rendu
+      s.rendrePhoto(camOrbite(scene, { lacet: o.lacet + 0.75, tangage: 0.2, dist: 7.5 }));
+      const src = $('scene') as HTMLCanvasElement;
+      const capture = document.createElement('canvas');
+      capture.width = src.width; capture.height = src.height;
+      capture.getContext('2d')?.drawImage(src, 0, 0);
+      s.rendrePhoto(null);
+      const voiture = this.reglages.voiture;
+      const seuils = index >= 0 ? SEUILS_MEDAILLES[NIVEAUX_OFFICIELS[index].id] : undefined;
+      const carte = dessinerCarte(capture, {
+        niveau, score: r.score, meilleurDrift: r.bestDrift, temps: r.time,
+        voiture: CARS[voiture].nom, livree: skinDef(voiture, skinChoisie(this.reglages.skins, voiture)).nom, mode: MODE_NOMS[this.reglages.mode],
+        medaille: seuils ? medaille(r.score, seuils) : null, record, lien: SITE_URL,
+      });
+      const blob = await new Promise<Blob | null>((ok) => carte.toBlob(ok, 'image/png'));
+      if (!blob) throw new Error('carte vide');
+      const msg = await enregistrerImage(blob, nomCarte(niveau), this.touch);
+      if (msg) this.screens.toast('Carte de score enregistrée');
+    } catch {
+      this.screens.toast('La carte de score n\'a pas pu être créée');
+    } finally {
+      this.partageEnCours = false;
+    }
   }
 
   /** Bloc « classement en ligne » des résultats : envoi en tâche de fond, l'écran n'attend jamais le réseau. */
