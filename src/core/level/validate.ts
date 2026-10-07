@@ -1,5 +1,5 @@
 import { LIMITES, ENVIRONNEMENTS } from './types';
-import type { Level, PointRoute, Barriere, ObjetPlace, Ambiance, CoteBarriere, TypeObjet, Environnement, PlanEau } from './types';
+import type { Level, PointRoute, Barriere, ObjetPlace, Ambiance, CoteBarriere, TypeObjet, Environnement, PlanEau, ZoneClipping, CoteClipping } from './types';
 import { aire, autoIntersection } from '../env/eau';
 import * as dm from '../math/dmath';
 
@@ -89,6 +89,26 @@ export function validateLevel(raw: unknown): ResultatValidation {
     });
   }
 
+  // Zones de clipping (optionnelles)
+  const clipping: ZoneClipping[] = [];
+  if (raw.clipping !== undefined) {
+    if (!Array.isArray(raw.clipping)) {
+      e.push('clipping : doit être une liste.');
+    } else {
+      if (raw.clipping.length > LIMITES.clippingMax) e.push(`clipping : ${LIMITES.clippingMax} zones au maximum.`);
+      raw.clipping.forEach((z: unknown, i: number) => {
+        if (
+          !isObj(z) || !isInt(z.de) || !isInt(z.a) || (z.cote !== 'gauche' && z.cote !== 'droite') ||
+          z.de < 0 || z.a <= z.de || z.a > route.length - 1
+        ) {
+          e.push(`clipping[${i}] : « de » < « a » (indices de points) et côté gauche ou droite.`);
+          return;
+        }
+        clipping.push({ de: z.de, a: z.a, cote: z.cote as CoteClipping });
+      });
+    }
+  }
+
   // Décor
   const decorRaw = raw.decor;
   let decor = { graine: 0, densite: 0.5 };
@@ -165,6 +185,7 @@ export function validateLevel(raw: unknown): ResultatValidation {
       decor,
       objets,
       ...(eau.length > 0 ? { eau } : {}),
+      ...(clipping.length > 0 ? { clipping } : {}),
     },
   };
 }

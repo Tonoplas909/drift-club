@@ -81,6 +81,11 @@
     { "x": 93.4, "z": 535.5, "y": 2, "l": 11 }
   ],
   "barrieres": [],
+  "clipping": [
+    { "de": 10, "a": 17, "cote": "droite" },
+    { "de": 21, "a": 32, "cote": "gauche" },
+    { "de": 48, "a": 54, "cote": "droite" }
+  ],
   "decor": { "graine": 25219, "densite": 0.55 },
   "objets": []
 }

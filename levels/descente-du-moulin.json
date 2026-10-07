@@ -134,6 +134,11 @@
     { "de": 84, "a": 90, "cote": "ext" },
     { "de": 109, "a": 115, "cote": "ext" }
   ],
+  "clipping": [
+    { "de": 28, "a": 32, "cote": "gauche" },
+    { "de": 44, "a": 48, "cote": "gauche" },
+    { "de": 94, "a": 98, "cote": "gauche" }
+  ],
   "decor": { "graine": 9251, "densite": 0.7 },
   "objets": []
 }

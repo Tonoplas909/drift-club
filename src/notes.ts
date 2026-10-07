@@ -13,6 +13,17 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.15',
+    date: '07/10/2026',
+    titre: 'Zones de clipping',
+    notes: [
+      'Nouveau : les zones de clipping, comme chez les juges de drift. Des bandes hachurées jaunes et noires marquent certains bords de route, à l\'extérieur des grands virages.',
+      'Frôle le bord dans la zone en glisse : plus tu passes près, plus le drift rapporte, jusqu\'à deux fois plus au ras du bord. Le facteur « clipping » s\'affiche avec le détail des points.',
+      'Tous les niveaux officiels en ont, et l\'éditeur a un outil « Clipping » pour en poser sur tes routes. Les records déjà établis sont gardés.',
+      'Les messages en course (caméra choisie, fantôme) s\'affichent enfin : ils n\'apparaissaient qu\'en mode Zen.',
+    ],
+  },
+  {
     version: '0.5.14',
     date: '07/10/2026',
     titre: 'Fantôme de ton record',

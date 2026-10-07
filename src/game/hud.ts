@@ -6,7 +6,7 @@ import { aiguille, svgJaugeAngle } from './jaugeAngle';
 
 export class Hud {
   private readonly el: Record<string, HTMLElement> = {};
-  private last = { score: '', time: '', drift: '', mult: '', bar: -1, combo: -1, count: '', wrong: false, speed: '', facteurs: '', angle: '' };
+  private last = { score: '', time: '', drift: '', mult: '', bar: -1, combo: -1, count: '', wrong: false, speed: '', facteurs: '', angle: '', clip: '' };
   private flashUntil = 0;
   private goUntil = 0;
 
@@ -16,8 +16,9 @@ export class Hud {
         <div class="hud-box"><small>Score</small><b data-k="score">0</b></div>
         <div class="hud-box"><small>Temps</small><b data-k="time">0:00.00</b></div>
       </div>
-      <div class="hud-facteurs" data-k="facteurs"><span class="f f-base"><i data-k="fBase"></i><small>base</small></span><span class="x">×</span><span class="f f-kmh"><i data-k="fKmh"></i><small>vitesse moy.</small></span><span class="x">×</span><span class="f f-ms"><i data-k="fMs"></i><small>durée</small></span><span class="x">×</span><span class="f f-angle"><i data-k="fAngle"></i><small>angle moy.</small></span><span class="x f-combo-x" data-k="fComboX">×</span><span class="f f-combo" data-k="fComboBox"><i data-k="fCombo"></i><small>combo</small></span></div>
+      <div class="hud-facteurs" data-k="facteurs"><span class="f f-base"><i data-k="fBase"></i><small>base</small></span><span class="x">×</span><span class="f f-kmh"><i data-k="fKmh"></i><small>vitesse moy.</small></span><span class="x">×</span><span class="f f-ms"><i data-k="fMs"></i><small>durée</small></span><span class="x">×</span><span class="f f-angle"><i data-k="fAngle"></i><small>angle moy.</small></span><span class="x" data-k="fClipX">×</span><span class="f f-clip" data-k="fClipBox"><i data-k="fClip"></i><small>clipping</small></span><span class="x f-combo-x" data-k="fComboX">×</span><span class="f f-combo" data-k="fComboBox"><i data-k="fCombo"></i><small>combo</small></span></div>
       <div class="hud-drift" data-k="driftBox"><b data-k="drift"></b><span data-k="mult"></span><div class="hud-combo" data-k="combo"><i data-k="comboBar"></i></div></div>
+      <div class="hud-clip" data-k="clip">Clipping <b data-k="clipVal"></b></div>
       <div class="hud-count" data-k="count"></div>
       <div class="hud-wrong" data-k="wrong">Mauvais sens !</div>
       <div class="hud-progress"><div class="hud-bar"><i data-k="bar"></i></div></div>
@@ -70,8 +71,9 @@ export class Hud {
   }
 
   reset(): void {
-    this.last = { score: '', time: '', drift: '', mult: '', bar: -1, combo: -1, count: '', wrong: false, speed: '', facteurs: '', angle: '' };
+    this.last = { score: '', time: '', drift: '', mult: '', bar: -1, combo: -1, count: '', wrong: false, speed: '', facteurs: '', angle: '', clip: '' };
     this.el.facteurs.classList.remove('on');
+    this.el.clip.classList.remove('on');
     this.el.combo.classList.remove('on');
     this.flashUntil = 0;
     this.goUntil = 0;
@@ -121,11 +123,21 @@ export class Hud {
       this.last.facteurs = facteurs;
       this.el.facteurs.classList.toggle('on', !!texte);
       if (texte) {
-        [this.el.fBase.textContent, this.el.fKmh.textContent, this.el.fMs.textContent, this.el.fAngle.textContent, this.el.fCombo.textContent] = texte;
+        [this.el.fBase.textContent, this.el.fKmh.textContent, this.el.fMs.textContent, this.el.fAngle.textContent, this.el.fCombo.textContent, this.el.fClip.textContent] = texte;
         const avecCombo = texte[4] !== '';
         this.el.fComboX.hidden = !avecCombo;
         this.el.fComboBox.hidden = !avecCombo;
+        const avecClip = texte[5] !== '';
+        this.el.fClipX.hidden = !avecClip;
+        this.el.fClipBox.hidden = !avecClip;
       }
+    }
+    // zone de clipping frôlée en glisse : multiplicateur du moment
+    const clip = h.driftActive && h.clipping > 0.02 ? `×${(1 + h.clipping).toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}` : '';
+    if (clip !== this.last.clip) {
+      this.last.clip = clip;
+      this.el.clip.classList.toggle('on', clip !== '');
+      if (clip) this.el.clipVal.textContent = clip;
     }
     this.majAngle(h.angle);
     let count = '';
@@ -171,8 +183,12 @@ export class Hud {
   }
 }
 
-/** Valeurs des facteurs affichés au-dessus des points (vitesse et angle : moyennes du drift ; combo vide à x1). */
-export function libellesFacteurs(g: { base: number; kmh: number; secondes: number; angle: number; combo: number }): [string, string, string, string, string] {
+/**
+ * Valeurs des facteurs affichés au-dessus des points (vitesse, angle et clipping : moyennes du drift ; combo vide à
+ * x1, clipping vide hors zone).
+ */
+export function libellesFacteurs(g: { base: number; kmh: number; secondes: number; angle: number; clipping?: number; combo: number }): [string, string, string, string, string, string] {
   const fr = (v: number, d: number) => v.toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d });
-  return [String(g.base), `${fr(g.kmh, 0)} km/h`, `${fr(g.secondes, 2)} s`, fr(g.angle, 2), g.combo > 1 ? `x${g.combo}` : ''];
+  const clip = g.clipping ?? 1;
+  return [String(g.base), `${fr(g.kmh, 0)} km/h`, `${fr(g.secondes, 2)} s`, fr(g.angle, 2), g.combo > 1 ? `x${g.combo}` : '', clip > 1.005 ? fr(clip, 2) : ''];
 }

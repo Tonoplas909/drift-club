@@ -13,6 +13,8 @@ export interface ScoreParams {
   timeBonusLimite: number;
   /** le bonus de temps ne dépasse pas cette part des points de drift */
   timeBonusPartMax: number;
+  /** zone de clipping frôlée au ras du bord : le drift rapporte (1 + bonusClipping) fois plus */
+  bonusClipping: number;
 }
 
 /** Valeurs de départ (spec §6), réglables avec ?debug. */
@@ -27,6 +29,7 @@ export const DEFAULT_SCORE_PARAMS: ScoreParams = {
   timeBonusPerSec: 1000,
   timeBonusLimite: 1.5,
   timeBonusPartMax: 0.5,
+  bonusClipping: 1,
 };
 
 export interface ScoreState {
@@ -47,6 +50,8 @@ export interface ScoreState {
   driftVitesse: number;
   /** Σ facteur d'angle·km/h·dt du drift en cours (pour le facteur d'angle moyen affiché) */
   driftAngle: number;
+  /** Σ facteur de clipping·facteur d'angle·km/h·dt du drift en cours (facteur de clipping moyen affiché) */
+  driftClip: number;
 }
 
 export type ScoreEvent = { type: 'bank'; points: number; multiplier: number } | { type: 'lose'; points: number };
@@ -62,10 +67,12 @@ export interface ScoreFrame {
   reset: boolean;
   /** la voiture repasse sur une portion de route déjà parcourue (après un recul) : le drift n'y rapporte rien */
   dejaParcouru?: boolean;
+  /** proximité du bord dans une zone de clipping (0 : hors zone, 1 : au ras du bord) */
+  clipping?: number;
 }
 
 export function createScore(): ScoreState {
-  return { total: 0, drift: 0, multiplier: 1, active: false, pending: false, inactiveTime: 0, sinceBank: 0, bestDrift: 0, driftCount: 0, driftTime: 0, driftVitesse: 0, driftAngle: 0 };
+  return { total: 0, drift: 0, multiplier: 1, active: false, pending: false, inactiveTime: 0, sinceBank: 0, bestDrift: 0, driftCount: 0, driftTime: 0, driftVitesse: 0, driftAngle: 0, driftClip: 0 };
 }
 
 /** Facteur d'angle : 0,5 à 15°, 1 de 25° à 60°, puis baisse progressive (0,7 à 90°, 0,4 à 120°, 0,1 à 150°), 0 à 180°. */
@@ -82,7 +89,7 @@ function bank(st: ScoreState, p: ScoreParams): ScoreEvent | null {
   const raw = st.drift;
   const mult = st.multiplier;
   st.drift = 0;
-  st.driftTime = st.driftVitesse = st.driftAngle = 0;
+  st.driftTime = st.driftVitesse = st.driftAngle = st.driftClip = 0;
   st.pending = false;
   st.inactiveTime = 0;
   st.sinceBank = p.bankDelay;
@@ -99,7 +106,7 @@ function lose(st: ScoreState): ScoreEvent | null {
   const lost = st.drift * st.multiplier;
   const hadCombo = st.multiplier > 1;
   st.drift = 0;
-  st.driftTime = st.driftVitesse = st.driftAngle = 0;
+  st.driftTime = st.driftVitesse = st.driftAngle = st.driftClip = 0;
   st.multiplier = 1;
   st.active = false;
   st.pending = false;
@@ -122,10 +129,13 @@ export function stepScore(st: ScoreState, f: ScoreFrame, dt: number, p: ScorePar
     st.sinceBank = 0;
     if (f.onRoad && !f.dejaParcouru && f.progressRate >= p.progressMin) {
       const fa = angleFactor(betaDeg);
-      st.drift += p.gainPerKmh * fa * kmh * dt;
+      // hors zone de clipping, × 1 : les courses sans zone donnent exactement les mêmes points qu'avant
+      const clip = 1 + p.bonusClipping * (f.clipping ?? 0);
+      st.drift += p.gainPerKmh * fa * kmh * dt * clip;
       st.driftTime += dt;
       st.driftVitesse += kmh * dt;
       st.driftAngle += fa * kmh * dt;
+      st.driftClip += fa * kmh * dt * clip;
     }
     return null;
   }
@@ -150,17 +160,19 @@ export function comboRestant(st: ScoreState, p: ScoreParams = DEFAULT_SCORE_PARA
 }
 
 /**
- * Décomposition EXACTE des points du drift en cours : base × vitesse moyenne × durée × facteur d'angle moyen × combo
- * = points affichés. La vitesse est la moyenne dans le temps, le facteur d'angle la moyenne pondérée par la vitesse,
- * ce qui rend le produit égal à la somme accumulée. null tant que le drift n'a rien marqué.
+ * Décomposition EXACTE des points du drift en cours : base × vitesse moyenne × durée × facteur d'angle moyen
+ * × facteur de clipping moyen × combo = points affichés. La vitesse est la moyenne dans le temps, le facteur d'angle
+ * la moyenne pondérée par la vitesse, le clipping la moyenne pondérée par vitesse et angle : le produit est égal à
+ * la somme accumulée. null tant que le drift n'a rien marqué.
  */
-export function facteursDrift(st: ScoreState, p: ScoreParams = DEFAULT_SCORE_PARAMS): { base: number; kmh: number; secondes: number; angle: number; combo: number } | null {
+export function facteursDrift(st: ScoreState, p: ScoreParams = DEFAULT_SCORE_PARAMS): { base: number; kmh: number; secondes: number; angle: number; clipping: number; combo: number } | null {
   if (st.driftTime <= 0 || st.driftVitesse <= 0) return null;
   return {
     base: p.gainPerKmh,
     kmh: st.driftVitesse / st.driftTime,
     secondes: st.driftTime,
     angle: st.driftAngle / st.driftVitesse,
+    clipping: st.driftAngle > 0 ? st.driftClip / st.driftAngle : 1,
     combo: st.multiplier,
   };
 }
