@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { textesCarte, nomCarte, type InfosCarte } from '../../src/ui/carteScore';
+import { formatScore } from '../../src/ui/format';
 
 const infos: InfosCarte = {
   niveau: 'Niveau 3 · Col du Loup', score: 215000, meilleurDrift: 22000, temps: 95, voiture: 'L\'Équilibrée', livree: 'Unie',
@@ -10,7 +11,7 @@ describe('carte de score', () => {
   it('textes : score, médaille (prioritaire sur le record), voiture sans « Unie », lien court', () => {
     const t = textesCarte(infos);
     expect(t.titre).toBe('Niveau 3 · Col du Loup');
-    expect(t.score).toBe('215 000');
+    expect(t.score).toBe(formatScore(215000));
     expect(t.badge).toBe('Médaille d\'or');
     expect(t.lignes).toContainEqual(['Voiture', 'L\'Équilibrée']);
     expect(t.lignes).toContainEqual(['Temps', '1:35.00']);
