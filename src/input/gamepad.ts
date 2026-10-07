@@ -1,5 +1,6 @@
 import { NO_INPUT, type InputState } from '../core/input';
 import { NO_ACTIONS, type Actions } from './keyboard';
+import { TOUCHES_DEFAUT, type BoutonsManette, type CommandeManette } from './touches';
 
 /**
  * Manette (API Gamepad, disposition « standard » des manettes Xbox et PlayStation) :
@@ -52,8 +53,8 @@ export interface ManetteBrute {
   readonly buttons: readonly { readonly pressed: boolean; readonly value: number }[];
 }
 
-const B = { A: 0, B: 1, Y: 3, LB: 4, RB: 5, LT: 6, RT: 7, SELECT: 8, START: 9, GAUCHE: 14, DROITE: 15 } as const;
-const ACTIONS_BOUTONS: [number, keyof Actions][] = [[B.B, 'replacer'], [B.Y, 'camera'], [B.START, 'pause'], [B.SELECT, 'recommencer']];
+const B = { RB: 5, GAUCHE: 14, DROITE: 15 } as const;
+const ACTIONS_MANETTE: (keyof Actions & CommandeManette)[] = ['replacer', 'camera', 'pause', 'recommencer'];
 /** sous ce seuil, une gâchette au repos (ou mal calibrée) ne compte pas */
 const ZONE_GACHETTE = 0.05;
 
@@ -80,17 +81,29 @@ function gachette(gp: ManetteBrute, i: number): number {
 
 const appuye = (gp: ManetteBrute, i: number): boolean => gp.buttons[i]?.pressed ?? false;
 
-/** Commandes de pilotage lues sur une manette. Stick vers la droite = tourner à droite (direction négative). */
-export function etatManette(gp: ManetteBrute, r: ReglagesManette): InputState {
+/**
+ * Commandes de pilotage lues sur une manette. Stick vers la droite = tourner à droite (direction négative).
+ * La croix sert de direction quand le stick est au repos, sauf ceux de ses boutons choisis pour une autre commande.
+ */
+export function etatManette(gp: ManetteBrute, r: Pick<ReglagesManette, 'zoneMorte' | 'sensibilite'>, b: BoutonsManette = TOUCHES_DEFAUT.manette): InputState {
+  const pris = new Set(Object.values(b));
+  const croix = (i: number): boolean => !pris.has(i) && appuye(gp, i);
   let direction = -courbeStick(gp.axes[0] ?? 0, r);
-  if (direction === 0) direction = (appuye(gp, B.GAUCHE) ? 1 : 0) - (appuye(gp, B.DROITE) ? 1 : 0);
+  if (direction === 0) direction = (croix(B.GAUCHE) ? 1 : 0) - (croix(B.DROITE) ? 1 : 0);
   return {
-    gaz: gachette(gp, B.RT),
-    frein: gachette(gp, B.LT),
+    gaz: gachette(gp, b.gaz),
+    frein: gachette(gp, b.frein),
     // `+ 0` : jamais de −0 (voir `quantifier`)
     direction: direction + 0,
-    freinAMain: appuye(gp, B.A) || appuye(gp, B.RB),
+    // RB reste un second frein à main tant qu'il ne sert à rien d'autre
+    freinAMain: appuye(gp, b.freinAMain) || (!pris.has(B.RB) && appuye(gp, B.RB)),
   };
+}
+
+/** Premier bouton enfoncé (pour choisir un bouton dans les Réglages), ou null. */
+export function boutonAppuye(gp: ManetteBrute): number | null {
+  const i = gp.buttons.findIndex((x) => x.pressed || x.value > 0.6);
+  return i < 0 ? null : i;
 }
 
 /** vrai si la manette est touchée (bouton, gâchette ou stick hors de la zone morte) */
@@ -101,6 +114,8 @@ function sollicitee(gp: ManetteBrute): boolean {
 /** Lit les manettes branchées (une seule pilote : la dernière touchée). */
 export class GamepadInput {
   reglages: ReglagesManette = { ...MANETTE_DEFAUT };
+  /** boutons choisis dans les Réglages */
+  boutons: BoutonsManette = { ...TOUCHES_DEFAUT.manette };
   /** nom de la manette qui pilote (null : aucune) */
   nom: string | null = null;
   private etat: InputState = { ...NO_INPUT };
@@ -129,12 +144,24 @@ export class GamepadInput {
       return;
     }
     this.nom = 'id' in gp && typeof gp.id === 'string' ? gp.id : 'Manette';
-    this.etat = etatManette(gp, this.reglages);
-    for (const [i, a] of ACTIONS_BOUTONS) {
+    this.etat = etatManette(gp, this.reglages, this.boutons);
+    for (const a of ACTIONS_MANETTE) {
+      const i = this.boutons[a];
       const p = appuye(gp, i);
       if (p && this.precedents[i] === false) this.actions[a] = true;
       this.precedents[i] = p;
     }
+  }
+
+  /** Manette qui pilote (lue au dernier `poll`), pour choisir un bouton dans les Réglages. */
+  get manette(): ManetteBrute | null {
+    return this.dernierePad;
+  }
+
+  /** Lit les manettes sans piloter : la première touchée devient celle qui pilote. */
+  lireBouton(): number | null {
+    this.poll();
+    return this.dernierePad ? boutonAppuye(this.dernierePad) : null;
   }
 
   get active(): boolean {

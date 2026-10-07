@@ -54,6 +54,7 @@ import { BUILD_ID } from './version';
 import { SEUILS_MEDAILLES, medaille, type Medaille } from './core/medailles';
 import { MODE_IDS } from './core/physics/assists';
 import { zoneGains, type ZoneGains } from './ui/gains';
+import { ecranTouches, aideTouches } from './ui/touches';
 
 /** D'où vient la course : `index` ≥ 0 pour un niveau officiel, `retour` ramène à l'écran d'origine. */
 interface Contexte { index: number; retour: () => void; menuLabel: string }
@@ -131,6 +132,7 @@ export class App {
     this.reglages = this.store.loadReglages(this.touch);
     this.hud.options(this.reglages);
     this.manette.reglages = this.reglages.manette;
+    this.appliquerTouches();
     // clés et livrées gagnées ; une livrée choisie mais verrouillée (données modifiées à la main) retombe sur « unie »
     this.progression = this.store.loadProgression(this.reglages.skins);
     // si une progression de compte est gardée sur l'appareil, le joueur est peut-être reconnecté dans un instant : on attend de savoir laquelle fait foi
@@ -327,6 +329,7 @@ export class App {
     this.showroom?.stop();
     this.screens.accueil({
       persistent: this.persistent,
+      aide: aideTouches(this.reglages.touches.clavier),
       compte: this.libelleCompte(),
       onCompte: () => this.ecranCompte(() => this.accueil()),
       onJouer: () => this.niveaux(),
@@ -605,10 +608,27 @@ export class App {
         this.audio.setMuted(r.muet);
         this.audio.setFondSonore(r.ambianceDecor);
         this.manette.reglages = r.manette;
+        this.appliquerTouches();
         this.save();
       },
+      onTouches: () => this.touchesEcran(() => this.reglagesEcran(retour)),
       onRetour: retour,
     });
+  }
+
+  private appliquerTouches(): void {
+    this.keyboard.touches = this.reglages.touches.clavier;
+    this.manette.boutons = this.reglages.touches.manette;
+  }
+
+  /** Touches du clavier et boutons de la manette. */
+  private touchesEcran(retour: () => void): void {
+    this.screens.monter(ecranTouches({
+      touches: this.reglages.touches,
+      manette: this.manette,
+      onChange: (t) => { this.reglages = { ...this.reglages, touches: t }; this.appliquerTouches(); this.save(); },
+      onRetour: retour,
+    }));
   }
 
   private async lancer(index: number): Promise<void> {

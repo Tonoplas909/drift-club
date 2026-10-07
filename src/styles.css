@@ -643,3 +643,15 @@ input[type=text], input[type=email], input[type=password] { user-select: text; -
 .photo-aide { background: rgba(21, 19, 28, .62); border-radius: 12px; padding: 4px 14px; pointer-events: none; }
 .photo-barre { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; margin-bottom: env(safe-area-inset-bottom); }
 .photo-barre .seg { background: rgba(21, 19, 28, .62); border-radius: 14px; padding: 4px; }
+
+/* Écran « Touches » */
+.panel.touches { max-height: 92vh; overflow-y: auto; }
+.touches-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 6px 18px; }
+.touche-ligne { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 700; }
+.touche-ligne.manque > span:first-child { color: #c0392b; }
+.touche-cases { display: flex; gap: 6px; }
+.touche-case { position: relative; display: inline-flex; }
+.touche-case .btn { min-width: 64px; }
+.touche-case .btn.vide { opacity: .55; }
+.btn.attente { background: var(--yellow); }
+.touche-case .retirer { position: absolute; top: -7px; right: -7px; width: 18px; height: 18px; padding: 0; border-radius: 50%; border: 2px solid var(--ink); background: #fff; font: 800 11px/1 var(--font); cursor: pointer; display: grid; place-items: center; }

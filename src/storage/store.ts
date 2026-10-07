@@ -8,6 +8,7 @@ import { FUMEE_DEFAUT, validerFumee, type FumeeId } from '../core/fumees';
 import { offrirCaisse, progressionInitiale, validerProgression, type Progression } from '../core/economie';
 import type { EtatProgressionCompte } from '../core/progressionCompte';
 import { MANETTE_DEFAUT, type ReglagesManette } from '../input/gamepad';
+import { lireTouches, touchesParDefaut, type Touches } from '../input/touches';
 
 export interface KV {
   getItem(key: string): string | null;
@@ -37,6 +38,8 @@ export interface Reglages {
   indicateurAngle: boolean;
   /** manette : zone morte du stick et sensibilité de la direction */
   manette: ReglagesManette;
+  /** touches du clavier et boutons de la manette choisis par le joueur */
+  touches: Touches;
 }
 
 export interface RecordEntry {
@@ -101,6 +104,7 @@ export function defaultReglages(touch: boolean): Reglages {
     detailPoints: true,
     indicateurAngle: true,
     manette: { ...MANETTE_DEFAUT },
+    touches: touchesParDefaut(),
   };
 }
 
@@ -158,6 +162,7 @@ export class Store {
       detailPoints: typeof o.detailPoints === 'boolean' ? o.detailPoints : d.detailPoints,
       indicateurAngle: typeof o.indicateurAngle === 'boolean' ? o.indicateurAngle : d.indicateurAngle,
       manette: lireManette(o.manette),
+      touches: lireTouches(o.touches),
     };
   }
 

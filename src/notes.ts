@@ -13,6 +13,16 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.9',
+    date: '07/10/2026',
+    titre: 'Touches personnalisables',
+    notes: [
+      'Change tes touches dans Réglages › Touches : clique sur une commande puis appuie sur la touche voulue. Tu peux mettre deux touches par commande.',
+      'Les boutons de la manette se changent aussi : gâchettes, frein à main, replacer, caméra, pause, recommencer.',
+      'Échap met toujours en pause. Le rappel des touches de l\'accueil suit tes choix.',
+    ],
+  },
+  {
     version: '0.5.8',
     date: '07/10/2026',
     titre: 'Vibrations de la manette',
