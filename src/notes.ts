@@ -13,6 +13,14 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.6',
+    date: '07/10/2026',
+    titre: 'Le niveau rappelé à l\'arrivée',
+    notes: [
+      'L\'écran d\'arrivée rappelle le niveau que tu viens de finir : son numéro et son nom (par exemple « Niveau 3 · Col du Loup »), ou seulement son nom pour un niveau de l\'éditeur.',
+    ],
+  },
+  {
     version: '0.5.5',
     date: '06/10/2026',
     titre: 'Bonus de temps adouci',
