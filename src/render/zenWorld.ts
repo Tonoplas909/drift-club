@@ -207,6 +207,8 @@ export class ZenWorld {
     if (this.camPhoto) {
       this.camera.position.set(...this.camPhoto.pos);
       this.camera.lookAt(...this.camPhoto.cible);
+      const fov = this.camPhoto.fov;
+      if (fov && Math.abs(this.camera.fov - fov) > 0.01) { this.camera.fov = fov; this.camera.updateProjectionMatrix(); }
     }
     this.gauge.root.visible = !this.camPhoto && (embarquee === null || embarquee === 'roue');
     const cam = this.camera.position;
