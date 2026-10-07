@@ -59,6 +59,8 @@ import { enregistrerImage } from './ui/partageImage';
 import { SITE_URL } from './online/config';
 import { zoneGains, type ZoneGains } from './ui/gains';
 import { ecranTouches, aideTouches } from './ui/touches';
+import { CompteurPilote, lireStatistiques } from './game/statistiques';
+import { ecranStatistiques } from './ui/statistiques';
 
 /** D'où vient la course : `index` ≥ 0 pour un niveau officiel, `retour` ramène à l'écran d'origine. */
 interface Contexte { index: number; retour: () => void; menuLabel: string }
@@ -97,6 +99,8 @@ export class App {
   private editeur: Editeur | null = null;
   private onEscape: (() => void) | null = null;
   private photo: ModePhoto | null = null;
+  /** statistiques du pilote, enregistrées à la pause, à l'arrivée et en quittant la course */
+  private stats!: CompteurPilote;
   private readonly compte = new CompteService(clientParDefaut);
   private readonly classement = new ClassementService(clientParDefaut);
   private readonly niveauxEnLigne = new NiveauxEnLigneService(clientParDefaut);
@@ -137,6 +141,7 @@ export class App {
     this.hud.options(this.reglages);
     this.manette.reglages = this.reglages.manette;
     this.appliquerTouches();
+    this.stats = new CompteurPilote(lireStatistiques(this.store.loadStatistiques()), () => new Date().toISOString().slice(0, 10));
     // clés et livrées gagnées ; une livrée choisie mais verrouillée (données modifiées à la main) retombe sur « unie »
     this.progression = this.store.loadProgression(this.reglages.skins);
     // si une progression de compte est gardée sur l'appareil, le joueur est peut-être reconnecté dans un instant : on attend de savoir laquelle fait foi
@@ -215,6 +220,7 @@ export class App {
 
   private save(): void {
     this.store.saveReglages(this.reglages);
+    if (this.stats?.modifie) { this.store.saveStatistiques(this.stats.stats); this.stats.modifie = false; }
   }
 
   /** Remplace les livrées de l'Atelier du jeu ; renvoie vrai si la liste a changé. */
@@ -341,6 +347,7 @@ export class App {
       onGarage: () => this.garage(() => this.accueil()),
       onCaisses: () => this.caisses(() => this.accueil()),
       onEditeur: () => this.hubEditeur(),
+      onStatistiques: () => this.statistiquesEcran(() => this.accueil()),
       onReglages: () => this.reglagesEcran(() => this.accueil()),
     });
     this.lancerFondMenu();
@@ -620,6 +627,14 @@ export class App {
     });
   }
 
+  /** Statistiques du pilote, avec les médailles gagnées (records de l'appareil). */
+  private statistiquesEcran(retour: () => void): void {
+    this.showroom?.stop();
+    const medailles = { bronze: 0, argent: 0, or: 0 };
+    for (const n of NIVEAUX_OFFICIELS) { const m = this.meilleureMedaille(n.id); if (m) medailles[m]++; }
+    this.screens.monter(ecranStatistiques({ stats: this.stats.stats, medailles, niveaux: NIVEAUX_OFFICIELS.length, onRetour: retour }));
+  }
+
   private appliquerTouches(): void {
     this.keyboard.touches = this.reglages.touches.clavier;
     this.manette.boutons = this.reglages.touches.manette;
@@ -659,7 +674,7 @@ export class App {
     this.current = { index: contexte.index, prepared: res.prepared, contexte };
     this.session = new GameSession(res.prepared, {
       renderer: this.renderer, assets: this.assets, hud: this.hud, audio: this.audio, input: this.input,
-      quality: new QualityManager(this.reglages.qualite, this.touch), reglages: this.reglages, debug: this.debug,
+      quality: new QualityManager(this.reglages.qualite, this.touch), reglages: this.reglages, debug: this.debug, stats: this.stats,
     }, {
       onFinish: (r) => this.arrivee(r),
       onPause: () => this.pauseRace(),
@@ -680,7 +695,7 @@ export class App {
     this.current = null;
     this.session = new ZenSession(graine, {
       renderer: this.renderer, assets: this.assets, hud: this.hud, audio: this.audio, input: this.input,
-      quality: new QualityManager(this.reglages.qualite, this.touch), reglages: this.reglages, debug: this.debug,
+      quality: new QualityManager(this.reglages.qualite, this.touch), reglages: this.reglages, debug: this.debug, stats: this.stats,
     }, { onPause: () => this.pauseRace() });
     this.screens.clear();
     this.keyboard.capture = true;
@@ -994,6 +1009,7 @@ export class App {
 
   /** Ferme la course et renvoie l'écran où retourner. */
   private terminerCourse(): () => void {
+    this.save();
     this.keyboard.capture = false;
     this.touchControls.show(false);
     const zen = this.session instanceof ZenSession;

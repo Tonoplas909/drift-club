@@ -19,7 +19,7 @@ la fonction `verifier-course` (`npx vite-node tools/gen-fonction.ts`).
 | [Vibrations de la manette](#vibrations-de-la-manette) | petit | non | fait (0.5.8) |
 | [Touches personnalisables](#touches-personnalisables) | petit | non | fait (0.5.9) |
 | [Carte de score à partager](#carte-de-score-à-partager) | petit | non | fait (0.5.10) |
-| [Statistiques du pilote](#statistiques-du-pilote) | petit | non | nouveau |
+| [Statistiques du pilote](#statistiques-du-pilote) | petit | non | fait (0.5.11) |
 | [Défi du jour](#défi-du-jour) | moyen | oui (migration) | **recommandé** |
 | [Caméras embarquées](#caméras-embarquées) | moyen | non | nouveau |
 | [Revoir sa course](#revoir-sa-course) | moyen | non | nouveau |
@@ -202,3 +202,4 @@ serveur à mettre à jour.
 | 0.5.8 | **Vibrations de la manette** : drift encaissé (plus fort avec le combo), choc, grondement hors piste ; réglage pour les couper |
 | 0.5.9 | **Touches personnalisables** : clavier (deux touches par commande) et boutons de la manette, dans Réglages › Touches |
 | 0.5.10 | **Carte de score** à partager depuis l'arrivée : capture de la course, niveau, score, médaille, meilleur drift, voiture |
+| 0.5.11 | **Statistiques du pilote** (accueil) : distance en course et en Zen, temps en glisse, plus long et meilleur drift, courses finies, voiture la plus jouée, médailles |

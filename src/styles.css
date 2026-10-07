@@ -655,3 +655,13 @@ input[type=text], input[type=email], input[type=password] { user-select: text; -
 .touche-case .btn.vide { opacity: .55; }
 .btn.attente { background: var(--yellow); }
 .touche-case .retirer { position: absolute; top: -7px; right: -7px; width: 18px; height: 18px; padding: 0; border-radius: 50%; border: 2px solid var(--ink); background: #fff; font: 800 11px/1 var(--font); cursor: pointer; display: grid; place-items: center; }
+
+/* Statistiques du pilote */
+.stats-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.stat { background: #fff; border: 3px solid var(--ink); border-radius: 16px; padding: 10px 14px; display: flex; flex-direction: column; }
+.stat b { font-size: 28px; font-weight: 800; line-height: 1.1; color: var(--orange); -webkit-text-stroke: 1.5px var(--ink); paint-order: stroke fill; }
+.stat span { font-weight: 700; }
+.stat small { opacity: .65; font-size: 13px; }
+.stats-medailles { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.stat-medaille { display: inline-flex; align-items: center; gap: 6px; font-size: 22px; }
+.stat-medaille .ico-medaille { font-size: 34px; line-height: 0; }

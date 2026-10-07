@@ -13,6 +13,15 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.11',
+    date: '07/10/2026',
+    titre: 'Statistiques du pilote',
+    notes: [
+      'Nouvel écran Statistiques depuis l\'accueil : kilomètres parcourus (dont en mode Zen), temps passé en glisse, plus long drift, meilleur drift, courses finies, voiture la plus jouée et tes médailles.',
+      'Tout est compté sur ton appareil, à partir de maintenant.',
+    ],
+  },
+  {
     version: '0.5.10',
     date: '07/10/2026',
     titre: 'Carte de score à partager',
