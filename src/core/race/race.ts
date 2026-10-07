@@ -13,6 +13,7 @@ import {
   type ScoreEvent, type ScoreParams, type ScoreState,
 } from '../scoring/score';
 import { clamp, DEG } from '../math/vec';
+import { zonesPiste, proximiteClipping, type ZonePiste } from '../track/clipping';
 import * as dm from '../math/dmath';
 
 export type RacePhase = 'compte' | 'course' | 'arrivee';
@@ -54,8 +55,10 @@ export interface HudData {
   driftActive: boolean;
   /** fraction du temps restant avant la fin du combo (null : pas de compte à rebours) */
   combo: number | null;
-  /** décomposition exacte des points du drift en cours (null hors drift) : base × km/h moyens × secondes × facteur d'angle moyen × combo */
-  glisse: { base: number; kmh: number; secondes: number; angle: number; combo: number } | null;
+  /** décomposition exacte des points du drift en cours (null hors drift) : base × km/h moyens × secondes × facteur d'angle moyen × clipping moyen × combo */
+  glisse: { base: number; kmh: number; secondes: number; angle: number; clipping: number; combo: number } | null;
+  /** proximité du bord dans une zone de clipping (0 hors zone, 1 au ras du bord) */
+  clipping: number;
   /** angle de dérive signé (degrés), pour l'indicateur sous la voiture */
   angle: number;
   progress: number;
@@ -94,12 +97,16 @@ export class RaceSim {
   private readonly ctx: StepContext;
   private readonly sp: ScoreParams;
   private pending: RaceEvent[] = [];
+  private readonly zones: ZonePiste[];
+  /** proximité du bord dans une zone de clipping, au dernier pas */
+  clipping = 0;
 
   constructor(cfg: RaceConfig) {
     this.config = cfg;
     this.sp = cfg.scoreParams ?? DEFAULT_SCORE_PARAMS;
     this.countdown = cfg.countdown ?? 3;
     this.world = buildCollisionWorld(cfg.env);
+    this.zones = zonesPiste(cfg.level, cfg.track);
     this.ctx = { params: cfg.car, assists: cfg.assists, ground: cfg.terrain, onRoad: true };
     const idx = Math.min(6, cfg.track.samples.length - 1);
     const s0 = cfg.track.samples[idx];
@@ -148,6 +155,7 @@ export class RaceSim {
     const sp = track.samples[proj.index];
     const lat = Math.abs(proj.lateral);
     this.onRoad = lat <= sp.w;
+    this.clipping = this.zones.length > 0 && this.onRoad ? proximiteClipping(this.zones, proj.index, proj.lateral, sp.w, this.config.car.width / 2) : 0;
     let progressRate = 0;
     if (lat <= sp.w + 25) {
       const prevS = this.progressS;
@@ -183,7 +191,7 @@ export class RaceSim {
     // Score
     const se = stepScore(
       this.score,
-      { betaRad: this.car.beta, speed: this.car.speed, onRoad: this.onRoad, progressRate, crash, reset, dejaParcouru: this.progressS < this.maxProgressS - MARGE_REPARCOURS },
+      { betaRad: this.car.beta, speed: this.car.speed, onRoad: this.onRoad, progressRate, crash, reset, dejaParcouru: this.progressS < this.maxProgressS - MARGE_REPARCOURS, clipping: this.clipping },
       SIM_DT,
       this.sp,
     );
@@ -208,6 +216,7 @@ export class RaceSim {
       combo: comboRestant(this.score, this.sp),
       glisse: this.score.active || this.score.pending ? facteursDrift(this.score, this.sp) : null,
       angle: this.car.speed > 1 ? this.car.beta / DEG : 0,
+      clipping: this.clipping,
       progress: clamp(this.maxProgressS / this.config.track.length, 0, 1),
       wrongWay: this.wrongWay,
       speedKmh: this.car.speed * 3.6,

@@ -63,6 +63,7 @@ html, body {
 .hud-facteurs .f-kmh { color: #4fd6ff; }
 .hud-facteurs .f-ms { color: #7dff6b; }
 .hud-facteurs .f-angle { color: #ffa53d; }
+.hud-facteurs .f-clip { color: #ff6fd1; }
 .hud-facteurs .f-combo { color: var(--yellow); }
 /* éléments désactivables dans les Réglages */
 #hud.sans-detail .hud-facteurs, #hud.sans-angle .hud-angle { display: none; }
@@ -107,8 +108,14 @@ html, body {
 #hud.zen .hud-zen { display: block; position: absolute; left: 16px; top: max(12px, env(safe-area-inset-top)); font-weight: 700; color: #fff; -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill; font-size: 18px; }
 .hud-zen b { font-size: 30px; font-variant-numeric: tabular-nums; }
 .hud-zen small { display: block; font-size: 15px; letter-spacing: .5px; opacity: .92; }
-#hud.zen .hud-annonce { display: block; position: absolute; top: 22%; left: 0; right: 0; text-align: center; font-size: 40px; font-weight: 800; color: #fff; -webkit-text-stroke: 4px var(--ink); paint-order: stroke fill; opacity: 0; pointer-events: none; }
-#hud.zen .hud-annonce.on { animation: annonce 3.6s ease-in-out forwards; }
+#hud .hud-annonce { display: block; position: absolute; top: 22%; left: 0; right: 0; text-align: center; font-size: 40px; font-weight: 800; color: #fff; -webkit-text-stroke: 4px var(--ink); paint-order: stroke fill; opacity: 0; pointer-events: none; }
+#hud .hud-annonce.on { animation: annonce 3.6s ease-in-out forwards; }
+/* en course, plus bas et plus petit : le haut de l'écran est au drift en cours */
+#hud:not(.zen) .hud-annonce { top: 66%; font-size: 26px; -webkit-text-stroke-width: 3px; }
+/* zone de clipping frôlée en glisse */
+.hud-clip { position: absolute; top: calc(20% + 84px); left: 50%; transform: translateX(-50%); padding: 2px 14px; border-radius: 999px; border: 3px solid var(--ink); background: repeating-linear-gradient(-45deg, #ffd23f 0 10px, #fff1b8 10px 20px); font-weight: 800; font-size: 18px; color: var(--ink); opacity: 0; transition: opacity .12s; white-space: nowrap; }
+.hud-clip.on { opacity: 1; }
+#hud.zen .hud-clip { display: none; }
 @keyframes annonce { 0% { opacity: 0; transform: translateY(8px); } 15%, 70% { opacity: .95; transform: none; } 100% { opacity: 0; transform: translateY(-6px); } }
 
 /* Commandes tactiles */

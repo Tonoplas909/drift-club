@@ -24,7 +24,7 @@ la fonction `verifier-course` (`npx vite-node tools/gen-fonction.ts`).
 | [Caméras embarquées](#caméras-embarquées) | moyen | non | fait (0.5.12) |
 | [Revoir sa course](#revoir-sa-course) | moyen | non | fait (0.5.13) |
 | [Fantôme de son record (local)](#fantôme-de-son-record-local) | moyen | non | fait (0.5.14) |
-| [Zones de clipping](#zones-de-clipping) | moyen | oui (simulation) | **recommandé** |
+| [Zones de clipping](#zones-de-clipping) | moyen | oui (simulation) | fait (0.5.15) |
 | [Votes dans l'Atelier](#votes-dans-latelier) | moyen | oui (migration) | à faire |
 | [Pluie et nuit](#pluie-et-nuit) | moyen | oui (simulation) | à faire |
 | [Fantômes et tandem](#fantômes-et-tandem) | gros | oui (migration + stockage) | à faire |
@@ -207,3 +207,4 @@ serveur à mettre à jour.
 | 0.5.12 | **Caméras embarquées** : capot, calandre, conducteur (planche de bord, volant qui tourne), roue arrière, toit ; choix retenu dans les Réglages |
 | 0.5.13 | **Revoir sa course** depuis l'arrivée : la course rejouée avec des caméras de télévision (bord de route, hélicoptère, poursuite, embarquée), ralenti, accéléré, mode photo |
 | 0.5.14 | **Fantôme de son record** (sur l'appareil) : voiture translucide qui refait la meilleure course du niveau dans le mode choisi |
+| 0.5.15 | **Zones de clipping** : bords de route à frôler en glisse (jusqu'à × 2 sur les points du drift), sur tous les niveaux officiels (records gardés) et dans l'éditeur |

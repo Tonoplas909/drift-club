@@ -135,6 +135,12 @@
     { "x": 1638.3, "z": 148, "y": 6, "l": 12 }
   ],
   "barrieres": [],
+  "clipping": [
+    { "de": 54, "a": 60, "cote": "gauche" },
+    { "de": 61, "a": 67, "cote": "droite" },
+    { "de": 112, "a": 118, "cote": "gauche" },
+    { "de": 119, "a": 124, "cote": "droite" }
+  ],
   "decor": { "graine": 16391, "densite": 0.7 },
   "objets": []
 }

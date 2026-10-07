@@ -15,6 +15,8 @@ export async function empreinteNiveau(level: Level): Promise<string> {
     ...(level.eau && level.eau.length > 0
       ? { eau: level.eau.map((l) => ({ niveau: l.niveau, points: l.points.map((p) => ({ x: p.x, z: p.z })) })) }
       : {}),
+    // de même pour les zones de clipping
+    ...(level.clipping && level.clipping.length > 0 ? { clipping: level.clipping.map((z) => ({ de: z.de, a: z.a, cote: z.cote })) } : {}),
   };
 
   // Sérialise en JSON canonique (clés fixes, minifié)

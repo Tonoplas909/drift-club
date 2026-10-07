@@ -5,7 +5,7 @@ import { validateLevel } from '../core/level/validate';
 import { EditorDoc } from '../core/editor/history';
 import { analyseLevel, type AnalyseNiveau } from '../core/editor/analyse';
 import {
-  addPoint, insertPoint, movePoint, setPoint, deletePoint, toggleBarrier, addObjet, moveObjet, rotateObjet, deleteObjet,
+  addPoint, insertPoint, movePoint, setPoint, deletePoint, toggleBarrier, toggleClipping, addObjet, moveObjet, rotateObjet, deleteObjet,
   nearestPoint, nearestObjet, addLac, deleteLac, setNiveauLac, erreurContourLac, type CoteEdit,
 } from '../core/editor/ops';
 import type { TrackData } from '../core/track/buildTrack';
@@ -36,6 +36,7 @@ export interface OptionsEditeur {
 const OUTILS: { id: Outil; nom: string; aide: string }[] = [
   { id: 'route', nom: 'Route', aide: 'Route' },
   { id: 'barrieres', nom: 'Barrières', aide: 'Barrières' },
+  { id: 'clipping', nom: 'Clipping', aide: 'Zones de clipping' },
   { id: 'objets', nom: 'Objets', aide: 'Objets' },
   { id: 'lac', nom: 'Lac', aide: 'Lac' },
   { id: 'decor', nom: 'Décor', aide: 'Décor' },
@@ -395,7 +396,7 @@ export class Editeur {
   private choisirOutil(o: Outil): void {
     this.outil = o;
     if (o !== 'lac') this.lacBrouillon = [];
-    if ((o === 'barrieres' || o === 'lac' || o === 'decor' || o === 'infos') && this.selection) this.selection = null;
+    if ((o === 'barrieres' || o === 'clipping' || o === 'lac' || o === 'decor' || o === 'infos') && this.selection) this.selection = null;
     if (o === 'route' && this.selection?.kind === 'objet') this.selection = null;
     if (o === 'objets' && this.selection?.kind === 'point') this.selection = null;
     this.rafraichirOutils();
@@ -616,6 +617,12 @@ export class Editeur {
     } else if (this.outil === 'barrieres') {
       const sur = choisirRoute(l, this.analyse.track, w.x, w.z, marge);
       if (sur) this.doc.apply((d) => toggleBarrier(d, sur.seg, this.cote));
+    } else if (this.outil === 'clipping') {
+      const sur = choisirRoute(l, this.analyse.track, w.x, w.z, marge);
+      if (!sur) return;
+      const avant = (l.clipping ?? []).length;
+      this.doc.apply((d) => toggleClipping(d, sur.seg, sur.cote));
+      if ((this.doc.level.clipping ?? []).length === avant && avant >= LIMITES.clippingMax) this.toast(`Maximum ${LIMITES.clippingMax} zones de clipping.`);
     } else if (this.outil === 'objets') {
       if (l.objets.length >= LIMITES.objetsMax) { this.toast(`Maximum ${LIMITES.objetsMax} objets.`); return; }
       let idx = -1;
@@ -756,6 +763,12 @@ export class Editeur {
           this.segments(COTES, () => this.cote, (id) => { this.cote = id as CoteEdit; for (const f of this.majPanneau) f(); }),
           aide('Clique sur un tronçon de route (entre deux points, repérés par les tirets) pour poser ou retirer sa barrière du côté choisi. « Extérieur » suit l\'extérieur du virage.'),
           h('button', { class: 'btn sec sm', onclick: () => { this.doc.apply((l) => { l.barrieres = []; }); } }, icone('corbeille'), 'Tout retirer'),
+        ];
+      case 'clipping':
+        return [
+          titre('Zones de clipping'),
+          aide('Clique près du bord d\'un tronçon de route pour y poser ou retirer une zone de clipping, de ce côté-là. En course, frôler le bord dans la zone en glisse multiplie les points du drift (jusqu\'à × 2 au ras du bord). Idéal à l\'extérieur d\'un virage.'),
+          h('button', { class: 'btn sec sm', onclick: () => { this.doc.apply((l) => { delete l.clipping; }); } }, icone('corbeille'), 'Tout retirer'),
         ];
       case 'objets': {
         const palette = h('div', { class: 'ed-palette' }, ...TYPES_OBJETS.map((t) => {

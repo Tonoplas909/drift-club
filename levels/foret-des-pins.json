@@ -28,6 +28,11 @@
     { "x": 540, "z": 350, "y": 28, "l": 10 }
   ],
   "barrieres": [{ "de": 7, "a": 10, "cote": "ext" }],
+  "clipping": [
+    { "de": 6, "a": 8, "cote": "droite" },
+    { "de": 9, "a": 13, "cote": "gauche" },
+    { "de": 14, "a": 15, "cote": "droite" }
+  ],
   "decor": { "graine": 1337, "densite": 0.85 },
   "objets": []
 }

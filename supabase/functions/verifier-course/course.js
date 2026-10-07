@@ -25,6 +25,9 @@ var premiers_virages_default = {
     { x: 290, z: 410, y: 12, l: 12 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 12, a: 13, cote: "droite" }
+  ],
   decor: { graine: 4821, densite: 0.55 },
   objets: []
 };
@@ -60,6 +63,11 @@ var foret_des_pins_default = {
     { x: 540, z: 350, y: 28, l: 10 }
   ],
   barrieres: [{ de: 7, a: 10, cote: "ext" }],
+  clipping: [
+    { de: 6, a: 8, cote: "droite" },
+    { de: 9, a: 13, cote: "gauche" },
+    { de: 14, a: 15, cote: "droite" }
+  ],
   decor: { graine: 1337, densite: 0.85 },
   objets: []
 };
@@ -114,6 +122,12 @@ var col_du_loup_default = {
     { de: 9, a: 15, cote: "ext" },
     { de: 16, a: 22, cote: "ext" },
     { de: 28, a: 31, cote: "ext" }
+  ],
+  clipping: [
+    { de: 3, a: 7, cote: "gauche" },
+    { de: 10, a: 14, cote: "droite" },
+    { de: 17, a: 21, cote: "gauche" },
+    { de: 23, a: 25, cote: "droite" }
   ],
   decor: { graine: 777, densite: 0.7 },
   objets: []
@@ -186,6 +200,11 @@ var lacets_du_belvedere_default = {
     { de: 24, a: 34, cote: "ext" },
     { de: 35, a: 45, cote: "ext" }
   ],
+  clipping: [
+    { de: 24, a: 29, cote: "gauche" },
+    { de: 34, a: 38, cote: "droite" },
+    { de: 44, a: 48, cote: "gauche" }
+  ],
   decor: { graine: 3141, densite: 0.7 },
   objets: []
 };
@@ -239,6 +258,10 @@ var vallee_des_cretes_default = {
     { de: 3, a: 13, cote: "ext" },
     { de: 14, a: 23, cote: "ext" },
     { de: 24, a: 33, cote: "ext" }
+  ],
+  clipping: [
+    { de: 12, a: 16, cote: "droite" },
+    { de: 24, a: 28, cote: "droite" }
   ],
   decor: { graine: 2718, densite: 0.75 },
   objets: []
@@ -333,6 +356,11 @@ var circuit_du_lac_default = {
     { x: -132.1, z: 0.7, y: -0.1, l: 14 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 24, a: 26, cote: "droite" },
+    { de: 28, a: 31, cote: "droite" },
+    { de: 54, a: 59, cote: "droite" }
+  ],
   decor: { graine: 6042, densite: 0.6 },
   objets: [],
   eau: [
@@ -509,6 +537,10 @@ var epingles_du_diable_default = {
     { de: 91, a: 101, cote: "ext" },
     { de: 105, a: 114, cote: "ext" }
   ],
+  clipping: [
+    { de: 6, a: 14, cote: "droite" },
+    { de: 18, a: 26, cote: "gauche" }
+  ],
   decor: { graine: 7013, densite: 0.75 },
   objets: []
 };
@@ -647,6 +679,12 @@ var cretes_nord_default = {
     { de: 27, a: 36, cote: "ext" },
     { de: 61, a: 70, cote: "ext" },
     { de: 95, a: 105, cote: "ext" }
+  ],
+  clipping: [
+    { de: 28, a: 35, cote: "gauche" },
+    { de: 62, a: 69, cote: "droite" },
+    { de: 86, a: 91, cote: "droite" },
+    { de: 96, a: 104, cote: "gauche" }
   ],
   decor: { graine: 8127, densite: 0.55 },
   objets: []
@@ -788,6 +826,11 @@ var descente_du_moulin_default = {
     { de: 60, a: 66, cote: "ext" },
     { de: 84, a: 90, cote: "ext" },
     { de: 109, a: 115, cote: "ext" }
+  ],
+  clipping: [
+    { de: 28, a: 32, cote: "gauche" },
+    { de: 44, a: 48, cote: "gauche" },
+    { de: 94, a: 98, cote: "gauche" }
   ],
   decor: { graine: 9251, densite: 0.7 },
   objets: []
@@ -940,6 +983,12 @@ var grand_huit_default = {
     { x: -202.3, z: -876.3, y: 8.2, l: 12 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 5, a: 14, cote: "droite" },
+    { de: 30, a: 40, cote: "droite" },
+    { de: 83, a: 94, cote: "droite" },
+    { de: 111, a: 120, cote: "droite" }
+  ],
   decor: { graine: 1064, densite: 0.85 },
   objets: []
 };
@@ -1092,6 +1141,12 @@ var serpentin_des_aigles_default = {
     { de: 80, a: 92, cote: "ext" },
     { de: 109, a: 121, cote: "ext" }
   ],
+  clipping: [
+    { de: 28, a: 32, cote: "gauche" },
+    { de: 50, a: 54, cote: "droite" },
+    { de: 56, a: 60, cote: "droite" },
+    { de: 110, a: 114, cote: "droite" }
+  ],
   decor: { graine: 11031, densite: 0.8 },
   objets: []
 };
@@ -1194,6 +1249,12 @@ var angles_droits_default = {
     { x: 59, z: 58, y: 5.1, l: 11 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 8, a: 12, cote: "gauche" },
+    { de: 21, a: 25, cote: "gauche" },
+    { de: 39, a: 43, cote: "droite" },
+    { de: 64, a: 68, cote: "droite" }
+  ],
   decor: { graine: 12077, densite: 0.85 },
   objets: []
 };
@@ -1310,6 +1371,10 @@ var spirale_du_belvedere_default = {
   barrieres: [
     { de: 14, a: 86, cote: "ext" }
   ],
+  clipping: [
+    { de: 15, a: 49, cote: "droite" },
+    { de: 49, a: 83, cote: "gauche" }
+  ],
   decor: { graine: 13159, densite: 0.7 },
   objets: []
 };
@@ -1420,6 +1485,11 @@ var trois_epingles_default = {
     { de: 15, a: 29, cote: "ext" },
     { de: 42, a: 54, cote: "ext" },
     { de: 65, a: 78, cote: "ext" }
+  ],
+  clipping: [
+    { de: 16, a: 28, cote: "gauche" },
+    { de: 43, a: 53, cote: "droite" },
+    { de: 66, a: 77, cote: "gauche" }
   ],
   decor: { graine: 14203, densite: 0.6 },
   objets: []
@@ -1578,6 +1648,12 @@ var chicanes_du_port_default = {
     { x: 656.9, z: 650.1, y: 1.6, l: 10 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 31, a: 35, cote: "gauche" },
+    { de: 72, a: 76, cote: "droite" },
+    { de: 90, a: 93, cote: "gauche" },
+    { de: 108, a: 112, cote: "gauche" }
+  ],
   decor: { graine: 15287, densite: 0.85 },
   objets: []
 };
@@ -1720,6 +1796,12 @@ var grande_descente_default = {
     { x: 1638.3, z: 148, y: 6, l: 12 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 54, a: 60, cote: "gauche" },
+    { de: 61, a: 67, cote: "droite" },
+    { de: 112, a: 118, cote: "gauche" },
+    { de: 119, a: 124, cote: "droite" }
+  ],
   decor: { graine: 16391, densite: 0.7 },
   objets: []
 };
@@ -1876,6 +1958,12 @@ var virages_en_cascade_default = {
     { de: 118, a: 123, cote: "ext" },
     { de: 125, a: 130, cote: "ext" }
   ],
+  clipping: [
+    { de: 57, a: 62, cote: "gauche" },
+    { de: 65, a: 68, cote: "droite" },
+    { de: 119, a: 123, cote: "droite" },
+    { de: 125, a: 129, cote: "gauche" }
+  ],
   decor: { graine: 17443, densite: 0.6 },
   objets: []
 };
@@ -1975,6 +2063,12 @@ var route_des_vignes_default = {
     { x: 1353.6, z: 9.2, y: 31.1, l: 14.5 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 31, a: 34, cote: "droite" },
+    { de: 38, a: 41, cote: "gauche" },
+    { de: 70, a: 72, cote: "gauche" },
+    { de: 77, a: 79, cote: "droite" }
+  ],
   decor: { graine: 18517, densite: 0.6 },
   objets: []
 };
@@ -2094,6 +2188,9 @@ var touge_de_minuit_default = {
     { de: 91, a: 99, cote: "ext" },
     { de: 31, a: 41, cote: "ext" }
   ],
+  clipping: [
+    { de: 92, a: 98, cote: "droite" }
+  ],
   decor: { graine: 19601, densite: 0.75 },
   objets: []
 };
@@ -2209,6 +2306,11 @@ var tire_bouchon_default = {
     { de: 29, a: 41, cote: "ext" },
     { de: 40, a: 50, cote: "ext" }
   ],
+  clipping: [
+    { de: 30, a: 40, cote: "gauche" },
+    { de: 41, a: 49, cote: "gauche" },
+    { de: 75, a: 83, cote: "droite" }
+  ],
   decor: { graine: 20707, densite: 0.65 },
   objets: []
 };
@@ -2285,6 +2387,10 @@ var sentier_des_cerisiers_default = {
     { x: 796.6, z: -234.4, y: 18, l: 11 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 9, a: 14, cote: "droite" },
+    { de: 37, a: 42, cote: "droite" }
+  ],
   decor: { graine: 21481, densite: 0.8 },
   objets: []
 };
@@ -2399,6 +2505,11 @@ var col_du_torii_default = {
     { de: 36, a: 42, cote: "ext" },
     { de: 58, a: 64, cote: "ext" },
     { de: 80, a: 86, cote: "ext" }
+  ],
+  clipping: [
+    { de: 36, a: 42, cote: "droite" },
+    { de: 58, a: 64, cote: "gauche" },
+    { de: 80, a: 86, cote: "droite" }
   ],
   decor: { graine: 22307, densite: 0.75 },
   objets: []
@@ -2554,6 +2665,12 @@ var dragon_de_jade_default = {
     { x: -838.9, z: 384.9, y: 8, l: 8.5 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 27, a: 31, cote: "gauche" },
+    { de: 50, a: 54, cote: "gauche" },
+    { de: 68, a: 72, cote: "droite" },
+    { de: 96, a: 100, cote: "gauche" }
+  ],
   decor: { graine: 23159, densite: 0.8 },
   objets: []
 };
@@ -2629,6 +2746,11 @@ var baie_des_naufrages_default = {
     { x: 972.8, z: 138.3, y: 3.5, l: 13 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 7, a: 10, cote: "gauche" },
+    { de: 26, a: 31, cote: "gauche" },
+    { de: 49, a: 52, cote: "droite" }
+  ],
   decor: { graine: 24571, densite: 0.55 },
   objets: []
 };
@@ -2717,6 +2839,11 @@ var crique_du_perroquet_default = {
     { x: 93.4, z: 535.5, y: 2, l: 11 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 10, a: 17, cote: "droite" },
+    { de: 21, a: 32, cote: "gauche" },
+    { de: 48, a: 54, cote: "droite" }
+  ],
   decor: { graine: 25219, densite: 0.55 },
   objets: []
 };
@@ -2830,6 +2957,12 @@ var recif_du_kraken_default = {
     { x: 401.2, z: 925.1, y: 8, l: 10 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 8, a: 11, cote: "droite" },
+    { de: 27, a: 31, cote: "gauche" },
+    { de: 53, a: 57, cote: "droite" },
+    { de: 72, a: 75, cote: "gauche" }
+  ],
   decor: { graine: 26833, densite: 0.55 },
   objets: []
 };
@@ -2922,6 +3055,11 @@ var orbite_basse_default = {
     { x: 1256.8, z: 105.6, y: 14, l: 14 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 42, a: 47, cote: "droite" },
+    { de: 54, a: 62, cote: "gauche" },
+    { de: 64, a: 69, cote: "droite" }
+  ],
   decor: { graine: 27449, densite: 0.55 },
   objets: []
 };
@@ -3033,6 +3171,12 @@ var cratere_rouge_default = {
     { x: -569.6, z: 326.9, y: 12, l: 12 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 6, a: 11, cote: "gauche" },
+    { de: 24, a: 38, cote: "gauche" },
+    { de: 59, a: 65, cote: "droite" },
+    { de: 90, a: 96, cote: "gauche" }
+  ],
   decor: { graine: 28097, densite: 0.55 },
   objets: []
 };
@@ -3112,6 +3256,11 @@ var couloirs_jaunes_default = {
     { x: 140, z: 178, y: 0.3, l: 10 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 11, a: 14, cote: "gauche" },
+    { de: 34, a: 37, cote: "gauche" },
+    { de: 52, a: 55, cote: "gauche" }
+  ],
   decor: { graine: 29501, densite: 0.5 },
   objets: []
 };
@@ -3228,6 +3377,12 @@ var labyrinthe_de_neons_default = {
     { x: 898, z: -140, y: 0.2, l: 9 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 52, a: 55, cote: "gauche" },
+    { de: 65, a: 68, cote: "droite" },
+    { de: 77, a: 80, cote: "gauche" },
+    { de: 95, a: 98, cote: "gauche" }
+  ],
   decor: { graine: 30223, densite: 0.5 },
   objets: []
 };
@@ -3347,6 +3502,11 @@ var neo_shinjuku_default = {
     { x: 506.7, z: -12.5, y: -0.7, l: 11 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 11, a: 16, cote: "gauche" },
+    { de: 18, a: 34, cote: "gauche" },
+    { de: 70, a: 94, cote: "droite" }
+  ],
   decor: { graine: 31847, densite: 0.85 },
   objets: []
 };
@@ -3410,7 +3570,8 @@ var LIMITES = {
   eauNiveauMin: -60,
   eauNiveauMax: 150,
   /** distance libre minimale (m) entre le bord de la route et un lac : la route reste au sec */
-  eauMarge: 6
+  eauMarge: 6,
+  clippingMax: 12
 };
 
 // src/core/env/eau.ts
@@ -3778,6 +3939,21 @@ function validateLevel(raw) {
       barrieres.push({ de: b.de, a: b.a, cote: b.cote });
     });
   }
+  const clipping = [];
+  if (raw.clipping !== void 0) {
+    if (!Array.isArray(raw.clipping)) {
+      e.push("clipping : doit être une liste.");
+    } else {
+      if (raw.clipping.length > LIMITES.clippingMax) e.push(`clipping : ${LIMITES.clippingMax} zones au maximum.`);
+      raw.clipping.forEach((z, i) => {
+        if (!isObj(z) || !isInt(z.de) || !isInt(z.a) || z.cote !== "gauche" && z.cote !== "droite" || z.de < 0 || z.a <= z.de || z.a > route.length - 1) {
+          e.push(`clipping[${i}] : « de » < « a » (indices de points) et côté gauche ou droite.`);
+          return;
+        }
+        clipping.push({ de: z.de, a: z.a, cote: z.cote });
+      });
+    }
+  }
   const decorRaw = raw.decor;
   let decor = { graine: 0, densite: 0.5 };
   if (!isObj(decorRaw) || !isInt(decorRaw.graine) || decorRaw.graine < 0 || decorRaw.graine > 2147483647 || !isNum(decorRaw.densite) || decorRaw.densite < 0 || decorRaw.densite > 1) {
@@ -3844,7 +4020,8 @@ function validateLevel(raw) {
       barrieres,
       decor,
       objets,
-      ...eau.length > 0 ? { eau } : {}
+      ...eau.length > 0 ? { eau } : {},
+      ...clipping.length > 0 ? { clipping } : {}
     }
   };
 }
@@ -5581,7 +5758,9 @@ async function empreinteNiveau(level) {
     decor: level.decor,
     objets: level.objets,
     // les lacs n'entrent dans l'empreinte que s'il y en a : les niveaux sans eau gardent leur empreinte d'avant
-    ...level.eau && level.eau.length > 0 ? { eau: level.eau.map((l) => ({ niveau: l.niveau, points: l.points.map((p) => ({ x: p.x, z: p.z })) })) } : {}
+    ...level.eau && level.eau.length > 0 ? { eau: level.eau.map((l) => ({ niveau: l.niveau, points: l.points.map((p) => ({ x: p.x, z: p.z })) })) } : {},
+    // de même pour les zones de clipping
+    ...level.clipping && level.clipping.length > 0 ? { clipping: level.clipping.map((z) => ({ de: z.de, a: z.a, cote: z.cote })) } : {}
   };
   const json = JSON.stringify(canonical);
   const encoder = new TextEncoder();
@@ -6238,10 +6417,11 @@ var DEFAULT_SCORE_PARAMS = {
   progressMin: 2,
   timeBonusPerSec: 1e3,
   timeBonusLimite: 1.5,
-  timeBonusPartMax: 0.5
+  timeBonusPartMax: 0.5,
+  bonusClipping: 1
 };
 function createScore() {
-  return { total: 0, drift: 0, multiplier: 1, active: false, pending: false, inactiveTime: 0, sinceBank: 0, bestDrift: 0, driftCount: 0, driftTime: 0, driftVitesse: 0, driftAngle: 0 };
+  return { total: 0, drift: 0, multiplier: 1, active: false, pending: false, inactiveTime: 0, sinceBank: 0, bestDrift: 0, driftCount: 0, driftTime: 0, driftVitesse: 0, driftAngle: 0, driftClip: 0 };
 }
 function angleFactor(betaDeg) {
   const b = Math.abs(betaDeg);
@@ -6255,7 +6435,7 @@ function bank(st, p) {
   const raw = st.drift;
   const mult = st.multiplier;
   st.drift = 0;
-  st.driftTime = st.driftVitesse = st.driftAngle = 0;
+  st.driftTime = st.driftVitesse = st.driftAngle = st.driftClip = 0;
   st.pending = false;
   st.inactiveTime = 0;
   st.sinceBank = p.bankDelay;
@@ -6271,7 +6451,7 @@ function lose(st) {
   const lost = st.drift * st.multiplier;
   const hadCombo = st.multiplier > 1;
   st.drift = 0;
-  st.driftTime = st.driftVitesse = st.driftAngle = 0;
+  st.driftTime = st.driftVitesse = st.driftAngle = st.driftClip = 0;
   st.multiplier = 1;
   st.active = false;
   st.pending = false;
@@ -6291,10 +6471,12 @@ function stepScore(st, f, dt, p = DEFAULT_SCORE_PARAMS) {
     st.sinceBank = 0;
     if (f.onRoad && !f.dejaParcouru && f.progressRate >= p.progressMin) {
       const fa = angleFactor(betaDeg);
-      st.drift += p.gainPerKmh * fa * kmh * dt;
+      const clip = 1 + p.bonusClipping * (f.clipping ?? 0);
+      st.drift += p.gainPerKmh * fa * kmh * dt * clip;
       st.driftTime += dt;
       st.driftVitesse += kmh * dt;
       st.driftAngle += fa * kmh * dt;
+      st.driftClip += fa * kmh * dt * clip;
     }
     return null;
   }
@@ -6319,6 +6501,7 @@ function facteursDrift(st, p = DEFAULT_SCORE_PARAMS) {
     kmh: st.driftVitesse / st.driftTime,
     secondes: st.driftTime,
     angle: st.driftAngle / st.driftVitesse,
+    clipping: st.driftAngle > 0 ? st.driftClip / st.driftAngle : 1,
     combo: st.multiplier
   };
 }
@@ -6328,6 +6511,27 @@ function finishScore(st, p = DEFAULT_SCORE_PARAMS) {
 function timeBonus(targetTime, time, driftPoints, p = DEFAULT_SCORE_PARAMS) {
   const plafond = Math.max(0, driftPoints) * p.timeBonusPartMax;
   return Math.min(plafond, Math.max(0, p.timeBonusLimite * targetTime - time) * p.timeBonusPerSec);
+}
+
+// src/core/track/clipping.ts
+var PORTEE_CLIPPING = 2.5;
+function zonesPiste(level, track) {
+  const n = track.samples.length - 1;
+  return (level.clipping ?? []).map((z) => ({
+    i0: Math.max(0, Math.min(n, track.pointSample[z.de] ?? 0)),
+    i1: Math.max(0, Math.min(n, track.pointSample[z.a] ?? n)),
+    cote: z.cote === "gauche" ? 1 : -1
+  }));
+}
+function proximiteClipping(zones, index, lateral, w, demiLargeur) {
+  let best = 0;
+  for (const z of zones) {
+    if (index < z.i0 || index > z.i1) continue;
+    const bord = w - z.cote * lateral - demiLargeur;
+    const p = bord <= 0 ? 1 : 1 - bord / PORTEE_CLIPPING;
+    if (p > best) best = p;
+  }
+  return best;
 }
 
 // src/core/race/race.ts
@@ -6355,11 +6559,15 @@ var RaceSim = class {
   ctx;
   sp;
   pending = [];
+  zones;
+  /** proximité du bord dans une zone de clipping, au dernier pas */
+  clipping = 0;
   constructor(cfg) {
     this.config = cfg;
     this.sp = cfg.scoreParams ?? DEFAULT_SCORE_PARAMS;
     this.countdown = cfg.countdown ?? 3;
     this.world = buildCollisionWorld(cfg.env);
+    this.zones = zonesPiste(cfg.level, cfg.track);
     this.ctx = { params: cfg.car, assists: cfg.assists, ground: cfg.terrain, onRoad: true };
     const idx = Math.min(6, cfg.track.samples.length - 1);
     const s0 = cfg.track.samples[idx];
@@ -6401,6 +6609,7 @@ var RaceSim = class {
     const sp = track.samples[proj.index];
     const lat = Math.abs(proj.lateral);
     this.onRoad = lat <= sp.w;
+    this.clipping = this.zones.length > 0 && this.onRoad ? proximiteClipping(this.zones, proj.index, proj.lateral, sp.w, this.config.car.width / 2) : 0;
     let progressRate = 0;
     if (lat <= sp.w + 25) {
       const prevS = this.progressS;
@@ -6429,7 +6638,7 @@ var RaceSim = class {
     }
     const se = stepScore(
       this.score,
-      { betaRad: this.car.beta, speed: this.car.speed, onRoad: this.onRoad, progressRate, crash, reset, dejaParcouru: this.progressS < this.maxProgressS - MARGE_REPARCOURS },
+      { betaRad: this.car.beta, speed: this.car.speed, onRoad: this.onRoad, progressRate, crash, reset, dejaParcouru: this.progressS < this.maxProgressS - MARGE_REPARCOURS, clipping: this.clipping },
       SIM_DT,
       this.sp
     );
@@ -6449,6 +6658,7 @@ var RaceSim = class {
       combo: comboRestant(this.score, this.sp),
       glisse: this.score.active || this.score.pending ? facteursDrift(this.score, this.sp) : null,
       angle: this.car.speed > 1 ? this.car.beta / DEG : 0,
+      clipping: this.clipping,
       progress: clamp(this.maxProgressS / this.config.track.length, 0, 1),
       wrongWay: this.wrongWay,
       speedKmh: this.car.speed * 3.6
@@ -6562,4 +6772,4 @@ async function traiterCourse(corps, empreinteServeur) {
 export {
   traiterCourse
 };
-export const EMPREINTE = '3cde1dbb5c017add';
+export const EMPREINTE = '97210b93134b75d3';

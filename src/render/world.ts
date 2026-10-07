@@ -19,6 +19,8 @@ import { CarView, type CarPose } from './carView';
 import { SmokeSystem, SkidMarks } from './effects';
 import { ChaseCamera, type ChaseConfig, type CameraTarget } from './camera';
 import { estEmbarquee, type VueCamera } from './vuesEmbarquees';
+import { construireZonesClipping } from './clipping';
+import { zonesPiste } from '../core/track/clipping';
 import { SpeedGauge, gaugeRatio } from './speedGauge';
 import { CARS } from '../core/physics/cars';
 import { skinDef, type SkinId } from '../core/skins';
@@ -104,6 +106,9 @@ export class World {
     const tex = createRoadTextures(p, renderer.capabilities.getMaxAnisotropy());
     this.owned.push(tex.road, tex.curb, tex.checker);
     this.scene.add(buildRoad(track, p, tex));
+    const clipping = construireZonesClipping(track, zonesPiste(level, track));
+    this.scene.add(clipping.groupe);
+    this.owned.push(clipping);
     this.terrainGroup = buildTerrain(level, track, terrain, p, quality);
     const hPlafond = THEMES_VISUELS[level.environnement].plafond;
     if (hPlafond !== undefined) this.terrainGroup.add(...buildPlafond(terrain, hPlafond, p.plafond ?? 0xe4dcae, level.decor.graine, quality));
