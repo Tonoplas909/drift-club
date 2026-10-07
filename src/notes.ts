@@ -13,6 +13,16 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.17',
+    date: '07/10/2026',
+    titre: 'Défi du jour',
+    notes: [
+      'Nouveau : le Défi du jour, depuis l\'accueil. Chaque jour à minuit, un nouveau niveau : un décor, une ambiance, parfois la pluie, des zones de clipping, et une voiture imposée pour tout le monde.',
+      'Le classement du jour est vérifié par le serveur comme les autres. Le podium est récompensé : 5 clés au 1er, 3 au 2e, 2 au 3e, à récupérer le lendemain en revenant sur le défi.',
+      'L\'écran montre aussi les vainqueurs des derniers défis.',
+    ],
+  },
+  {
     version: '0.5.16',
     date: '07/10/2026',
     titre: 'Pluie et nuit',

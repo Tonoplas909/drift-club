@@ -20,7 +20,7 @@ la fonction `verifier-course` (`npx vite-node tools/gen-fonction.ts`).
 | [Touches personnalisables](#touches-personnalisables) | petit | non | fait (0.5.9) |
 | [Carte de score à partager](#carte-de-score-à-partager) | petit | non | fait (0.5.10) |
 | [Statistiques du pilote](#statistiques-du-pilote) | petit | non | fait (0.5.11) |
-| [Défi du jour](#défi-du-jour) | moyen | oui (migration) | **recommandé** |
+| [Défi du jour](#défi-du-jour) | moyen | oui (migration) | fait (0.5.17) |
 | [Caméras embarquées](#caméras-embarquées) | moyen | non | fait (0.5.12) |
 | [Revoir sa course](#revoir-sa-course) | moyen | non | fait (0.5.13) |
 | [Fantôme de son record (local)](#fantôme-de-son-record-local) | moyen | non | fait (0.5.14) |
@@ -209,3 +209,4 @@ serveur à mettre à jour.
 | 0.5.14 | **Fantôme de son record** (sur l'appareil) : voiture translucide qui refait la meilleure course du niveau dans le mode choisi |
 | 0.5.15 | **Zones de clipping** : bords de route à frôler en glisse (jusqu'à × 2 sur les points du drift), sur tous les niveaux officiels (records gardés) et dans l'éditeur |
 | 0.5.16 | **Nuit** (ciel étoilé, lune, phares, fenêtres et lampadaires allumés ; Touge de Minuit passe de nuit) et **pluie** (route mouillée, adhérence −20 %, simulation et serveur) dans l'éditeur |
+| 0.5.17 | **Défi du jour** : un niveau tiré de la date (dessinateur du mode Zen) avec voiture, ambiance et météo imposées, classement du jour vérifié par le serveur, podium récompensé (5, 3, 2 clés), défis passés (migration 0011) |

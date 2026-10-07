@@ -7,7 +7,9 @@
  */
 import {
   NIVEAUX_OFFICIELS, prepareLevel, empreinteNiveau, CAR_IDS, MODE_IDS, depuisBase64, decompresserReplay, verifierCourse, PAS_MAX,
+  defiDuJour, estJourValide,
 } from './simulation';
+import { jourParis, decalerJour } from '../jour';
 import type { CarId, ModeId } from '../core/physics/types';
 import type { Verdict } from '../core/replay/verifier';
 
@@ -50,21 +52,30 @@ const estObjet = (v: unknown): v is Record<string, unknown> => typeof v === 'obj
 const nombreFini = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
 /** Valide la demande, retrouve le niveau, rejoue la course et rend le verdict. */
-export async function traiterCourse(corps: unknown, empreinteServeur: string): Promise<ReponseCourse> {
+export async function traiterCourse(corps: unknown, empreinteServeur: string, maintenant: Date = new Date()): Promise<ReponseCourse> {
   if (!estObjet(corps)) return refus('demande', 'Demande invalide.');
   const d = corps as Partial<DemandeCourse>;
   if (d.version !== empreinteServeur) {
     return refus('version', "Le jeu vient d'être mis à jour : il se recharge tout seul au retour au menu. Ce score reste enregistré sur l'appareil.");
   }
-  if (typeof d.niveau !== 'string' || !/^(off|perso):[A-Za-z0-9_-]{1,80}$/.test(d.niveau)) return refus('demande', 'Niveau invalide.');
+  if (typeof d.niveau !== 'string' || !/^((off|perso):[A-Za-z0-9_-]{1,80}|jour:\d{4}-\d{2}-\d{2})$/.test(d.niveau)) return refus('demande', 'Niveau invalide.');
   if (typeof d.mode !== 'string' || !(MODE_IDS as string[]).includes(d.mode)) return refus('demande', 'Mode invalide.');
   if (typeof d.voiture !== 'string' || !(CAR_IDS as string[]).includes(d.voiture)) return refus('demande', 'Voiture invalide.');
   if (!nombreFini(d.score) || !nombreFini(d.temps) || !nombreFini(d.meilleurDrift)) return refus('demande', 'Score invalide.');
   if (typeof d.replay !== 'string' || d.replay.length > MAX_BASE64) return refus('demande', 'Replay invalide.');
 
-  // Le niveau : officiel (embarqué dans la fonction) ou perso (envoyé, et contrôlé par son empreinte).
+  // Le niveau : officiel (embarqué dans la fonction), défi du jour (reconstruit depuis la date) ou perso (envoyé, et
+  // contrôlé par son empreinte).
   let brut: unknown;
-  if (d.niveau.startsWith('off:')) {
+  if (d.niveau.startsWith('jour:')) {
+    const jour = d.niveau.slice(5);
+    // le défi du jour, ou celui de la veille (course commencée avant minuit)
+    const aujourdhui = jourParis(maintenant);
+    if (!estJourValide(jour) || (jour !== aujourdhui && jour !== decalerJour(aujourdhui, -1))) return refus('refuse', 'Ce défi est terminé : essaie celui du jour !');
+    const defi = defiDuJour(jour);
+    if (d.voiture !== defi.voiture) return refus('refuse', 'Le défi du jour se court avec la voiture imposée.');
+    brut = defi.level;
+  } else if (d.niveau.startsWith('off:')) {
     const id = d.niveau.slice(4);
     brut = NIVEAUX_OFFICIELS.find((n) => n.id === id)?.data;
     if (brut === undefined) return refus('demande', 'Niveau officiel inconnu.');
