@@ -51,6 +51,8 @@ import { ecranCaisses, type ResultatOuverture } from './ui/caisses';
 import { ecranAtelier } from './ui/atelier';
 import { MiseAJour, lireVersionPubliee } from './online/miseAJour';
 import { BUILD_ID } from './version';
+import { SEUILS_MEDAILLES, medaille, type Medaille } from './core/medailles';
+import { MODE_IDS } from './core/physics/assists';
 import { zoneGains, type ZoneGains } from './ui/gains';
 
 /** D'où vient la course : `index` ≥ 0 pour un niveau officiel, `retour` ramène à l'écran d'origine. */
@@ -363,6 +365,7 @@ export class App {
         nom: s?.nom ?? n.id,
         detail: s ? `${formatDistance(s.longueur)} · ${s.theme} · ${s.ambiance === 'jour' ? 'Jour' : 'Coucher de soleil'}` : '',
         place: attente,
+        medaille: this.meilleureMedaille(n.id),
       };
     });
     const mesNiveaux = this.store.listNiveaux();
@@ -379,6 +382,14 @@ export class App {
     this.niveauxAffiches = mesNiveaux;
     this.panneauEnLigne = null; // liste en ligne rechargée à chaque arrivée sur l'écran
     this.afficherNiveaux(cartes, perso, mesNiveaux);
+  }
+
+  /** Meilleure médaille d'un niveau officiel, tous modes confondus (records de l'appareil). */
+  private meilleureMedaille(id: string): Medaille | null {
+    const seuils = SEUILS_MEDAILLES[id];
+    if (!seuils) return null;
+    const meilleur = Math.max(0, ...MODE_IDS.map((m) => this.store.getRecord(cleNiveauOfficiel(id), m)?.score ?? 0));
+    return medaille(meilleur, seuils);
   }
 
   /** Place du joueur dans le classement en ligne de chaque niveau (un seul appel), puis rafraîchit l'écran. */
@@ -867,6 +878,7 @@ export class App {
       this.screens.resultats({
         result: r, record, persistent: this.persistent,
         niveau: titreNiveau(cur.index, cur.prepared.level.nom),
+        seuils: cur.index >= 0 ? SEUILS_MEDAILLES[NIVEAUX_OFFICIELS[cur.index].id] : undefined,
         cles: gainLocal ? { ...gainLocal, total: this.progression.cles } : undefined,
         gainsEnLigne: gains?.el,
         onCaisses: () => this.caisses(montrer),
