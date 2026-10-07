@@ -4,6 +4,8 @@ import { paintGeometry } from './assets';
 import { toonMaterial, outlineMaterial, outlineGeometry } from './materials';
 import { buildSkinGeometry } from './skins';
 import { couleurEffective, type SkinDef } from '../core/skins';
+import { Habitacle, pointsVue, type VueEmbarquee } from './vuesEmbarquees';
+import { CAR_SHAPES } from './jdmCars';
 
 export interface CarPose {
   x: number; y: number; z: number;
@@ -35,6 +37,10 @@ export class CarView {
   private decals: THREE.Mesh | null = null;
   private color: string;
   private skin: SkinDef | null;
+  private readonly contour: THREE.Mesh;
+  /** intérieur (vue conducteur), créé à la première utilisation */
+  private habitacle: Habitacle | null = null;
+  private braquage = 0;
 
   constructor(private readonly model: CarModel, color: string, shadows: boolean, skin: SkinDef | null = null) {
     this.color = color;
@@ -48,7 +54,8 @@ export class CarView {
     this.body.castShadow = shadows;
     const bodyOutline = outlineGeometry(model.body);
     this.owned.push(bodyOutline);
-    this.lean.add(this.body, new THREE.Mesh(bodyOutline, this.outlineMat));
+    this.contour = new THREE.Mesh(bodyOutline, this.outlineMat);
+    this.lean.add(this.body, this.contour);
     for (const w of model.wheels) {
       const pivot = new THREE.Group();
       pivot.position.copy(w.position);
@@ -112,6 +119,51 @@ export class CarView {
       w.pivot.rotation.y = w.front ? p.steer : 0;
       w.spin.rotation.x = p.wheelSpin;
     }
+    this.braquage = p.steer;
+  }
+
+  /** Fantôme d'une course enregistrée : voiture translucide, sans contour, sans ombre ni décors de livrée. */
+  devenirFantome(opacite = 0.38): void {
+    for (const m of [this.mat, this.decalMat]) {
+      m.transparent = true;
+      m.opacity = opacite;
+      m.depthWrite = false;
+      m.needsUpdate = true;
+    }
+    this.root.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      mesh.castShadow = false;
+      if (mesh.material === this.outlineMat) mesh.visible = false;
+    });
+    if (this.decals) this.decals.visible = false;
+    this.root.renderOrder = 2;
+  }
+
+  /**
+   * Pose `cam` sur une vue embarquée (null : caméra extérieure, intérieur caché). En vue conducteur, l'intérieur
+   * apparaît et le contour de la carrosserie (dessiné par l'intérieur de sa coque) disparaît.
+   */
+  poserCamera(cam: THREE.PerspectiveCamera, vue: VueEmbarquee | null): void {
+    const conducteur = vue === 'conducteur';
+    this.contour.visible = !conducteur;
+    if (conducteur && !this.habitacle) {
+      this.habitacle = new Habitacle(this.model.shape ?? CAR_SHAPES.equilibree);
+      this.lean.add(this.habitacle.root);
+    }
+    if (this.habitacle) {
+      this.habitacle.root.visible = conducteur;
+      if (conducteur) this.habitacle.majVolant(this.braquage);
+    }
+    if (!vue) return;
+    const { oeil, vise, fov } = pointsVue(vue, this.model.shape ?? CAR_SHAPES.equilibree);
+    this.root.updateMatrixWorld(true);
+    const m = this.lean.matrixWorld;
+    cam.position.set(...oeil).applyMatrix4(m);
+    cam.up.set(0, 1, 0).transformDirection(m);
+    cam.lookAt(new THREE.Vector3(...vise).applyMatrix4(m));
+    cam.up.set(0, 1, 0);
+    if (Math.abs(cam.fov - fov) > 0.01) { cam.fov = fov; cam.updateProjectionMatrix(); }
   }
 
   /** Positions monde des roues arrière (gauche, droite) au niveau du sol. */
@@ -127,6 +179,7 @@ export class CarView {
   }
 
   dispose(): void {
+    this.habitacle?.dispose();
     this.body.geometry.dispose();
     this.decals?.geometry.dispose();
     this.decalMat.dispose();

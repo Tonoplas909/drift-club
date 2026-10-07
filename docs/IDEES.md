@@ -1,6 +1,6 @@
 # Idées pour la suite de Drift Club
 
-Carnet d'idées : ce qui pourrait venir après la v0.5.3. Rien ici n'est promis ni planifié ; on pioche dedans, et on met
+Carnet d'idées : ce qui pourrait venir après la v0.5.18. Rien ici n'est promis ni planifié ; on pioche dedans, et on met
 à jour la colonne **État** (et la section « Fait » en bas) au fil des versions.
 
 Repères d'effort : **petit** = une session, **moyen** = une ou deux sessions, **gros** = une vraie mise à jour (v0.x.0).
@@ -14,26 +14,27 @@ la fonction `verifier-course` (`npx vite-node tools/gen-fonction.ts`).
 | [Manette](#manette) | petit | non | fait (0.5.3) |
 | [Mode photo](#mode-photo) | petit | non | fait (0.5.3) |
 | [Ambiance sonore par décor](#ambiance-sonore-par-décor) | petit | non | fait (0.5.3) |
-| [Médailles par niveau](#médailles-par-niveau) | petit | non | nouveau |
-| [Vibrations de la manette](#vibrations-de-la-manette) | petit | non | nouveau |
-| [Caméra capot](#caméra-capot) | petit | non | nouveau |
-| [Touches personnalisables](#touches-personnalisables) | petit | non | nouveau |
-| [Carte de score à partager](#carte-de-score-à-partager) | petit | non | nouveau |
-| [Statistiques du pilote](#statistiques-du-pilote) | petit | non | nouveau |
-| [Défi du jour](#défi-du-jour) | moyen | oui (migration) | **recommandé** |
-| [Revoir sa course](#revoir-sa-course) | moyen | non | nouveau |
-| [Fantôme de son record (local)](#fantôme-de-son-record-local) | moyen | non | nouveau |
-| [Zones de clipping](#zones-de-clipping) | moyen | oui (simulation) | **recommandé** |
-| [Votes dans l'Atelier](#votes-dans-latelier) | moyen | oui (migration) | à faire |
-| [Pluie et nuit](#pluie-et-nuit) | moyen | oui (simulation) | à faire |
+| [Niveau rappelé à l'arrivée](#niveau-rappelé-à-larrivée) | petit | non | fait (0.5.6) |
+| [Médailles par niveau](#médailles-par-niveau) | petit | non | fait (0.5.7) |
+| [Vibrations de la manette](#vibrations-de-la-manette) | petit | non | fait (0.5.8) |
+| [Touches personnalisables](#touches-personnalisables) | petit | non | fait (0.5.9) |
+| [Carte de score à partager](#carte-de-score-à-partager) | petit | non | fait (0.5.10) |
+| [Statistiques du pilote](#statistiques-du-pilote) | petit | non | fait (0.5.11) |
+| [Défi du jour](#défi-du-jour) | moyen | oui (migration) | fait (0.5.17) |
+| [Caméras embarquées](#caméras-embarquées) | moyen | non | fait (0.5.12) |
+| [Revoir sa course](#revoir-sa-course) | moyen | non | fait (0.5.13) |
+| [Fantôme de son record (local)](#fantôme-de-son-record-local) | moyen | non | fait (0.5.14) |
+| [Zones de clipping](#zones-de-clipping) | moyen | oui (simulation) | fait (0.5.15) |
+| [Votes dans l'Atelier](#votes-dans-latelier) | moyen | oui (migration) | fait (0.5.18) |
+| [Pluie et nuit](#pluie-et-nuit) | moyen | oui (simulation) | fait (0.5.16) |
 | [Fantômes et tandem](#fantômes-et-tandem) | gros | oui (migration + stockage) | à faire |
 | [Clubs](#clubs) | gros | oui (migration) | à faire |
 | [Saison](#saison) | gros | oui (migration) | à faire |
 | [Réglages de voiture](#réglages-de-voiture) | gros | oui (simulation) | à discuter |
 
-Recommandation actuelle : **défi du jour** puis **zones de clipping**.
-Le défi du jour fait revenir les joueurs chaque jour ; les zones de clipping rendent le drift plus riche à jouer ; les deux
-réutilisent ce qui existe (dessinateur du mode Zen, éditeur, rejeu des courses par le serveur).
+Recommandation actuelle : toutes les petites et moyennes idées sont faites (0.5.6 à 0.5.18). Pour la suite, **fantômes
+et tandem** : les replays, le film (« Revoir ») et le fantôme local existent déjà, il reste à stocker les replays sur le
+serveur pour courir contre le premier du classement.
 
 ## Petites
 
@@ -56,6 +57,13 @@ Un fond sonore léger par thème, en boucle et en mélange avec le moteur : vent
 cigales (japon), vagues (pirate), bourdonnement électrique des néons (backrooms), rumeur de ville et pluie (cyberpunk).
 Sons générés comme le reste de l'audio (`src/audio/`), volume lié au réglage existant.
 
+### Niveau rappelé à l'arrivée
+
+L'écran de victoire affiche seulement « Arrivée ! » : y réafficher le numéro et le nom du niveau (par exemple
+« Niveau 3 · Col du Loup »), pour savoir d'un coup d'œil quelle course on vient de finir, surtout avant
+« Niveau suivant » ou une capture d'écran. Pour un niveau de l'éditeur ou le mode Zen, son nom seul. À faire dans
+`resultats()` (`src/ui/screens.ts`), appelé depuis `src/app.ts`.
+
 ### Médailles par niveau
 
 Bronze, argent et or sur chaque niveau officiel (seuils de score fixés par niveau, l'or demandant un vrai bon run),
@@ -67,11 +75,6 @@ classement en ligne. Les records locaux suffisent ; récompenser les médailles 
 
 Prolonge la manette : petite vibration quand un drift est encaissé (plus forte avec le multiplicateur), secousse au
 choc, grondement léger hors piste (`gamepad.vibrationActuator`, Chrome et Edge ; ignoré ailleurs). Réglage pour la couper.
-
-### Caméra capot
-
-Une troisième caméra sur la touche C : posée sur le capot, très basse, sensation de vitesse maximale. Le reste du rendu
-ne change pas (la caméra de poursuite et la caméra éloignée existent déjà dans `src/render/camera.ts`).
 
 ### Touches personnalisables
 
@@ -92,6 +95,21 @@ courses finies, voiture la plus jouée, kilomètres en mode Zen. Tout est compt�
 chiffres pourraient nourrir les succès ou la saison.
 
 ## Moyennes
+
+### Caméras embarquées
+
+Plusieurs caméras en plus de la poursuite et de la vue éloignée (`src/render/camera.ts`), qu'on fait défiler avec la
+touche C (et un bouton de la manette) :
+
+- **capot** : posée sur le capot, très basse, sensation de vitesse maximale ;
+- **calandre** : au ras du pare-chocs avant, la route défile juste sous l'objectif ;
+- **conducteur** : à la place du pilote, avec le tableau de bord, le volant qui tourne avec la direction et les mains
+  (il faut modéliser un intérieur simple pour chaque voiture : c'est ce qui en fait une idée moyenne) ;
+- et pourquoi pas : **roue arrière** (vue sur le pneu qui fume), **toit**, **rétroviseur** en incrustation (pas encore
+  fait : le décor derrière la voiture n'est pas dessiné, seul ce qui est devant la caméra l'est).
+
+La dernière caméra choisie est retenue dans les Réglages. Rien à changer côté serveur : la caméra ne touche pas la
+simulation.
 
 ### Revoir sa course
 
@@ -125,7 +143,7 @@ sur les niveaux qui en reçoivent (nouveaux classements, ou zones seulement sur 
 
 Les joueurs voient les propositions en attente et votent (j'aime / j'aime pas) ; l'administrateur les trie par
 popularité avant de valider. Une « livrée de la semaine » mise en avant (bannière sur l'écran des caisses, chances un peu
-plus hautes ?). Serveur : table des votes (un vote par joueur et par proposition), fonctions dédiées, RLS comme le reste.
+plus hautes ? — pas encore fait : le tirage des caisses du compte se fait sur le serveur). Serveur : table des votes (un vote par joueur et par proposition), fonctions dédiées, RLS comme le reste.
 Attention à ne pas exposer d'adresses email : on ne montre que le pseudo de l'auteur.
 
 ### Pluie et nuit
@@ -180,3 +198,18 @@ serveur à mettre à jour.
 | 0.5.3 | **Manette** (gâchettes progressives, zone morte et sensibilité réglables), **mode photo** depuis la pause (caméra libre, filtres, capture enregistrée ou partagée), **ambiance sonore** propre à chaque décor (réglable, fondu enchaîné entre régions en mode Zen) |
 | 0.5.4 | **Bonus de temps** enfin gagnable : temps cible réaliste (× 1,25), 2 500 points par seconde d'avance sur le double du temps cible, plafonné aux points de drift |
 | 0.5.5 | Bonus de temps adouci : 1 000 points par seconde d'avance sur 1,5 × le temps cible, plafonné à la moitié des points de drift |
+| 0.5.6 | Numéro et nom du niveau rappelés sur l'écran d'arrivée |
+| 0.5.7 | **Médailles** bronze, argent et or sur les niveaux officiels (seuils calés sur le temps cible), sur la liste des niveaux et à l'arrivée |
+| 0.5.8 | **Vibrations de la manette** : drift encaissé (plus fort avec le combo), choc, grondement hors piste ; réglage pour les couper |
+| 0.5.9 | **Touches personnalisables** : clavier (deux touches par commande) et boutons de la manette, dans Réglages › Touches |
+| 0.5.10 | **Carte de score** à partager depuis l'arrivée : capture de la course, niveau, score, médaille, meilleur drift, voiture |
+| 0.5.11 | **Statistiques du pilote** (accueil) : distance en course et en Zen, temps en glisse, plus long et meilleur drift, courses finies, voiture la plus jouée, médailles |
+| 0.5.12 | **Caméras embarquées** : capot, calandre, conducteur (planche de bord, volant qui tourne), roue arrière, toit ; choix retenu dans les Réglages |
+| 0.5.13 | **Revoir sa course** depuis l'arrivée : la course rejouée avec des caméras de télévision (bord de route, hélicoptère, poursuite, embarquée), ralenti, accéléré, mode photo |
+| 0.5.14 | **Fantôme de son record** (sur l'appareil) : voiture translucide qui refait la meilleure course du niveau dans le mode choisi |
+| 0.5.15 | **Zones de clipping** : bords de route à frôler en glisse (jusqu'à × 2 sur les points du drift), sur tous les niveaux officiels (records gardés) et dans l'éditeur |
+| 0.5.16 | **Nuit** (ciel étoilé, lune, phares, fenêtres et lampadaires allumés ; Touge de Minuit passe de nuit) et **pluie** (route mouillée, adhérence −20 %, simulation et serveur) dans l'éditeur |
+| 0.5.17 | **Défi du jour** : un niveau tiré de la date (dessinateur du mode Zen) avec voiture, ambiance et météo imposées, classement du jour vérifié par le serveur, podium récompensé (5, 3, 2 clés), défis passés (migration 0011) |
+| 0.5.18 | **Votes dans l'Atelier** : j'aime / j'aime pas sur les propositions en attente, modération triée par popularité, livrée de la semaine sur l'écran des caisses (migration 0012) |
+| 0.5.19 | **Statistiques du pilote rattachées au compte** : envoi des ajouts, total additionné par le serveur, plusieurs appareils (migration 0013) |
+| 0.5.20 | Correctif : le mode Zen restait bloqué sur « Préparation de la route » depuis la 0.5.12 (caméra choisie avant que la route existe) |

@@ -8,7 +8,7 @@ import { KeyboardInput } from './input/keyboard';
 import { TouchControls } from './input/touch';
 import { InputManager } from './input/manager';
 import { GamepadInput } from './input/gamepad';
-import { ModePhoto } from './game/photo';
+import { ModePhoto, orbiteDepuis, camOrbite } from './game/photo';
 import { Store, safeStorage, cleNiveauPerso, type Reglages, type MonNiveau } from './storage/store';
 import { Hud } from './game/hud';
 import { GameSession, type DebugHook } from './game/session';
@@ -17,7 +17,8 @@ import { prepareLevel, type PreparedLevel } from './game/prepare';
 import { forcerDecor } from './game/decorUrl';
 import { NIVEAUX_OFFICIELS, cleNiveauOfficiel } from './levels';
 import { Screens, levelSummary, type NiveauCarte } from './ui/screens';
-import { formatDistance } from './ui/format';
+import { formatDistance, formatScore, libelleAmbiance, titreNiveau } from './ui/format';
+import { depuisBase64, versBase64 } from './core/replay/replay';
 import { skinChoisie, choisirSkin, ajouterLivreesAtelier, skinDef } from './core/skins';
 import { fumeeDef } from './core/fumees';
 import { defAtelier, lireLivreeOfficielle, versLigneOfficielle, type LivreeOfficielle } from './core/atelier';
@@ -51,10 +52,25 @@ import { ecranCaisses, type ResultatOuverture } from './ui/caisses';
 import { ecranAtelier } from './ui/atelier';
 import { MiseAJour, lireVersionPubliee } from './online/miseAJour';
 import { BUILD_ID } from './version';
+import { SEUILS_MEDAILLES, medaille, type Medaille } from './core/medailles';
+import { MODE_IDS, MODE_NOMS } from './core/physics/assists';
+import { CARS } from './core/physics/cars';
+import { dessinerCarte, nomCarte } from './ui/carteScore';
+import { enregistrerImage } from './ui/partageImage';
+import { SITE_URL } from './online/config';
 import { zoneGains, type ZoneGains } from './ui/gains';
+import { ecranTouches, aideTouches } from './ui/touches';
+import { CompteurPilote, estVide, fusionnerStatistiques, lireStatistiques, statistiquesVides, type Statistiques } from './game/statistiques';
+import { StatistiquesEnLigne } from './online/statistiques';
+import { ecranStatistiques } from './ui/statistiques';
+import { ecranRevoir } from './ui/revoir';
+import { ecranDefi } from './ui/defi';
+import { DefiService } from './online/defi';
+import { defiDuJour, cleDefi, jourEnClair } from './core/defi';
+import { jourParis } from './jour';
 
 /** D'où vient la course : `index` ≥ 0 pour un niveau officiel, `retour` ramène à l'écran d'origine. */
-interface Contexte { index: number; retour: () => void; menuLabel: string }
+interface Contexte { index: number; retour: () => void; menuLabel: string; /** voiture imposée (défi du jour) */ voiture?: CarId }
 
 /** Message quand le compte est connecté mais injoignable : la progression du compte reste en lecture seule. */
 export const MSG_CONNEXION_CAISSE = 'Connexion requise pour ouvrir une caisse avec ton compte';
@@ -90,11 +106,15 @@ export class App {
   private editeur: Editeur | null = null;
   private onEscape: (() => void) | null = null;
   private photo: ModePhoto | null = null;
+  /** statistiques du pilote, enregistrées à la pause, à l'arrivée et en quittant la course */
+  private stats!: CompteurPilote;
   private readonly compte = new CompteService(clientParDefaut);
   private readonly classement = new ClassementService(clientParDefaut);
   private readonly niveauxEnLigne = new NiveauxEnLigneService(clientParDefaut);
   private readonly progressionEnLigne = new ProgressionEnLigne(clientParDefaut);
   private readonly atelier = new AtelierEnLigne(clientParDefaut);
+  private readonly defis = new DefiService(clientParDefaut);
+  private readonly statsEnLigne = new StatistiquesEnLigne(clientParDefaut);
   /** livrées de l'Atelier : chargement en cours ou dernier fait, et quand (rechargées au plus toutes les 5 min) */
   private livreesAtelier: Promise<void> | null = null;
   private livreesAtelierLe = 0;
@@ -129,6 +149,8 @@ export class App {
     this.reglages = this.store.loadReglages(this.touch);
     this.hud.options(this.reglages);
     this.manette.reglages = this.reglages.manette;
+    this.appliquerTouches();
+    this.stats = new CompteurPilote(lireStatistiques(this.store.loadStatistiques()), () => new Date().toISOString().slice(0, 10));
     // clés et livrées gagnées ; une livrée choisie mais verrouillée (données modifiées à la main) retombe sur « unie »
     this.progression = this.store.loadProgression(this.reglages.skins);
     // si une progression de compte est gardée sur l'appareil, le joueur est peut-être reconnecté dans un instant : on attend de savoir laquelle fait foi
@@ -207,6 +229,64 @@ export class App {
 
   private save(): void {
     this.store.saveReglages(this.reglages);
+    if (this.stats?.modifie) {
+      this.store.saveStatistiques(this.stats.stats);
+      if (this.statsCompte && this.stats.attente) this.store.saveStatsCompte('attente', this.statsCompte.id, this.stats.attente);
+      this.stats.modifie = false;
+      // envoi au compte, au plus toutes les 15 s (pause, arrivée, sortie de course)
+      if (this.statsCompte && Date.now() - this.dernierEnvoiStats > 15_000) void this.synchroStatistiques();
+    }
+  }
+
+  /** Statistiques du compte connecté : dernier total connu du serveur (null : pas encore lu, ou service absent). */
+  private statsCompte: { id: string; total: Statistiques | null; absent: boolean } | null = null;
+  private envoiStats = false;
+  private dernierEnvoiStats = 0;
+
+  /** Connexion ou déconnexion : les ajouts des courses sont mis de côté pour le compte connecté. */
+  private brancherStatistiques(id: string | null): void {
+    if (this.statsCompte?.id === id) return;
+    if (!id) { this.statsCompte = null; this.stats.attente = null; return; }
+    const total = this.store.loadStatsCompte('total', id);
+    const attente = this.store.loadStatsCompte('attente', id);
+    this.statsCompte = { id, total: total ? lireStatistiques(total) : null, absent: false };
+    this.stats.attente = attente ? lireStatistiques(attente) : statistiquesVides();
+    void this.synchroStatistiques();
+  }
+
+  /**
+   * Envoie au compte ce qui s'est ajouté depuis le dernier envoi (le serveur additionne : plusieurs appareils
+   * s'ajoutent sans s'écraser). La première fois qu'un compte n'a encore rien, l'historique de l'appareil lui est
+   * versé. Ne lève jamais ; hors ligne, les ajouts attendent le prochain envoi.
+   */
+  private async synchroStatistiques(): Promise<void> {
+    const c = this.statsCompte;
+    if (!c || this.envoiStats) return;
+    this.envoiStats = true;
+    this.dernierEnvoiStats = Date.now();
+    try {
+      const lu = await this.statsEnLigne.charger();
+      if (this.statsCompte !== c) return;
+      if (!lu.ok) { c.absent = lu.raison === 'absent'; return; }
+      c.absent = false;
+      if (lu.valeur) { c.total = lu.valeur; this.store.saveStatsCompte('total', c.id, lu.valeur); }
+      if (!this.stats.attente) return;
+      if (lu.valeur === null && !this.store.statsImportees().includes(c.id)) {
+        this.stats.attente = fusionnerStatistiques(this.stats.attente, this.stats.stats);
+        this.store.marquerStatsImportees(c.id);
+      }
+      if (estVide(this.stats.attente)) return;
+      // les courses qui finissent pendant l'envoi s'ajoutent à une nouvelle attente
+      const envoi = this.stats.attente;
+      this.stats.attente = statistiquesVides();
+      const r = await this.statsEnLigne.ajouter(envoi);
+      if (this.statsCompte !== c) return;
+      if (r.ok) { c.total = r.valeur; this.store.saveStatsCompte('total', c.id, r.valeur); }
+      else this.stats.attente = fusionnerStatistiques(envoi, this.stats.attente);
+      this.store.saveStatsCompte('attente', c.id, this.stats.attente);
+    } finally {
+      this.envoiStats = false;
+    }
   }
 
   /** Remplace les livrées de l'Atelier du jeu ; renvoie vrai si la liste a changé. */
@@ -287,6 +367,7 @@ export class App {
 
   private compteChange(e: EtatCompte): void {
     this.screens.majCompte(this.libelleCompte(e));
+    this.brancherStatistiques(e.statut === 'connecte' && e.pseudo ? e.id : null);
     if (e.statut === 'connecte' && e.pseudo) {
       if (this.compteProg?.id !== e.id) {
         const gardee = this.store.loadProgressionCompte(e.id);
@@ -325,13 +406,16 @@ export class App {
     this.showroom?.stop();
     this.screens.accueil({
       persistent: this.persistent,
+      aide: aideTouches(this.reglages.touches.clavier),
       compte: this.libelleCompte(),
       onCompte: () => this.ecranCompte(() => this.accueil()),
       onJouer: () => this.niveaux(),
+      onDefi: () => this.defiEcran(() => this.accueil()),
       onZen: () => void this.lancerZen(),
       onGarage: () => this.garage(() => this.accueil()),
       onCaisses: () => this.caisses(() => this.accueil()),
       onEditeur: () => this.hubEditeur(),
+      onStatistiques: () => this.statistiquesEcran(() => this.accueil()),
       onReglages: () => this.reglagesEcran(() => this.accueil()),
     });
     this.lancerFondMenu();
@@ -361,8 +445,9 @@ export class App {
       const s = levelSummary(n.data);
       return {
         nom: s?.nom ?? n.id,
-        detail: s ? `${formatDistance(s.longueur)} · ${s.theme} · ${s.ambiance === 'jour' ? 'Jour' : 'Coucher de soleil'}` : '',
+        detail: s ? `${formatDistance(s.longueur)} · ${s.theme} · ${libelleAmbiance({ ambiance: s.ambiance, meteo: s.pluie ? 'pluie' : undefined })}` : '',
         place: attente,
+        medaille: this.meilleureMedaille(n.id),
       };
     });
     const mesNiveaux = this.store.listNiveaux();
@@ -379,6 +464,14 @@ export class App {
     this.niveauxAffiches = mesNiveaux;
     this.panneauEnLigne = null; // liste en ligne rechargée à chaque arrivée sur l'écran
     this.afficherNiveaux(cartes, perso, mesNiveaux);
+  }
+
+  /** Meilleure médaille d'un niveau officiel, tous modes confondus (records de l'appareil). */
+  private meilleureMedaille(id: string): Medaille | null {
+    const seuils = SEUILS_MEDAILLES[id];
+    if (!seuils) return null;
+    const meilleur = Math.max(0, ...MODE_IDS.map((m) => this.store.getRecord(cleNiveauOfficiel(id), m)?.score ?? 0));
+    return medaille(meilleur, seuils);
   }
 
   /** Place du joueur dans le classement en ligne de chaque niveau (un seul appel), puis rafraîchit l'écran. */
@@ -497,6 +590,8 @@ export class App {
       mesPropositions: () => this.atelier.mesPropositions(),
       estAdmin: () => (connecte() ? this.atelier.estAdmin() : Promise.resolve(false)),
       aModerer: () => this.atelier.aModerer(),
+      enVote: () => this.atelier.enVote(),
+      voter: (id, v) => this.atelier.voter(id, v),
       moderer: async (id, d) => {
         const r = await this.atelier.moderer(id, d);
         // la livrée validée entre dans les caisses : on la charge tout de suite (et la progression, si c'est la sienne)
@@ -548,6 +643,7 @@ export class App {
       audio: { tick: (k) => this.audio.playTick(k), ouvrir: () => this.audio.playOuvrirCaisse(), reveal: (r) => this.audio.playReveal(r) },
       couleur: () => this.reglages.couleur,
       onApercu: (x) => this.apercuCaisse(x),
+      livreeSemaine: () => this.atelier.livreeDeLaSemaine(),
       onEquiper: (x) => {
         if (estFumee(x)) this.reglages.fumee = x.skin;
         else {
@@ -594,10 +690,79 @@ export class App {
         this.audio.setMuted(r.muet);
         this.audio.setFondSonore(r.ambianceDecor);
         this.manette.reglages = r.manette;
+        this.appliquerTouches();
         this.save();
       },
+      onTouches: () => this.touchesEcran(() => this.reglagesEcran(retour)),
       onRetour: retour,
     });
+  }
+
+  /** Défi du jour : niveau tiré de la date (heure de Paris), voiture imposée, classement, podium récompensé. */
+  private defiEcran(retour: () => void): void {
+    this.showroom?.stop();
+    this.screens.loading('Préparation du défi du jour…');
+    window.setTimeout(() => {
+      const jour = jourParis(new Date());
+      const defi = defiDuJour(jour);
+      const cle = cleDefi(jour);
+      const prep = prepareLevel(cle, defi.level);
+      const records = MODE_IDS.map((m) => this.store.getRecord(cle, m)).filter((r) => r !== null);
+      const record = records.length ? records.reduce((a, b) => (b!.score > a!.score ? b : a))! : null;
+      const e = this.compte.etat;
+      const montrer = (): void => this.defiEcran(retour);
+      this.screens.monter(ecranDefi({
+        defi, longueur: prep.ok ? prep.prepared.track.length : 0,
+        record: record && { score: record.score, temps: record.temps },
+        moi: e.statut === 'connecte' ? e.id : null,
+        classement: () => this.classement.chargerClassement(cle, 10),
+        passes: () => this.defis.passes(7),
+        onJouer: () => void this.demarrer(cle, defi.level, { index: -1, retour: montrer, menuLabel: 'Défi du jour', voiture: defi.voiture }),
+        onClassement: () => this.ecranClassement(cle, defi.level.nom, montrer),
+        onRetour: retour,
+      }));
+      // podium des défis passés : clés créditées par le serveur, une fois par défi
+      if (e.statut === 'connecte' && e.pseudo) {
+        void this.defis.reclamer().then((r) => {
+          if (!r.ok || r.valeur.length === 0) return;
+          const total = r.valeur.reduce((n, x) => n + x.cles, 0);
+          const premier = r.valeur[0];
+          this.screens.toast(`+${total} clé${total > 1 ? 's' : ''} : ${premier.rang === 1 ? '1er' : `${premier.rang}e`} au défi du ${jourEnClair(premier.jour)}${r.valeur.length > 1 ? ' (et d\'autres)' : ''} !`);
+          void this.synchroProgression();
+        });
+      }
+    }, 30);
+  }
+
+  /** Statistiques du pilote, avec les médailles gagnées (records de l'appareil). */
+  private statistiquesEcran(retour: () => void, relire = true): void {
+    this.showroom?.stop();
+    const medailles = { bronze: 0, argent: 0, or: 0 };
+    for (const n of NIVEAUX_OFFICIELS) { const m = this.meilleureMedaille(n.id); if (m) medailles[m]++; }
+    const c = this.statsCompte, e = this.compte.etat;
+    // compte connecté (et migration 0013 passée) : le total du compte et ce qui attend d'être envoyé
+    const duCompte = c !== null && !c.absent;
+    const stats = duCompte ? fusionnerStatistiques(c.total ?? statistiquesVides(), this.stats.attente ?? statistiquesVides()) : this.stats.stats;
+    const source = duCompte ? `ton compte${e.statut === 'connecte' && e.pseudo ? ` (${e.pseudo})` : ''}` : 'cet appareil';
+    const ecran = ecranStatistiques({ stats, source, medailles, niveaux: NIVEAUX_OFFICIELS.length, onRetour: retour });
+    this.screens.monter(ecran);
+    // total du compte relu : l'écran se met à jour s'il est encore affiché
+    if (c && relire && !this.envoiStats) void this.synchroStatistiques().then(() => { if (ecran.isConnected) this.statistiquesEcran(retour, false); });
+  }
+
+  private appliquerTouches(): void {
+    this.keyboard.touches = this.reglages.touches.clavier;
+    this.manette.boutons = this.reglages.touches.manette;
+  }
+
+  /** Touches du clavier et boutons de la manette. */
+  private touchesEcran(retour: () => void): void {
+    this.screens.monter(ecranTouches({
+      touches: this.reglages.touches,
+      manette: this.manette,
+      onChange: (t) => { this.reglages = { ...this.reglages, touches: t }; this.appliquerTouches(); this.save(); },
+      onRetour: retour,
+    }));
   }
 
   private async lancer(index: number): Promise<void> {
@@ -622,17 +787,30 @@ export class App {
     }
     this.session?.dispose();
     this.current = { index: contexte.index, prepared: res.prepared, contexte };
+    // voiture imposée (défi du jour) : la course a ses propres réglages, la voiture du Garage ne change pas
+    const reglages = contexte.voiture ? { ...this.reglages, voiture: contexte.voiture } : this.reglages;
+    this.reglagesCourse = reglages;
     this.session = new GameSession(res.prepared, {
       renderer: this.renderer, assets: this.assets, hud: this.hud, audio: this.audio, input: this.input,
-      quality: new QualityManager(this.reglages.qualite, this.touch), reglages: this.reglages, debug: this.debug,
+      quality: new QualityManager(this.reglages.qualite, this.touch), reglages, debug: this.debug, stats: this.stats,
     }, {
       onFinish: (r) => this.arrivee(r),
       onPause: () => this.pauseRace(),
     });
+    const fantome = this.installerFantome(this.session, key);
     this.screens.clear();
     this.keyboard.capture = true;
     this.touchControls.show(this.touch || this.input.touchActive);
     this.session.start();
+    if (fantome) this.hud.annonce(fantome);
+  }
+
+  /** Fantôme du record de ce niveau (dans le mode choisi) ; renvoie le texte à annoncer, ou null. */
+  private installerFantome(session: GameSession, key: string): string | null {
+    const f = this.reglages.fantome ? this.store.loadFantome(key, this.reglages.mode) : null;
+    const octets = f ? depuisBase64(f.replay) : null;
+    if (!f || !octets || !session.installerFantome(f.voiture, octets)) return null;
+    return `Fantôme : ton record (${formatScore(f.score)})`;
   }
 
   /** Mode Zen : balade sans fin sur une route générée au fil de l'eau (graine tirée au hasard, ou donnée). */
@@ -642,11 +820,19 @@ export class App {
     this.screens.loading('Préparation de la route…');
     await new Promise((r) => setTimeout(r, 30));
     this.session?.dispose();
+    this.session = null;
     this.current = null;
-    this.session = new ZenSession(graine, {
-      renderer: this.renderer, assets: this.assets, hud: this.hud, audio: this.audio, input: this.input,
-      quality: new QualityManager(this.reglages.qualite, this.touch), reglages: this.reglages, debug: this.debug,
-    }, { onPause: () => this.pauseRace() });
+    try {
+      this.session = new ZenSession(graine, {
+        renderer: this.renderer, assets: this.assets, hud: this.hud, audio: this.audio, input: this.input,
+        quality: new QualityManager(this.reglages.qualite, this.touch), reglages: this.reglages, debug: this.debug, stats: this.stats,
+      }, { onPause: () => this.pauseRace() });
+    } catch (e) {
+      // jamais d'écran de chargement sans fin : on le dit, et on peut revenir au menu
+      console.error(e);
+      this.screens.error('Mode Zen indisponible', 'La route n\'a pas pu être préparée. Recharge la page ; si le problème revient, signale-le.', [{ label: 'Retour', onClick: () => this.accueil() }]);
+      return;
+    }
     this.screens.clear();
     this.keyboard.capture = true;
     this.touchControls.show(this.touch || this.input.touchActive);
@@ -773,8 +959,15 @@ export class App {
     this.onEscape = null;
     this.screens.clear();
     this.touchControls.show(this.touch || this.input.touchActive);
+    // un record vient peut-être d'être battu : le fantôme prend la nouvelle course
+    const fantome = this.current && this.fantomeAJour ? this.installerFantome(this.session, this.current.prepared.key) : null;
+    this.fantomeAJour = false;
     this.session.restart();
+    if (fantome) this.hud.annonce(fantome);
   }
+
+  /** vrai quand l'arrivée vient d'enregistrer un nouveau fantôme */
+  private fantomeAJour = false;
 
   private pauseRace(): void {
     if (!this.session) return;
@@ -806,10 +999,11 @@ export class App {
     this.ecouterManetteEnPause();
   }
 
-  /** Mode photo depuis la pause : HUD masqué, caméra libre ; Retour (ou Échap) revient à la pause. */
-  private modePhoto(): void {
+  /** Mode photo depuis la pause (ou « Revoir ») : HUD masqué, caméra libre ; Retour (ou Échap) revient à la pause, ou à `retour`. */
+  private modePhoto(retour?: () => void, avant?: () => void): void {
     const session = this.session;
     if (!session?.enPause) return;
+    avant?.();
     this.hud.show(false);
     const photo = new ModePhoto({
       canvas: $('scene') as HTMLCanvasElement,
@@ -817,7 +1011,11 @@ export class App {
       rendre: (cam) => session.rendrePhoto(cam),
       partager: this.touch,
       toast: (m) => this.screens.toast(m),
-      onQuitter: () => { this.photo = null; this.hud.show(true); if (this.session === session) this.pauseRace(); },
+      onQuitter: () => {
+        this.photo = null; this.hud.show(true);
+        if (this.session !== session) return;
+        if (retour) retour(); else this.pauseRace();
+      },
     });
     this.photo = photo;
     this.onEscape = () => photo.quitter();
@@ -845,8 +1043,14 @@ export class App {
     this.save();
     this.touchControls.show(false);
     const record = this.store.submitRecord(cur.prepared.key, this.reglages.mode, {
-      score: r.score, temps: r.time, voiture: this.reglages.voiture, meilleurDrift: r.bestDrift, date: new Date().toISOString().slice(0, 10),
+      score: r.score, temps: r.time, voiture: this.voitureCourse(), meilleurDrift: r.bestDrift, date: new Date().toISOString().slice(0, 10),
     });
+    // nouveau record : sa course devient le fantôme de ce niveau
+    const replayRecord = record ? this.session.replay() : null;
+    if (replayRecord) {
+      this.store.saveFantome(cur.prepared.key, this.reglages.mode, { voiture: this.voitureCourse(), replay: versBase64(replayRecord), score: r.score });
+      this.fantomeAJour = true;
+    }
     const next = cur.index >= 0 && cur.index + 1 < NIVEAUX_OFFICIELS.length ? cur.index + 1 : -1;
     // Non connecté : clés locales, 1 par arrivée, +1 si nouveau record local (une seule fois par arrivée, pas à chaque retour d'écran).
     // Connecté : les clés du compte sont créditées par le serveur en réponse à l'envoi du score (voir envoyerScore).
@@ -866,6 +1070,8 @@ export class App {
       gains?.majTotal(this.prog().progression.cles);
       this.screens.resultats({
         result: r, record, persistent: this.persistent,
+        niveau: titreNiveau(cur.index, cur.prepared.level.nom),
+        seuils: cur.index >= 0 ? SEUILS_MEDAILLES[NIVEAUX_OFFICIELS[cur.index].id] : undefined,
         cles: gainLocal ? { ...gainLocal, total: this.progression.cles } : undefined,
         gainsEnLigne: gains?.el,
         onCaisses: () => this.caisses(montrer),
@@ -873,10 +1079,68 @@ export class App {
         onSuivant: next >= 0 ? () => void this.lancer(next) : null,
         onMenu: () => this.quitterCourse(),
         menuLabel: cur.contexte.menuLabel,
+        onPartager: () => void this.partagerCarte(r, titreNiveau(cur.index, cur.prepared.level.nom), record, cur.index),
+        onRevoir: () => this.revoir(titreNiveau(cur.index, cur.prepared.level.nom), montrer),
         enLigne,
       });
     };
     montrer();
+  }
+
+  /** « Revoir sa course » depuis les résultats : la course rejouée comme un film ; `retour` réaffiche les résultats. */
+  private revoir(titre: string, retour: () => void): void {
+    const s = this.session;
+    if (!(s instanceof GameSession)) return;
+    this.screens.loading('Préparation du film de ta course…');
+    window.setTimeout(() => {
+      if (this.session !== s) return;
+      if (!s.lancerFilm()) { retour(); this.screens.toast('Cette course ne peut pas être rejouée.'); return; }
+      const quitter = (): void => { this.onEscape = null; s.arreterFilm(); this.hud.show(false); retour(); };
+      const afficher = (): void => {
+        this.onEscape = quitter;
+        this.screens.monter(ecranRevoir({
+          titre, lecteur: s,
+          onPhoto: () => this.modePhoto(() => { s.reglerFilm({ photo: false }); afficher(); }, () => s.reglerFilm({ photo: true })),
+          onQuitter: quitter,
+        }));
+      };
+      afficher();
+    }, 30);
+  }
+
+  /** Carte de score : capture de la course (vue de trois quarts), niveau, score, médaille, voiture ; partagée ou téléchargée. */
+  private partageEnCours = false;
+  private async partagerCarte(r: RaceResult, niveau: string, record: boolean, index: number): Promise<void> {
+    const s = this.session;
+    if (!(s instanceof GameSession) || this.partageEnCours) return;
+    this.partageEnCours = true;
+    try {
+      await document.fonts?.load("800 40px 'Baloo 2'").catch(() => undefined);
+      const scene = s.scenePhoto();
+      const o = orbiteDepuis(scene);
+      // rendu et copie dans la même tâche : le tampon WebGL n'est lisible que juste après le rendu
+      s.rendrePhoto(camOrbite(scene, { lacet: o.lacet + 0.75, tangage: 0.2, dist: 7.5 }));
+      const src = $('scene') as HTMLCanvasElement;
+      const capture = document.createElement('canvas');
+      capture.width = src.width; capture.height = src.height;
+      capture.getContext('2d')?.drawImage(src, 0, 0);
+      s.rendrePhoto(null);
+      const voiture = this.voitureCourse();
+      const seuils = index >= 0 ? SEUILS_MEDAILLES[NIVEAUX_OFFICIELS[index].id] : undefined;
+      const carte = dessinerCarte(capture, {
+        niveau, score: r.score, meilleurDrift: r.bestDrift, temps: r.time,
+        voiture: CARS[voiture].nom, livree: skinDef(voiture, skinChoisie(this.reglages.skins, voiture)).nom, mode: MODE_NOMS[this.reglages.mode],
+        medaille: seuils ? medaille(r.score, seuils) : null, record, lien: SITE_URL,
+      });
+      const blob = await new Promise<Blob | null>((ok) => carte.toBlob(ok, 'image/png'));
+      if (!blob) throw new Error('carte vide');
+      const msg = await enregistrerImage(blob, nomCarte(niveau), this.touch);
+      if (msg) this.screens.toast('Carte de score enregistrée');
+    } catch {
+      this.screens.toast('La carte de score n\'a pas pu être créée');
+    } finally {
+      this.partageEnCours = false;
+    }
   }
 
   /** Bloc « classement en ligne » des résultats : envoi en tâche de fond, l'écran n'attend jamais le réseau. */
@@ -892,7 +1156,7 @@ export class App {
       zone.envoi();
       gains?.envoi();
       void this.classement.soumettreScore({
-        niveau: cle, mode: this.reglages.mode, score: r.score, temps: r.time, voiture: this.reglages.voiture, meilleurDrift: r.bestDrift,
+        niveau: cle, mode: this.reglages.mode, score: r.score, temps: r.time, voiture: this.voitureCourse(), meilleurDrift: r.bestDrift,
         // replay : le serveur rejoue la course pour vérifier le score
         ...(course.replay ? { course: { replay: course.replay, level: course.level } } : {}),
       }).then((res) => {
@@ -920,7 +1184,20 @@ export class App {
   }
 
   /** Ferme la course et renvoie l'écran où retourner. */
+  /** Voiture de la course en cours : celle du Garage, ou celle imposée par le défi du jour. */
+  private voitureCourse(): CarId {
+    return this.current?.contexte.voiture ?? this.reglages.voiture;
+  }
+
+  /** réglages de la course en cours (une copie quand la voiture est imposée) */
+  private reglagesCourse: Reglages | null = null;
+
   private terminerCourse(): () => void {
+    // caméra et son changés en course (touches C, M) : gardés aussi quand la course avait sa copie des réglages
+    const rc = this.reglagesCourse;
+    if (rc && rc !== this.reglages) { this.reglages.camera = rc.camera; this.reglages.muet = rc.muet; }
+    this.reglagesCourse = null;
+    this.save();
     this.keyboard.capture = false;
     this.touchControls.show(false);
     const zen = this.session instanceof ZenSession;

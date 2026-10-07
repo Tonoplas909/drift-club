@@ -39,6 +39,8 @@ export interface OptionsCaisses {
   /** générateur du tirage réel (par défaut : graine cryptographique) */
   rng?: () => Rng;
   mouvementReduit?(): boolean;
+  /** livrée de la semaine (votes de l'Atelier), affichée en bannière quand elle est connue */
+  livreeSemaine?(): Promise<{ voiture: string; nom: string; pseudo: string; pour: number } | null>;
 }
 
 const cle = (n: number): string => `${n} clé${n > 1 ? 's' : ''}`;
@@ -314,5 +316,10 @@ export function ecranCaisses(o: OptionsCaisses): HTMLElement {
     vue, actions, chances,
   );
   ecran.append(corps);
+  void o.livreeSemaine?.().then((l) => {
+    if (!l || !ecran.isConnected) return;
+    const voiture = CARS[l.voiture as CarId]?.nom ?? l.voiture;
+    corps.append(h('p', { class: 'cs-semaine' }, '⭐ Livrée de la semaine : ', h('b', {}, l.nom), ` (${voiture}) par ${l.pseudo} · 👍 ${l.pour}`));
+  });
   return ecran;
 }

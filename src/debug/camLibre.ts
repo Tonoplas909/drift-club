@@ -1,5 +1,5 @@
 /** Caméra libre (développement, sous `?debug`) : `?cam=x,y,z,tx,ty,tz` place la caméra en (x, y, z) regardant (tx, ty, tz). */
-export interface CamLibre { pos: [number, number, number]; cible: [number, number, number] }
+export interface CamLibre { pos: [number, number, number]; cible: [number, number, number]; /** champ de vision (degrés), sinon celui de la poursuite */ fov?: number }
 
 export function camDepuisUrl(search: string): CamLibre | null {
   const q = new URLSearchParams(search);

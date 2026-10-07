@@ -49,7 +49,8 @@ export function dessiner(ctx: CanvasRenderingContext2D, e: EtatDessin): void {
   const track = e.analyse.track;
   if (track) {
     ruban(ctx, track, e, 1);
-    if (e.outil === 'barrieres') separateurs(ctx, track, e);
+    if (e.outil === 'barrieres' || e.outil === 'clipping') separateurs(ctx, track, e);
+    zonesClipping(ctx, track, e);
     barrieres(ctx, track, e);
     departArrivee(ctx, track, e);
   } else if (e.fantome) {
@@ -204,6 +205,31 @@ function barrieres(ctx: CanvasRenderingContext2D, track: TrackData, e: EtatDessi
       }
     }
   }
+}
+
+/** Zones de clipping : bande hachurée jaune et noire le long du bord de la route. */
+function zonesClipping(ctx: CanvasRenderingContext2D, track: TrackData, e: EtatDessin): void {
+  const S = track.samples;
+  ctx.lineCap = 'butt';
+  ctx.lineJoin = 'round';
+  const largeur = Math.max(3, 0.9 * e.vue.scale);
+  for (const z of e.level.clipping ?? []) {
+    if (z.a >= track.pointSample.length) continue;
+    const i0 = track.pointSample[z.de], i1 = track.pointSample[z.a], cote = z.cote === 'gauche' ? 1 : -1;
+    for (const [couleur, tirets] of [['#ffd23f', [] as number[]], [INK, [largeur, largeur]]] as const) {
+      ctx.strokeStyle = couleur;
+      ctx.lineWidth = largeur;
+      ctx.setLineDash(tirets);
+      ctx.beginPath();
+      for (let i = i0; i <= i1; i++) {
+        const sp = S[i];
+        const p = mondeVersEcran(e.vue, e.w, e.h, sp.x + sp.nx * cote * (sp.w - 0.5), sp.z + sp.nz * cote * (sp.w - 0.5));
+        if (i === i0) ctx.moveTo(p.sx, p.sy); else ctx.lineTo(p.sx, p.sy);
+      }
+      ctx.stroke();
+    }
+  }
+  ctx.setLineDash([]);
 }
 
 function departArrivee(ctx: CanvasRenderingContext2D, track: TrackData, e: EtatDessin): void {

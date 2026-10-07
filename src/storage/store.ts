@@ -8,6 +8,8 @@ import { FUMEE_DEFAUT, validerFumee, type FumeeId } from '../core/fumees';
 import { offrirCaisse, progressionInitiale, validerProgression, type Progression } from '../core/economie';
 import type { EtatProgressionCompte } from '../core/progressionCompte';
 import { MANETTE_DEFAUT, type ReglagesManette } from '../input/gamepad';
+import { lireVue, type VueCamera } from '../render/vuesEmbarquees';
+import { lireTouches, touchesParDefaut, type Touches } from '../input/touches';
 
 export interface KV {
   getItem(key: string): string | null;
@@ -30,13 +32,18 @@ export interface Reglages {
   ambianceDecor: boolean;
   qualite: Qualite;
   accelAuto: boolean;
-  cameraLoin: boolean;
+  /** caméra choisie (touche C) : poursuite, éloignée ou embarquée */
+  camera: VueCamera;
   /** HUD : détail des points du drift (base × vitesse × durée × angle) */
   detailPoints: boolean;
   /** HUD : indicateur d'angle de glisse sous la voiture */
   indicateurAngle: boolean;
   /** manette : zone morte du stick et sensibilité de la direction */
   manette: ReglagesManette;
+  /** touches du clavier et boutons de la manette choisis par le joueur */
+  touches: Touches;
+  /** fantôme de son record pendant la course */
+  fantome: boolean;
 }
 
 export interface RecordEntry {
@@ -45,6 +52,13 @@ export interface RecordEntry {
   voiture: CarId;
   meilleurDrift: number;
   date: string;
+}
+
+/** Replay d'un record (base64), rejoué en voiture translucide pendant la course. */
+export interface Fantome {
+  voiture: CarId;
+  replay: string;
+  score: number;
 }
 
 export interface MonNiveau {
@@ -57,6 +71,15 @@ const K_REGLAGES = 'driftclub.v1.reglages';
 const K_RECORDS = 'driftclub.v1.records';
 const K_NIVEAUX = 'driftclub.v1.niveaux';
 const K_PROGRESSION = 'driftclub.v1.progression';
+const K_STATISTIQUES = 'driftclub.v1.statistiques';
+/** statistiques du compte : dernier total connu et ajouts pas encore envoyés ({ id, stats }) ; comptes ayant reçu l'historique de l'appareil */
+const K_STATS_COMPTE = 'driftclub.v1.statistiques.compte';
+const K_STATS_ATTENTE = 'driftclub.v1.statistiques.attente';
+const K_STATS_IMPORTEES = 'driftclub.v1.statistiques.importees';
+/** replay du record de chaque niveau et mode (fantôme), le plus récent en dernier */
+const K_FANTOMES = 'driftclub.v1.fantomes';
+/** fantômes gardés au plus (quelques ko chacun) */
+export const FANTOMES_MAX = 30;
 /** dernière progression connue du compte en ligne (lecture seule hors ligne) ; la progression locale ci-dessus n'est jamais modifiée par le compte */
 const K_PROGRESSION_COMPTE = 'driftclub.v1.progression-compte';
 const K_LIVREES_ATELIER = 'driftclub.v1.livrees-atelier';
@@ -97,10 +120,12 @@ export function defaultReglages(touch: boolean): Reglages {
     qualite: 'auto',
     // désactivée par défaut : sur téléphone la voiture avançait seule dès le premier toucher
     accelAuto: false,
-    cameraLoin: false,
+    camera: 'proche',
     detailPoints: true,
     indicateurAngle: true,
     manette: { ...MANETTE_DEFAUT },
+    touches: touchesParDefaut(),
+    fantome: true,
   };
 }
 
@@ -111,6 +136,7 @@ function lireManette(v: unknown): ReglagesManette {
   return {
     zoneMorte: entre(o.zoneMorte, 0, 0.4) ? o.zoneMorte : MANETTE_DEFAUT.zoneMorte,
     sensibilite: entre(o.sensibilite, 0, 1) ? o.sensibilite : MANETTE_DEFAUT.sensibilite,
+    vibrations: typeof o.vibrations === 'boolean' ? o.vibrations : MANETTE_DEFAUT.vibrations,
   };
 }
 
@@ -153,10 +179,13 @@ export class Store {
       qualite: QUALITES.includes(o.qualite as Qualite) ? (o.qualite as Qualite) : d.qualite,
       // avant la v2 des réglages, accelAuto valait true par défaut sans choix du joueur : on l'ignore
       accelAuto: o.v === VERSION_REGLAGES && typeof o.accelAuto === 'boolean' ? o.accelAuto : d.accelAuto,
-      cameraLoin: typeof o.cameraLoin === 'boolean' ? o.cameraLoin : d.cameraLoin,
+      // avant la 0.5.12 : simple choix « caméra éloignée »
+      camera: lireVue(o.camera, o.cameraLoin),
       detailPoints: typeof o.detailPoints === 'boolean' ? o.detailPoints : d.detailPoints,
       indicateurAngle: typeof o.indicateurAngle === 'boolean' ? o.indicateurAngle : d.indicateurAngle,
       manette: lireManette(o.manette),
+      touches: lireTouches(o.touches),
+      fantome: typeof o.fantome === 'boolean' ? o.fantome : d.fantome,
     };
   }
 
@@ -199,6 +228,56 @@ export class Store {
   }
 
   /** Dernières livrées de l'Atelier reçues du serveur (lignes brutes, re-validées à la lecture par l'appelant). */
+  /** Fantôme (replay du record) d'un niveau dans un mode, ou null. */
+  loadFantome(levelKey: string, mode: ModeId): Fantome | null {
+    const f = this.fantomes()[`${levelKey}|${mode}`];
+    return f && typeof f.replay === 'string' && CAR_IDS.includes(f.voiture) && typeof f.score === 'number' ? f : null;
+  }
+
+  /** Garde le replay du nouveau record ; les plus anciens fantômes partent au-delà de FANTOMES_MAX. */
+  saveFantome(levelKey: string, mode: ModeId, f: Fantome): void {
+    const tous = this.fantomes();
+    delete tous[`${levelKey}|${mode}`];
+    tous[`${levelKey}|${mode}`] = f;
+    const cles = Object.keys(tous);
+    for (const k of cles.slice(0, Math.max(0, cles.length - FANTOMES_MAX))) delete tous[k];
+    this.write(K_FANTOMES, tous);
+  }
+
+  private fantomes(): Record<string, Fantome> {
+    const r = this.read(K_FANTOMES);
+    return typeof r === 'object' && r !== null && !Array.isArray(r) ? (r as Record<string, Fantome>) : {};
+  }
+
+  /** Statistiques du pilote (relues et validées par `lireStatistiques`). */
+  loadStatistiques(): unknown {
+    return this.read(K_STATISTIQUES);
+  }
+
+  saveStatistiques(s: unknown): void {
+    this.write(K_STATISTIQUES, s);
+  }
+
+  /** Données brutes gardées pour un compte (total connu ou ajouts en attente), relues par `lireStatistiques`. */
+  loadStatsCompte(quoi: 'total' | 'attente', id: string): unknown {
+    const raw = this.read(quoi === 'total' ? K_STATS_COMPTE : K_STATS_ATTENTE);
+    return typeof raw === 'object' && raw !== null && (raw as { id?: unknown }).id === id ? (raw as { stats?: unknown }).stats ?? null : null;
+  }
+
+  saveStatsCompte(quoi: 'total' | 'attente', id: string, stats: unknown): void {
+    this.write(quoi === 'total' ? K_STATS_COMPTE : K_STATS_ATTENTE, { id, stats });
+  }
+
+  /** Comptes qui ont déjà reçu l'historique de cet appareil (une seule fois par compte). */
+  statsImportees(): string[] {
+    const r = this.read(K_STATS_IMPORTEES);
+    return Array.isArray(r) ? r.filter((x): x is string => typeof x === 'string').slice(-20) : [];
+  }
+
+  marquerStatsImportees(id: string): void {
+    this.write(K_STATS_IMPORTEES, [...this.statsImportees().filter((x) => x !== id), id]);
+  }
+
   loadLivreesAtelier(): unknown[] {
     const raw = this.read(K_LIVREES_ATELIER);
     return Array.isArray(raw) ? raw.slice(0, 2000) : [];

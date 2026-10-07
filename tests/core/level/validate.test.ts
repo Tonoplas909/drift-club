@@ -27,7 +27,7 @@ describe('validateLevel', () => {
   });
   it('vérifie nom, ambiance et environnement', () => {
     expect(errs({ ...straightLevel(), nom: '' }).join()).toMatch(/nom/);
-    expect(errs({ ...straightLevel(), ambiance: 'nuit' }).join()).toMatch(/ambiance/);
+    expect(errs({ ...straightLevel(), ambiance: 'aube' }).join()).toMatch(/ambiance/);
     expect(errs({ ...straightLevel(), environnement: 'lune' }).join()).toMatch(/environnement/);
   });
   it('accepte chaque environnement et le conserve, refuse les valeurs inconnues avec la liste attendue', () => {

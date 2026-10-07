@@ -1,4 +1,4 @@
-import { ENVIRONNEMENTS } from './types';
+import { ENVIRONNEMENTS, AMBIANCES } from './types';
 import type { Level, CoteBarriere, TypeObjet } from './types';
 import { loadLevel } from '../loadLevel';
 
@@ -9,7 +9,6 @@ export const TAILLE_MAX_DECOMPRESSE = 200_000;
 /** Longueur maximale de la partie base64url d'un code. */
 export const LONGUEUR_MAX_CODE = 150_000;
 
-const AMBIANCES = ['jour', 'coucher'] as const;
 const COTES: readonly CoteBarriere[] = ['gauche', 'droite', 'deux', 'ext'];
 const TYPES: readonly TypeObjet[] = ['arbre', 'sapin', 'rocher', 'pneus', 'barriere', 'panneau'];
 
@@ -39,6 +38,8 @@ export function normaliserNiveau(level: Level): Level {
     ...(level.eau && level.eau.length > 0
       ? { eau: level.eau.map((l) => ({ niveau: d1(l.niveau), points: l.points.map((p) => ({ x: d1(p.x), z: d1(p.z) })) })) }
       : {}),
+    ...(level.clipping && level.clipping.length > 0 ? { clipping: level.clipping.map((z) => ({ de: z.de, a: z.a, cote: z.cote })) } : {}),
+    ...(level.meteo ? { meteo: level.meteo } : {}),
   };
 }
 
@@ -77,6 +78,10 @@ function compacter(l: Level): unknown {
       return flat;
     });
   }
+  // zones de clipping : clé ajoutée seulement s'il y en a ; [de, a, 0 gauche / 1 droite]
+  if (l.clipping && l.clipping.length > 0) compact.c = l.clipping.map((z) => [z.de, z.a, z.cote === 'gauche' ? 0 : 1]);
+  // pluie : clé ajoutée seulement s'il pleut
+  if (l.meteo === 'pluie') compact.p = 1;
   return compact;
 }
 
@@ -109,6 +114,12 @@ function developper(c: unknown): unknown | null {
       return { niveau: t[0] / 10, points };
     });
   }
+  // zones de clipping (clé `c`, absente des anciens codes)
+  let clipping: unknown[] | undefined;
+  if (c.c !== undefined) {
+    if (!tuples(c.c, 3) || !c.c.every((t) => estEntier(t[0]) && estEntier(t[1]) && (t[2] === 0 || t[2] === 1))) return null;
+    clipping = c.c.map((t) => ({ de: t[0], a: t[1], cote: t[2] === 0 ? 'gauche' : 'droite' }));
+  }
   let x = 0, z = 0, y = 0, w = 0;
   return {
     format: 1,
@@ -124,6 +135,8 @@ function developper(c: unknown): unknown | null {
     decor: { graine: d[0], densite: d[1] / 100 },
     objets: o.map((t) => ({ type: TYPES[t[0]], x: t[1] / 10, z: t[2] / 10, rot: t[3] })),
     ...(eau ? { eau } : {}),
+    ...(clipping ? { clipping } : {}),
+    ...(c.p === 1 ? { meteo: 'pluie' } : {}),
   };
 }
 

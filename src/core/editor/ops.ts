@@ -1,4 +1,4 @@
-import type { Level, PointRoute, Barriere, CoteBarriere, TypeObjet } from '../level/types';
+import type { Level, PointRoute, Barriere, CoteBarriere, TypeObjet, ZoneClipping } from '../level/types';
 import { LIMITES } from '../level/types';
 import { clamp } from '../math/vec';
 import { aire, autoIntersection } from '../env/eau';
@@ -48,6 +48,11 @@ export function insertPoint(l: Level, seg: number, x: number, z: number): void {
       if (b.a > seg) b.a++;
     }
   }
+  // de même pour les zones de clipping
+  for (const z of l.clipping ?? []) {
+    if (z.de <= seg && seg < z.a) z.a++;
+    else { if (z.de > seg) z.de++; if (z.a > seg) z.a++; }
+  }
 }
 
 /** Déplace un point. */
@@ -75,7 +80,46 @@ export function deletePoint(l: Level, i: number): boolean {
     if (a > de) out.push({ de, a, cote: b.cote });
   }
   l.barrieres = out;
+  if (l.clipping) {
+    const zones: ZoneClipping[] = [];
+    for (const z of l.clipping) {
+      const de = z.de > i ? z.de - 1 : z.de;
+      const a = Math.min(z.a >= i ? z.a - 1 : z.a, l.route.length - 1);
+      if (a > de) zones.push({ de, a, cote: z.cote });
+    }
+    l.clipping = zones;
+  }
   return true;
+}
+
+// Zones de clipping
+
+/** Côtés du tronçon `seg` (du point seg au point seg+1) couverts par une zone de clipping. */
+export function clippingAt(l: Level, seg: number): { gauche: boolean; droite: boolean } {
+  const f = { gauche: false, droite: false };
+  for (const z of l.clipping ?? []) if (z.de <= seg && seg < z.a) f[z.cote] = true;
+  return f;
+}
+
+/** Ajoute ou retire une zone de clipping sur un côté du tronçon `seg` ; les tronçons voisins du même côté se fusionnent. */
+export function toggleClipping(l: Level, seg: number, cote: 'gauche' | 'droite'): void {
+  const n = Math.max(0, l.route.length - 1);
+  if (seg < 0 || seg >= n) return;
+  const flags = Array.from({ length: n }, (_, i) => clippingAt(l, i));
+  flags[seg][cote] = !flags[seg][cote];
+  const zones: ZoneClipping[] = [];
+  for (const c of ['gauche', 'droite'] as const) {
+    let debut = -1;
+    for (let i = 0; i <= n; i++) {
+      const on = i < n && flags[i][c];
+      if (on && debut < 0) debut = i;
+      if (!on && debut >= 0) { zones.push({ de: debut, a: i, cote: c }); debut = -1; }
+    }
+  }
+  zones.sort((a, b) => a.de - b.de || (a.cote < b.cote ? -1 : 1));
+  if (zones.length > LIMITES.clippingMax) return;
+  if (zones.length > 0) l.clipping = zones;
+  else delete l.clipping;
 }
 
 // Barriers

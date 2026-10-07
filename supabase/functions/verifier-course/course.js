@@ -25,6 +25,9 @@ var premiers_virages_default = {
     { x: 290, z: 410, y: 12, l: 12 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 12, a: 13, cote: "droite" }
+  ],
   decor: { graine: 4821, densite: 0.55 },
   objets: []
 };
@@ -60,6 +63,11 @@ var foret_des_pins_default = {
     { x: 540, z: 350, y: 28, l: 10 }
   ],
   barrieres: [{ de: 7, a: 10, cote: "ext" }],
+  clipping: [
+    { de: 6, a: 8, cote: "droite" },
+    { de: 9, a: 13, cote: "gauche" },
+    { de: 14, a: 15, cote: "droite" }
+  ],
   decor: { graine: 1337, densite: 0.85 },
   objets: []
 };
@@ -114,6 +122,12 @@ var col_du_loup_default = {
     { de: 9, a: 15, cote: "ext" },
     { de: 16, a: 22, cote: "ext" },
     { de: 28, a: 31, cote: "ext" }
+  ],
+  clipping: [
+    { de: 3, a: 7, cote: "gauche" },
+    { de: 10, a: 14, cote: "droite" },
+    { de: 17, a: 21, cote: "gauche" },
+    { de: 23, a: 25, cote: "droite" }
   ],
   decor: { graine: 777, densite: 0.7 },
   objets: []
@@ -186,6 +200,11 @@ var lacets_du_belvedere_default = {
     { de: 24, a: 34, cote: "ext" },
     { de: 35, a: 45, cote: "ext" }
   ],
+  clipping: [
+    { de: 24, a: 29, cote: "gauche" },
+    { de: 34, a: 38, cote: "droite" },
+    { de: 44, a: 48, cote: "gauche" }
+  ],
   decor: { graine: 3141, densite: 0.7 },
   objets: []
 };
@@ -239,6 +258,10 @@ var vallee_des_cretes_default = {
     { de: 3, a: 13, cote: "ext" },
     { de: 14, a: 23, cote: "ext" },
     { de: 24, a: 33, cote: "ext" }
+  ],
+  clipping: [
+    { de: 12, a: 16, cote: "droite" },
+    { de: 24, a: 28, cote: "droite" }
   ],
   decor: { graine: 2718, densite: 0.75 },
   objets: []
@@ -333,6 +356,11 @@ var circuit_du_lac_default = {
     { x: -132.1, z: 0.7, y: -0.1, l: 14 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 24, a: 26, cote: "droite" },
+    { de: 28, a: 31, cote: "droite" },
+    { de: 54, a: 59, cote: "droite" }
+  ],
   decor: { graine: 6042, densite: 0.6 },
   objets: [],
   eau: [
@@ -509,6 +537,10 @@ var epingles_du_diable_default = {
     { de: 91, a: 101, cote: "ext" },
     { de: 105, a: 114, cote: "ext" }
   ],
+  clipping: [
+    { de: 6, a: 14, cote: "droite" },
+    { de: 18, a: 26, cote: "gauche" }
+  ],
   decor: { graine: 7013, densite: 0.75 },
   objets: []
 };
@@ -647,6 +679,12 @@ var cretes_nord_default = {
     { de: 27, a: 36, cote: "ext" },
     { de: 61, a: 70, cote: "ext" },
     { de: 95, a: 105, cote: "ext" }
+  ],
+  clipping: [
+    { de: 28, a: 35, cote: "gauche" },
+    { de: 62, a: 69, cote: "droite" },
+    { de: 86, a: 91, cote: "droite" },
+    { de: 96, a: 104, cote: "gauche" }
   ],
   decor: { graine: 8127, densite: 0.55 },
   objets: []
@@ -788,6 +826,11 @@ var descente_du_moulin_default = {
     { de: 60, a: 66, cote: "ext" },
     { de: 84, a: 90, cote: "ext" },
     { de: 109, a: 115, cote: "ext" }
+  ],
+  clipping: [
+    { de: 28, a: 32, cote: "gauche" },
+    { de: 44, a: 48, cote: "gauche" },
+    { de: 94, a: 98, cote: "gauche" }
   ],
   decor: { graine: 9251, densite: 0.7 },
   objets: []
@@ -940,6 +983,12 @@ var grand_huit_default = {
     { x: -202.3, z: -876.3, y: 8.2, l: 12 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 5, a: 14, cote: "droite" },
+    { de: 30, a: 40, cote: "droite" },
+    { de: 83, a: 94, cote: "droite" },
+    { de: 111, a: 120, cote: "droite" }
+  ],
   decor: { graine: 1064, densite: 0.85 },
   objets: []
 };
@@ -1092,6 +1141,12 @@ var serpentin_des_aigles_default = {
     { de: 80, a: 92, cote: "ext" },
     { de: 109, a: 121, cote: "ext" }
   ],
+  clipping: [
+    { de: 28, a: 32, cote: "gauche" },
+    { de: 50, a: 54, cote: "droite" },
+    { de: 56, a: 60, cote: "droite" },
+    { de: 110, a: 114, cote: "droite" }
+  ],
   decor: { graine: 11031, densite: 0.8 },
   objets: []
 };
@@ -1194,6 +1249,12 @@ var angles_droits_default = {
     { x: 59, z: 58, y: 5.1, l: 11 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 8, a: 12, cote: "gauche" },
+    { de: 21, a: 25, cote: "gauche" },
+    { de: 39, a: 43, cote: "droite" },
+    { de: 64, a: 68, cote: "droite" }
+  ],
   decor: { graine: 12077, densite: 0.85 },
   objets: []
 };
@@ -1310,6 +1371,10 @@ var spirale_du_belvedere_default = {
   barrieres: [
     { de: 14, a: 86, cote: "ext" }
   ],
+  clipping: [
+    { de: 15, a: 49, cote: "droite" },
+    { de: 49, a: 83, cote: "gauche" }
+  ],
   decor: { graine: 13159, densite: 0.7 },
   objets: []
 };
@@ -1420,6 +1485,11 @@ var trois_epingles_default = {
     { de: 15, a: 29, cote: "ext" },
     { de: 42, a: 54, cote: "ext" },
     { de: 65, a: 78, cote: "ext" }
+  ],
+  clipping: [
+    { de: 16, a: 28, cote: "gauche" },
+    { de: 43, a: 53, cote: "droite" },
+    { de: 66, a: 77, cote: "gauche" }
   ],
   decor: { graine: 14203, densite: 0.6 },
   objets: []
@@ -1578,6 +1648,12 @@ var chicanes_du_port_default = {
     { x: 656.9, z: 650.1, y: 1.6, l: 10 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 31, a: 35, cote: "gauche" },
+    { de: 72, a: 76, cote: "droite" },
+    { de: 90, a: 93, cote: "gauche" },
+    { de: 108, a: 112, cote: "gauche" }
+  ],
   decor: { graine: 15287, densite: 0.85 },
   objets: []
 };
@@ -1720,6 +1796,12 @@ var grande_descente_default = {
     { x: 1638.3, z: 148, y: 6, l: 12 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 54, a: 60, cote: "gauche" },
+    { de: 61, a: 67, cote: "droite" },
+    { de: 112, a: 118, cote: "gauche" },
+    { de: 119, a: 124, cote: "droite" }
+  ],
   decor: { graine: 16391, densite: 0.7 },
   objets: []
 };
@@ -1876,6 +1958,12 @@ var virages_en_cascade_default = {
     { de: 118, a: 123, cote: "ext" },
     { de: 125, a: 130, cote: "ext" }
   ],
+  clipping: [
+    { de: 57, a: 62, cote: "gauche" },
+    { de: 65, a: 68, cote: "droite" },
+    { de: 119, a: 123, cote: "droite" },
+    { de: 125, a: 129, cote: "gauche" }
+  ],
   decor: { graine: 17443, densite: 0.6 },
   objets: []
 };
@@ -1975,6 +2063,12 @@ var route_des_vignes_default = {
     { x: 1353.6, z: 9.2, y: 31.1, l: 14.5 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 31, a: 34, cote: "droite" },
+    { de: 38, a: 41, cote: "gauche" },
+    { de: 70, a: 72, cote: "gauche" },
+    { de: 77, a: 79, cote: "droite" }
+  ],
   decor: { graine: 18517, densite: 0.6 },
   objets: []
 };
@@ -1985,7 +2079,7 @@ var touge_de_minuit_default = {
   nom: "Touge de Minuit",
   auteur: "Drift Club",
   environnement: "montagne",
-  ambiance: "coucher",
+  ambiance: "nuit",
   route: [
     { x: 0, z: 0, y: 115, l: 9.5 },
     { x: 24, z: 0, y: 114.1, l: 9.5 },
@@ -2093,6 +2187,9 @@ var touge_de_minuit_default = {
   barrieres: [
     { de: 91, a: 99, cote: "ext" },
     { de: 31, a: 41, cote: "ext" }
+  ],
+  clipping: [
+    { de: 92, a: 98, cote: "droite" }
   ],
   decor: { graine: 19601, densite: 0.75 },
   objets: []
@@ -2209,6 +2306,11 @@ var tire_bouchon_default = {
     { de: 29, a: 41, cote: "ext" },
     { de: 40, a: 50, cote: "ext" }
   ],
+  clipping: [
+    { de: 30, a: 40, cote: "gauche" },
+    { de: 41, a: 49, cote: "gauche" },
+    { de: 75, a: 83, cote: "droite" }
+  ],
   decor: { graine: 20707, densite: 0.65 },
   objets: []
 };
@@ -2285,6 +2387,10 @@ var sentier_des_cerisiers_default = {
     { x: 796.6, z: -234.4, y: 18, l: 11 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 9, a: 14, cote: "droite" },
+    { de: 37, a: 42, cote: "droite" }
+  ],
   decor: { graine: 21481, densite: 0.8 },
   objets: []
 };
@@ -2399,6 +2505,11 @@ var col_du_torii_default = {
     { de: 36, a: 42, cote: "ext" },
     { de: 58, a: 64, cote: "ext" },
     { de: 80, a: 86, cote: "ext" }
+  ],
+  clipping: [
+    { de: 36, a: 42, cote: "droite" },
+    { de: 58, a: 64, cote: "gauche" },
+    { de: 80, a: 86, cote: "droite" }
   ],
   decor: { graine: 22307, densite: 0.75 },
   objets: []
@@ -2554,6 +2665,12 @@ var dragon_de_jade_default = {
     { x: -838.9, z: 384.9, y: 8, l: 8.5 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 27, a: 31, cote: "gauche" },
+    { de: 50, a: 54, cote: "gauche" },
+    { de: 68, a: 72, cote: "droite" },
+    { de: 96, a: 100, cote: "gauche" }
+  ],
   decor: { graine: 23159, densite: 0.8 },
   objets: []
 };
@@ -2629,6 +2746,11 @@ var baie_des_naufrages_default = {
     { x: 972.8, z: 138.3, y: 3.5, l: 13 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 7, a: 10, cote: "gauche" },
+    { de: 26, a: 31, cote: "gauche" },
+    { de: 49, a: 52, cote: "droite" }
+  ],
   decor: { graine: 24571, densite: 0.55 },
   objets: []
 };
@@ -2717,6 +2839,11 @@ var crique_du_perroquet_default = {
     { x: 93.4, z: 535.5, y: 2, l: 11 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 10, a: 17, cote: "droite" },
+    { de: 21, a: 32, cote: "gauche" },
+    { de: 48, a: 54, cote: "droite" }
+  ],
   decor: { graine: 25219, densite: 0.55 },
   objets: []
 };
@@ -2830,6 +2957,12 @@ var recif_du_kraken_default = {
     { x: 401.2, z: 925.1, y: 8, l: 10 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 8, a: 11, cote: "droite" },
+    { de: 27, a: 31, cote: "gauche" },
+    { de: 53, a: 57, cote: "droite" },
+    { de: 72, a: 75, cote: "gauche" }
+  ],
   decor: { graine: 26833, densite: 0.55 },
   objets: []
 };
@@ -2922,6 +3055,11 @@ var orbite_basse_default = {
     { x: 1256.8, z: 105.6, y: 14, l: 14 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 42, a: 47, cote: "droite" },
+    { de: 54, a: 62, cote: "gauche" },
+    { de: 64, a: 69, cote: "droite" }
+  ],
   decor: { graine: 27449, densite: 0.55 },
   objets: []
 };
@@ -3033,6 +3171,12 @@ var cratere_rouge_default = {
     { x: -569.6, z: 326.9, y: 12, l: 12 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 6, a: 11, cote: "gauche" },
+    { de: 24, a: 38, cote: "gauche" },
+    { de: 59, a: 65, cote: "droite" },
+    { de: 90, a: 96, cote: "gauche" }
+  ],
   decor: { graine: 28097, densite: 0.55 },
   objets: []
 };
@@ -3112,6 +3256,11 @@ var couloirs_jaunes_default = {
     { x: 140, z: 178, y: 0.3, l: 10 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 11, a: 14, cote: "gauche" },
+    { de: 34, a: 37, cote: "gauche" },
+    { de: 52, a: 55, cote: "gauche" }
+  ],
   decor: { graine: 29501, densite: 0.5 },
   objets: []
 };
@@ -3228,6 +3377,12 @@ var labyrinthe_de_neons_default = {
     { x: 898, z: -140, y: 0.2, l: 9 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 52, a: 55, cote: "gauche" },
+    { de: 65, a: 68, cote: "droite" },
+    { de: 77, a: 80, cote: "gauche" },
+    { de: 95, a: 98, cote: "gauche" }
+  ],
   decor: { graine: 30223, densite: 0.5 },
   objets: []
 };
@@ -3347,6 +3502,11 @@ var neo_shinjuku_default = {
     { x: 506.7, z: -12.5, y: -0.7, l: 11 }
   ],
   barrieres: [],
+  clipping: [
+    { de: 11, a: 16, cote: "gauche" },
+    { de: 18, a: 34, cote: "gauche" },
+    { de: 70, a: 94, cote: "droite" }
+  ],
   decor: { graine: 31847, densite: 0.85 },
   objets: []
 };
@@ -3387,6 +3547,7 @@ var NIVEAUX_OFFICIELS = [
 ];
 
 // src/core/level/types.ts
+var AMBIANCES = ["jour", "coucher", "nuit"];
 var ENVIRONNEMENTS = ["montagne", "neige", "desert", "automne", "ville", "pirate", "backrooms", "espace", "japon", "cyberpunk"];
 var LIMITES = {
   pointsMin: 2,
@@ -3410,7 +3571,8 @@ var LIMITES = {
   eauNiveauMin: -60,
   eauNiveauMax: 150,
   /** distance libre minimale (m) entre le bord de la route et un lac : la route reste au sec */
-  eauMarge: 6
+  eauMarge: 6,
+  clippingMax: 12
 };
 
 // src/core/env/eau.ts
@@ -3707,7 +3869,6 @@ function hypot(a, b, c = 0) {
 }
 
 // src/core/level/validate.ts
-var AMBIANCES = ["jour", "coucher"];
 var COTES = ["gauche", "droite", "deux", "ext"];
 var TYPES_OBJETS = ["arbre", "sapin", "rocher", "pneus", "barriere", "panneau"];
 var isObj = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -3731,8 +3892,9 @@ function validateLevel(raw) {
     e.push(`environnement : valeur inconnue (attendu : ${ENVIRONNEMENTS.join(", ")}).`);
   }
   if (typeof raw.ambiance !== "string" || !AMBIANCES.includes(raw.ambiance)) {
-    e.push("ambiance : « jour » ou « coucher ».");
+    e.push("ambiance : « jour », « coucher » ou « nuit ».");
   }
+  if (raw.meteo !== void 0 && raw.meteo !== "pluie") e.push("meteo : « pluie » ou absente.");
   const route = [];
   if (!Array.isArray(raw.route)) {
     e.push("route : liste de points manquante.");
@@ -3777,6 +3939,21 @@ function validateLevel(raw) {
       }
       barrieres.push({ de: b.de, a: b.a, cote: b.cote });
     });
+  }
+  const clipping = [];
+  if (raw.clipping !== void 0) {
+    if (!Array.isArray(raw.clipping)) {
+      e.push("clipping : doit être une liste.");
+    } else {
+      if (raw.clipping.length > LIMITES.clippingMax) e.push(`clipping : ${LIMITES.clippingMax} zones au maximum.`);
+      raw.clipping.forEach((z, i) => {
+        if (!isObj(z) || !isInt(z.de) || !isInt(z.a) || z.cote !== "gauche" && z.cote !== "droite" || z.de < 0 || z.a <= z.de || z.a > route.length - 1) {
+          e.push(`clipping[${i}] : « de » < « a » (indices de points) et côté gauche ou droite.`);
+          return;
+        }
+        clipping.push({ de: z.de, a: z.a, cote: z.cote });
+      });
+    }
   }
   const decorRaw = raw.decor;
   let decor = { graine: 0, densite: 0.5 };
@@ -3844,7 +4021,9 @@ function validateLevel(raw) {
       barrieres,
       decor,
       objets,
-      ...eau.length > 0 ? { eau } : {}
+      ...eau.length > 0 ? { eau } : {},
+      ...clipping.length > 0 ? { clipping } : {},
+      ...raw.meteo === "pluie" ? { meteo: "pluie" } : {}
     }
   };
 }
@@ -5343,15 +5522,15 @@ function* decorEnEtapes(level, track, terrain, opts = {}) {
   const emprises = [];
   const CASE = 48;
   const grille = /* @__PURE__ */ new Map();
-  const cle = (i, j) => (j + 512) * 4096 + (i + 512);
+  const cle2 = (i, j) => (j + 512) * 4096 + (i + 512);
   const casesDe = (e, m) => {
     const out = [];
     for (let j = Math.floor((e.z - e.r - m) / CASE); j <= Math.floor((e.z + e.r + m) / CASE); j++) {
-      for (let i = Math.floor((e.x - e.r - m) / CASE); i <= Math.floor((e.x + e.r + m) / CASE); i++) out.push(cle(i, j));
+      for (let i = Math.floor((e.x - e.r - m) / CASE); i <= Math.floor((e.x + e.r + m) / CASE); i++) out.push(cle2(i, j));
     }
     return out;
   };
-  const enBatiment = (x, z, m) => emprises.length > 0 && (grille.get(cle(Math.floor(x / CASE), Math.floor(z / CASE))) ?? []).some((e) => contient(e, x, z, m));
+  const enBatiment = (x, z, m) => emprises.length > 0 && (grille.get(cle2(Math.floor(x / CASE), Math.floor(z / CASE))) ?? []).some((e) => contient(e, x, z, m));
   const bat = theme.batiments;
   if (bat) {
     const rb = mulberry32((opts.alea ?? graine) + 4099);
@@ -5581,7 +5760,11 @@ async function empreinteNiveau(level) {
     decor: level.decor,
     objets: level.objets,
     // les lacs n'entrent dans l'empreinte que s'il y en a : les niveaux sans eau gardent leur empreinte d'avant
-    ...level.eau && level.eau.length > 0 ? { eau: level.eau.map((l) => ({ niveau: l.niveau, points: l.points.map((p) => ({ x: p.x, z: p.z })) })) } : {}
+    ...level.eau && level.eau.length > 0 ? { eau: level.eau.map((l) => ({ niveau: l.niveau, points: l.points.map((p) => ({ x: p.x, z: p.z })) })) } : {},
+    // de même pour les zones de clipping
+    ...level.clipping && level.clipping.length > 0 ? { clipping: level.clipping.map((z) => ({ de: z.de, a: z.a, cote: z.cote })) } : {},
+    // et pour la météo
+    ...level.meteo ? { meteo: level.meteo } : {}
   };
   const json = JSON.stringify(canonical);
   const encoder = new TextEncoder();
@@ -6004,7 +6187,7 @@ function stepCar(car, input, ctx, dt) {
   const drive = car.throttleSmooth;
   const Fzf = Math.max(0.1 * m * G, m * G * b / L - m * car.ax * p.cgHeight / L);
   const Fzr = Math.max(0.1 * m * G, m * G * a / L + m * car.ax * p.cgHeight / L);
-  const surface = ctx.onRoad ? 1 : 0.7;
+  const surface = (ctx.onRoad ? 1 : 0.7) * (ctx.adherence ?? 1);
   const muF = p.muFront * surface;
   let muR = p.muRear * surface;
   const arcadeDrift = as.arcadeDrift && input.freinAMain && speed0 > 8.3;
@@ -6238,10 +6421,11 @@ var DEFAULT_SCORE_PARAMS = {
   progressMin: 2,
   timeBonusPerSec: 1e3,
   timeBonusLimite: 1.5,
-  timeBonusPartMax: 0.5
+  timeBonusPartMax: 0.5,
+  bonusClipping: 1
 };
 function createScore() {
-  return { total: 0, drift: 0, multiplier: 1, active: false, pending: false, inactiveTime: 0, sinceBank: 0, bestDrift: 0, driftCount: 0, driftTime: 0, driftVitesse: 0, driftAngle: 0 };
+  return { total: 0, drift: 0, multiplier: 1, active: false, pending: false, inactiveTime: 0, sinceBank: 0, bestDrift: 0, driftCount: 0, driftTime: 0, driftVitesse: 0, driftAngle: 0, driftClip: 0 };
 }
 function angleFactor(betaDeg) {
   const b = Math.abs(betaDeg);
@@ -6255,7 +6439,7 @@ function bank(st, p) {
   const raw = st.drift;
   const mult = st.multiplier;
   st.drift = 0;
-  st.driftTime = st.driftVitesse = st.driftAngle = 0;
+  st.driftTime = st.driftVitesse = st.driftAngle = st.driftClip = 0;
   st.pending = false;
   st.inactiveTime = 0;
   st.sinceBank = p.bankDelay;
@@ -6271,7 +6455,7 @@ function lose(st) {
   const lost = st.drift * st.multiplier;
   const hadCombo = st.multiplier > 1;
   st.drift = 0;
-  st.driftTime = st.driftVitesse = st.driftAngle = 0;
+  st.driftTime = st.driftVitesse = st.driftAngle = st.driftClip = 0;
   st.multiplier = 1;
   st.active = false;
   st.pending = false;
@@ -6291,10 +6475,12 @@ function stepScore(st, f, dt, p = DEFAULT_SCORE_PARAMS) {
     st.sinceBank = 0;
     if (f.onRoad && !f.dejaParcouru && f.progressRate >= p.progressMin) {
       const fa = angleFactor(betaDeg);
-      st.drift += p.gainPerKmh * fa * kmh * dt;
+      const clip = 1 + p.bonusClipping * (f.clipping ?? 0);
+      st.drift += p.gainPerKmh * fa * kmh * dt * clip;
       st.driftTime += dt;
       st.driftVitesse += kmh * dt;
       st.driftAngle += fa * kmh * dt;
+      st.driftClip += fa * kmh * dt * clip;
     }
     return null;
   }
@@ -6319,6 +6505,7 @@ function facteursDrift(st, p = DEFAULT_SCORE_PARAMS) {
     kmh: st.driftVitesse / st.driftTime,
     secondes: st.driftTime,
     angle: st.driftAngle / st.driftVitesse,
+    clipping: st.driftAngle > 0 ? st.driftClip / st.driftAngle : 1,
     combo: st.multiplier
   };
 }
@@ -6328,6 +6515,55 @@ function finishScore(st, p = DEFAULT_SCORE_PARAMS) {
 function timeBonus(targetTime, time, driftPoints, p = DEFAULT_SCORE_PARAMS) {
   const plafond = Math.max(0, driftPoints) * p.timeBonusPartMax;
   return Math.min(plafond, Math.max(0, p.timeBonusLimite * targetTime - time) * p.timeBonusPerSec);
+}
+
+// src/core/track/clipping.ts
+var PORTEE_CLIPPING = 2.5;
+function zonesPiste(level, track) {
+  const n = track.samples.length - 1;
+  return (level.clipping ?? []).map((z) => ({
+    i0: Math.max(0, Math.min(n, track.pointSample[z.de] ?? 0)),
+    i1: Math.max(0, Math.min(n, track.pointSample[z.a] ?? n)),
+    cote: z.cote === "gauche" ? 1 : -1
+  }));
+}
+function proximiteClipping(zones, index, lateral, w, demiLargeur) {
+  let best = 0;
+  for (const z of zones) {
+    if (index < z.i0 || index > z.i1) continue;
+    const bord = w - z.cote * lateral - demiLargeur;
+    const p = bord <= 0 ? 1 : 1 - bord / PORTEE_CLIPPING;
+    if (p > best) best = p;
+  }
+  return best;
+}
+function zonesAutomatiques(level, track, nb) {
+  const ps = track.pointSample, S = track.samples;
+  const virages = [];
+  let cur = null;
+  for (let i = 0; i < level.route.length - 1; i++) {
+    let ang = 0, len = 0;
+    for (let j = ps[i]; j < ps[i + 1]; j++) {
+      const ds = S[j + 1].s - S[j].s;
+      ang += S[j].k * ds;
+      len += ds;
+    }
+    const tourne = len > 0 && Math.abs(ang / len) > 1 / 90;
+    if (tourne && cur && cur.ang > 0 === ang > 0) {
+      cur.a = i + 1;
+      cur.ang += ang;
+      continue;
+    }
+    cur = tourne ? { de: i, a: i + 1, ang } : null;
+    if (cur) virages.push(cur);
+  }
+  return virages.filter((v) => S[ps[v.de]].s > 40).sort((a, b) => Math.abs(b.ang) - Math.abs(a.ang) || a.de - b.de).slice(0, nb).sort((a, b) => a.de - b.de).map((v) => ({ de: v.de, a: v.a, cote: v.ang > 0 ? "droite" : "gauche" }));
+}
+
+// src/core/physics/meteo.ts
+var ADHERENCE_PLUIE = 0.8;
+function adherenceDe(level) {
+  return level.meteo === "pluie" ? ADHERENCE_PLUIE : 1;
 }
 
 // src/core/race/race.ts
@@ -6355,12 +6591,16 @@ var RaceSim = class {
   ctx;
   sp;
   pending = [];
+  zones;
+  /** proximité du bord dans une zone de clipping, au dernier pas */
+  clipping = 0;
   constructor(cfg) {
     this.config = cfg;
     this.sp = cfg.scoreParams ?? DEFAULT_SCORE_PARAMS;
     this.countdown = cfg.countdown ?? 3;
     this.world = buildCollisionWorld(cfg.env);
-    this.ctx = { params: cfg.car, assists: cfg.assists, ground: cfg.terrain, onRoad: true };
+    this.zones = zonesPiste(cfg.level, cfg.track);
+    this.ctx = { params: cfg.car, assists: cfg.assists, ground: cfg.terrain, onRoad: true, adherence: adherenceDe(cfg.level) };
     const idx = Math.min(6, cfg.track.samples.length - 1);
     const s0 = cfg.track.samples[idx];
     this.car = createCarState(s0.x, s0.z, atan2(s0.tx, s0.tz), cfg.terrain.heightAt(s0.x, s0.z));
@@ -6401,6 +6641,7 @@ var RaceSim = class {
     const sp = track.samples[proj.index];
     const lat = Math.abs(proj.lateral);
     this.onRoad = lat <= sp.w;
+    this.clipping = this.zones.length > 0 && this.onRoad ? proximiteClipping(this.zones, proj.index, proj.lateral, sp.w, this.config.car.width / 2) : 0;
     let progressRate = 0;
     if (lat <= sp.w + 25) {
       const prevS = this.progressS;
@@ -6429,7 +6670,7 @@ var RaceSim = class {
     }
     const se = stepScore(
       this.score,
-      { betaRad: this.car.beta, speed: this.car.speed, onRoad: this.onRoad, progressRate, crash, reset, dejaParcouru: this.progressS < this.maxProgressS - MARGE_REPARCOURS },
+      { betaRad: this.car.beta, speed: this.car.speed, onRoad: this.onRoad, progressRate, crash, reset, dejaParcouru: this.progressS < this.maxProgressS - MARGE_REPARCOURS, clipping: this.clipping },
       SIM_DT,
       this.sp
     );
@@ -6449,6 +6690,7 @@ var RaceSim = class {
       combo: comboRestant(this.score, this.sp),
       glisse: this.score.active || this.score.pending ? facteursDrift(this.score, this.sp) : null,
       angle: this.car.speed > 1 ? this.car.beta / DEG : 0,
+      clipping: this.clipping,
       progress: clamp(this.maxProgressS / this.config.track.length, 0, 1),
       wrongWay: this.wrongWay,
       speedKmh: this.car.speed * 3.6
@@ -6515,6 +6757,501 @@ function verifierCourse(n, voiture, mode, replay, annonce) {
   return { statut: "corrige", score: r.score, temps: r.time, meilleurDrift: r.bestDrift, ...base };
 }
 
+// src/core/zen/designer.ts
+var DEGAGEMENT = 12;
+var VOISINAGE = 70;
+var ARC_LIBRE = 400;
+var ECART_LOIN = 640;
+var PROGRES = 0.6;
+var MEMOIRE = 3e3;
+function ecartExige(si, sj, wi, wj) {
+  const ds = si - sj;
+  if (ds <= VOISINAGE) return 0;
+  return Math.max(wi + wj + DEGAGEMENT, Math.min(ECART_LOIN, PROGRES * (ds - ARC_LIBRE)));
+}
+var Alea = class {
+  constructor(a) {
+    this.a = a;
+  }
+  next() {
+    this.a = this.a + 1831565813 >>> 0;
+    let t = this.a;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+  entre(a, b) {
+    return a + (b - a) * this.next();
+  }
+};
+var POIDS = {
+  montagne: { droite: 2, courbe: 3, virage: 3, S: 2.5, epingle: 1, lacet: 0.6, angle: 0 },
+  neige: { droite: 2, courbe: 3.5, virage: 3, S: 2, epingle: 0.9, lacet: 0.5, angle: 0 },
+  desert: { droite: 3, courbe: 4, virage: 2, S: 1.5, epingle: 0.3, lacet: 0, angle: 0 },
+  automne: { droite: 1.5, courbe: 3, virage: 3, S: 3.5, epingle: 0.6, lacet: 0.3, angle: 0 },
+  ville: { droite: 4, courbe: 1, virage: 1, S: 1, epingle: 0, lacet: 0, angle: 3 },
+  pirate: { droite: 2.5, courbe: 4, virage: 2, S: 2.5, epingle: 0.2, lacet: 0, angle: 0 },
+  backrooms: { droite: 3, courbe: 0.5, virage: 1, S: 1, epingle: 0, lacet: 0, angle: 4 },
+  espace: { droite: 2.5, courbe: 4, virage: 2.5, S: 2, epingle: 0.4, lacet: 0.2, angle: 0 },
+  japon: { droite: 1.5, courbe: 3, virage: 3, S: 3, epingle: 0.8, lacet: 0.4, angle: 0 },
+  cyberpunk: { droite: 3, courbe: 1.5, virage: 1.5, S: 1.5, epingle: 0, lacet: 0, angle: 3 }
+};
+var PENTE_MAX = { montagne: 0.075, neige: 0.065, desert: 0.05, automne: 0.06, ville: 0.022, pirate: 0.03, backrooms: 5e-3, espace: 0.045, japon: 0.065, cyberpunk: 0.03 };
+var LARGEUR = { montagne: [4, 1.5], neige: [4.2, 1.4], desert: [4.5, 1.8], automne: [4, 1.4], ville: [5, 1.6], pirate: [4.5, 1.6], backrooms: [5, 1.5], espace: [4.5, 1.8], japon: [4, 1.4], cyberpunk: [5, 1.6] };
+var CASE_FINE = 16;
+var CASE_LOIN = 128;
+var cle = (ix, iz) => (ix + 32768) * 65536 + (iz + 32768);
+var Memoire = class {
+  constructor(cell) {
+    this.cell = cell;
+  }
+  cases = /* @__PURE__ */ new Map();
+  ordre = [];
+  tete = 0;
+  ajouter(s, x, z, w) {
+    const k = cle(Math.floor(x / this.cell), Math.floor(z / this.cell));
+    let l = this.cases.get(k);
+    if (!l) {
+      l = [];
+      this.cases.set(k, l);
+    }
+    l.push({ s, x, z, w });
+    this.ordre.push({ s, k });
+  }
+  /** Retire les points d'abscisse ≥ `s` (annulation d'un morceau refusé). */
+  annulerDepuis(s) {
+    while (this.ordre.length > this.tete && this.ordre[this.ordre.length - 1].s >= s) {
+      const e = this.ordre.pop();
+      const l = this.cases.get(e.k);
+      l.pop();
+      if (l.length === 0) this.cases.delete(e.k);
+    }
+  }
+  /** Oublie les points d'abscisse < `s`. */
+  oublierAvant(s) {
+    while (this.tete < this.ordre.length && this.ordre[this.tete].s < s) {
+      const e = this.ordre[this.tete++];
+      const l = this.cases.get(e.k);
+      l.shift();
+      if (l.length === 0) this.cases.delete(e.k);
+    }
+    if (this.tete > 4096) {
+      this.ordre.splice(0, this.tete);
+      this.tete = 0;
+    }
+  }
+  /** Le point (x, z) d'abscisse `s` respecte-t-il les écarts avec tous les points mémorisés dans `rayon` m ? */
+  libre(s, x, z, w, rayon) {
+    const c = this.cell;
+    const x0 = Math.floor((x - rayon) / c), x1 = Math.floor((x + rayon) / c);
+    const z0 = Math.floor((z - rayon) / c), z1 = Math.floor((z + rayon) / c);
+    for (let iz = z0; iz <= z1; iz++) {
+      for (let ix = x0; ix <= x1; ix++) {
+        const l = this.cases.get(cle(ix, iz));
+        if (!l) continue;
+        for (const p of l) {
+          const e = ecartExige(s, p.s, w, p.w);
+          if (e > 0 && (p.x - x) * (p.x - x) + (p.z - z) * (p.z - z) < e * e) return false;
+        }
+      }
+    }
+    return true;
+  }
+  /** Nombre de points mémorisés (tests : la mémoire reste bornée). */
+  get taille() {
+    return this.ordre.length - this.tete;
+  }
+};
+var Dessinateur = class {
+  constructor(seed, regions) {
+    this.regions = regions;
+    this.alea = new Alea((seed ^ 5370206) >>> 0);
+    const [w0] = LARGEUR[regions.melange(0).a];
+    this.etat = { x: 0, z: 0, psi: 0, k: 0, y: 0, g: 0, gCible: 0, gRestant: 120, w: w0 + 0.8, wCible: w0 + 0.8 };
+    this.pousser(this.etat, 0);
+    this.poser([{ len: 90, k0: 0, k1: 0 }], "force");
+  }
+  alea;
+  ech = [];
+  /** abscisse (= indice global) du premier échantillon gardé */
+  base = 0;
+  etat;
+  fine = new Memoire(CASE_FINE);
+  loin = new Memoire(CASE_LOIN);
+  /** points tous les 10 m, pour la direction générale (on s'éloigne de la route déjà faite) */
+  trace = [];
+  dernierSigne = 1;
+  /** morceaux refusés puis remplacés (statistique) et morceaux gardés sans contrôle complet (secours) */
+  refus = 0;
+  echecsFins = 0;
+  echecsLoin = 0;
+  secours = 0;
+  /** Nombre d'échantillons générés depuis le départ (abscisse de fin + 1). */
+  get fin() {
+    return this.base + this.ech.length;
+  }
+  /** Échantillon d'abscisse `i` (doit être généré et pas encore oublié). */
+  echantillon(i) {
+    const sp = this.ech[i - this.base];
+    if (!sp) throw new Error(`échantillon ${i} indisponible (${this.base}..${this.fin - 1})`);
+    return sp;
+  }
+  /** Premier indice encore disponible. */
+  get debut() {
+    return this.base;
+  }
+  /** Génère la route jusqu'à l'abscisse `i` au moins. */
+  genererJusqua(i) {
+    while (this.fin <= i) this.morceau();
+  }
+  /** Libère les échantillons d'abscisse < `i` (la mémoire des contrôles garde ses propres points). */
+  oublierAvant(i) {
+    const n = Math.min(this.ech.length - 1, i - this.base);
+    if (n <= 0) return;
+    this.ech.splice(0, n);
+    this.base += n;
+  }
+  /** Taille de la mémoire des contrôles (tests). */
+  get tailleMemoire() {
+    return this.fine.taille + this.loin.taille + this.trace.length + this.ech.length;
+  }
+  // --- génération
+  pousser(e, s) {
+    const tx = sin(e.psi), tz = cos(e.psi);
+    const sp = { x: e.x, y: e.y, z: e.z, tx, tz, nx: tz, nz: -tx, w: e.w, s, k: e.k, grade: e.g };
+    this.ech.push(sp);
+    return sp;
+  }
+  /** Cap vers lequel la route doit tendre : à l'opposé du centre de la route récente (elle s'en éloigne). */
+  capGeneral() {
+    const e = this.etat;
+    const s = this.fin - 1;
+    let sx = 0, sz = 0, n = 0;
+    for (let i = this.trace.length - 1; i >= 0 && this.trace[i].s > s - 1600; i--) {
+      sx += this.trace[i].x;
+      sz += this.trace[i].z;
+      n++;
+    }
+    if (n < 25) return 0;
+    const dx = e.x - sx / n, dz = e.z - sz / n;
+    return atan2(dx, dz);
+  }
+  themeIci() {
+    const m = this.regions.melange(this.fin);
+    const pa = POIDS[m.a], pb = POIDS[m.b];
+    const poids = {};
+    for (const k of Object.keys(pa)) poids[k] = pa[k] * (1 - m.t) + pb[k] * m.t;
+    const la = LARGEUR[m.a], lb = LARGEUR[m.b];
+    return {
+      poids,
+      pente: PENTE_MAX[m.a] * (1 - m.t) + PENTE_MAX[m.b] * m.t,
+      largeur: [la[0] * (1 - m.t) + lb[0] * m.t, la[1] * (1 - m.t) + lb[1] * m.t]
+    };
+  }
+  /** Virage de signe `sg`, rayon `r`, angle `a` (rad), clothoïdes d'entrée et de sortie de `lc` m. */
+  virage(sg, r, a, lc) {
+    const k = sg / r;
+    lc = Math.min(lc, a * r * 0.45);
+    const arc = Math.max(0, a * r - lc);
+    return [{ len: lc, k0: 0, k1: k }, { len: arc, k0: k, k1: k }, { len: lc, k0: k, k1: 0 }];
+  }
+  tirerType(poids, essai) {
+    const types = Object.keys(poids);
+    const w = types.map((t) => essai >= 4 && (t === "epingle" || t === "lacet" || t === "S") ? 0 : poids[t]);
+    const tot = w.reduce((a, b) => a + b, 0);
+    let r = this.alea.next() * tot;
+    for (let i = 0; i < types.length; i++) {
+      r -= w[i];
+      if (r < 0) return types[i];
+    }
+    return "droite";
+  }
+  morceauAleatoire(essai) {
+    const a = this.alea;
+    const th = this.themeIci();
+    const ecart = wrapAngle(this.etat.psi - this.capGeneral());
+    let sg = a.next() < 0.6 ? -this.dernierSigne : this.dernierSigne;
+    if (Math.abs(ecart) > 0.55 && a.next() < 0.88) sg = ecart > 0 ? -1 : 1;
+    if (essai >= 6) sg = ecart > 0 ? -1 : 1;
+    const type = this.tirerType(th.poids, essai);
+    const largeur = th.largeur[0] + th.largeur[1] * a.next();
+    const marge = (ang) => clamp(ang, 0.2, Math.max(0.2, 1.9 - ecart * sg));
+    let segs;
+    switch (type) {
+      case "droite":
+        segs = [{ len: a.entre(60, 200), k0: 0, k1: 0 }];
+        break;
+      case "courbe":
+        segs = this.virage(sg, a.entre(90, 230), marge(a.entre(0.5, 1.6)), a.entre(25, 45));
+        break;
+      case "virage":
+        segs = this.virage(sg, a.entre(40, 90), marge(a.entre(0.7, 2)), a.entre(18, 32));
+        break;
+      case "angle":
+        segs = [...this.virage(sg, a.entre(24, 40), marge(a.entre(1.35, 1.65)), 12), { len: a.entre(40, 120), k0: 0, k1: 0 }];
+        break;
+      case "S": {
+        const r1 = a.entre(38, 80), a1 = a.entre(0.6, 1.3);
+        segs = [...this.virage(sg, r1, a1, 18), { len: a.entre(0, 25), k0: 0, k1: 0 }, ...this.virage(-sg, a.entre(38, 80), a1 * a.entre(0.8, 1.2), 18)];
+        break;
+      }
+      case "epingle": {
+        const r = a.entre(16, 24);
+        segs = [
+          { len: a.entre(20, 50), k0: 0, k1: 0 },
+          ...this.virage(sg, r, a.entre(2.7, 3.1), 16),
+          { len: a.entre(25, 60), k0: 0, k1: 0 },
+          ...this.virage(-sg, a.entre(40, 70), a.entre(1.7, 2.4), 22)
+        ];
+        return { segs, largeur: Math.max(largeur, 5) };
+      }
+      case "lacet": {
+        const r = a.entre(18, 24);
+        segs = [
+          { len: a.entre(20, 40), k0: 0, k1: 0 },
+          ...this.virage(sg, r, Math.PI, 16),
+          { len: a.entre(45, 80), k0: 0, k1: 0 },
+          ...this.virage(-sg, r, Math.PI, 16),
+          { len: a.entre(30, 60), k0: 0, k1: 0 }
+        ];
+        return { segs, largeur: Math.max(largeur, 5) };
+      }
+    }
+    this.dernierSigne = sg;
+    return { segs, largeur };
+  }
+  /** Un morceau de route : plusieurs essais, puis un morceau de secours tourné vers le cap général. */
+  morceau() {
+    for (let essai = 0; essai < 14; essai++) {
+      const m = this.morceauAleatoire(essai);
+      this.etat.wCible = m.largeur;
+      if (this.poser(m.segs, "complet")) return;
+      this.refus++;
+    }
+    const ecart = wrapAngle(this.etat.psi - this.capGeneral());
+    const sg = ecart > 0 ? -1 : 1;
+    this.secours++;
+    this.etat.wCible = this.themeIci().largeur[0];
+    for (const [signe, r] of [[sg, 120], [sg, 60], [-sg, 120], [-sg, 60]]) {
+      if (this.poser(this.virage(signe, r, clamp(Math.abs(ecart), 0.4, 1.5), 30), "proche")) return;
+    }
+    this.poser([{ len: 40, k0: 0, k1: 0 }], "force");
+  }
+  /**
+   * Intègre les tronçons au mètre ; renvoie false (et annule tout) si un point viole les écarts : tous (`complet`),
+   * seulement le croisement proche (`proche`), ou aucun (`force`).
+   */
+  poser(segs, mode) {
+    const avant = { ...this.etat };
+    const n0 = this.ech.length;
+    const s0 = this.fin;
+    const e = this.etat;
+    const th = this.themeIci();
+    let ok = true;
+    let s = s0;
+    outer: for (const seg of segs) {
+      const n = Math.round(seg.len);
+      for (let j = 0; j < n; j++) {
+        const u0 = j / n, u1 = (j + 1) / n;
+        const kMid = seg.k0 + (seg.k1 - seg.k0) * (u0 + u1) / 2;
+        const psiMid = e.psi + kMid * 0.5;
+        e.x += sin(psiMid);
+        e.z += cos(psiMid);
+        e.psi = wrapAngle(e.psi + kMid);
+        e.k = seg.k0 + (seg.k1 - seg.k0) * u1;
+        this.profil(e, th.pente);
+        const sp = this.pousser(e, s);
+        if (mode !== "force" && s % 2 === 0) {
+          if (!this.fine.libre(s, sp.x, sp.z, sp.w, 2 * 7 + DEGAGEMENT + 2)) {
+            ok = false;
+            this.echecsFins++;
+            break outer;
+          }
+          if (mode === "complet" && s % 10 === 0 && !this.loin.libre(s, sp.x, sp.z, sp.w, ECART_LOIN)) {
+            ok = false;
+            this.echecsLoin++;
+            break outer;
+          }
+        }
+        if (s % 2 === 0) this.fine.ajouter(s, sp.x, sp.z, sp.w);
+        if (s % 10 === 0) {
+          this.loin.ajouter(s, sp.x, sp.z, sp.w);
+          this.trace.push({ s, x: sp.x, z: sp.z });
+        }
+        s++;
+      }
+    }
+    if (!ok) {
+      this.ech.length = n0;
+      this.fine.annulerDepuis(s0);
+      this.loin.annulerDepuis(s0);
+      while (this.trace.length > 0 && this.trace[this.trace.length - 1].s >= s0) this.trace.pop();
+      this.etat = avant;
+      return false;
+    }
+    const oubli = this.fin - MEMOIRE;
+    this.fine.oublierAvant(oubli);
+    this.loin.oublierAvant(oubli);
+    while (this.trace.length > 0 && this.trace[0].s < oubli) this.trace.shift();
+    return true;
+  }
+  /** Hauteur, pente et largeur au mètre suivant (pente lissée, cible renouvelée tous les 150 à 400 m). */
+  profil(e, penteMax) {
+    e.gRestant -= 1;
+    if (e.gRestant <= 0) {
+      e.gRestant = 150 + 250 * this.alea.next();
+      let g = (this.alea.next() * 2 - 1) * penteMax;
+      if (e.y > 100) g = -Math.abs(g) - 0.01;
+      if (e.y < -10) g = Math.abs(g) + 0.01;
+      e.gCible = g;
+    }
+    const serre = Math.abs(e.k) > 1 / 40;
+    const lim = serre ? Math.min(penteMax, 0.035) : penteMax;
+    const cible = clamp(e.gCible, -lim, lim);
+    e.g += clamp(cible - e.g, -12e-4, 12e-4);
+    e.y += e.g;
+    e.w += clamp(e.wCible - e.w, -0.02, 0.02);
+  }
+};
+
+// src/core/zen/regions.ts
+var REGION_MIN = 2600;
+var REGION_AMPLITUDE = 1200;
+var TRANSITION = 440;
+var Regions = class {
+  liste = [];
+  rng;
+  sac = [];
+  constructor(seed) {
+    this.rng = mulberry32((seed ^ 779033147) >>> 0);
+  }
+  themeSuivant(precedent) {
+    if (this.sac.length === 0) {
+      const s = [...ENVIRONNEMENTS];
+      for (let i = s.length - 1; i > 0; i--) {
+        const j = Math.floor(this.rng() * (i + 1));
+        [s[i], s[j]] = [s[j], s[i]];
+      }
+      if (s[0] === precedent) [s[0], s[s.length - 1]] = [s[s.length - 1], s[0]];
+      this.sac = s;
+    }
+    return this.sac.shift();
+  }
+  /** Région numéro `i` (générées au besoin, dans l'ordre : déterministe). */
+  region(i) {
+    while (this.liste.length <= i) {
+      const prec = this.liste[this.liste.length - 1];
+      const debut = prec ? prec.fin : 0;
+      const theme = this.themeSuivant(prec ? prec.theme : null);
+      this.liste.push({ theme, debut, fin: debut + REGION_MIN + this.rng() * REGION_AMPLITUDE });
+    }
+    return this.liste[i];
+  }
+  /** Indice de la région qui contient l'abscisse `s` (≥ 0). */
+  indice(s) {
+    let i = 0;
+    while (this.region(i).fin <= s) i++;
+    return i;
+  }
+  /** Thèmes et poids de transition à l'abscisse `s`. */
+  melange(s) {
+    const i = this.indice(Math.max(0, s));
+    const r = this.region(i);
+    const demi = TRANSITION / 2;
+    if (s >= r.fin - demi) {
+      return { a: r.theme, b: this.region(i + 1).theme, t: smoothstep(r.fin - demi, r.fin + demi, s) };
+    }
+    if (i > 0 && s <= r.debut + demi) {
+      return { a: this.region(i - 1).theme, b: r.theme, t: smoothstep(r.debut - demi, r.debut + demi, s) };
+    }
+    return { a: r.theme, b: r.theme, t: 0 };
+  }
+  /** Poids de chaque thème à l'abscisse `s` (somme = 1). */
+  poids(s) {
+    const m = this.melange(s);
+    if (m.a === m.b) return { [m.a]: 1 };
+    return { [m.a]: 1 - m.t, [m.b]: m.t };
+  }
+  /** Thème dominant à l'abscisse `s`. */
+  dominant(s) {
+    const m = this.melange(s);
+    return m.t < 0.5 ? m.a : m.b;
+  }
+};
+
+// src/core/defi.ts
+var estJourValide = (jour) => /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(jour);
+var MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+function jourEnClair(jour) {
+  const [, m, d] = jour.split("-").map(Number);
+  return `${d === 1 ? "1er" : d} ${MOIS[m - 1] ?? ""}`.trim();
+}
+function graineDuJour(jour) {
+  let h = 2166136261;
+  for (let i = 0; i < jour.length; i++) {
+    h ^= jour.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h >>> 0;
+}
+var PAS_POINTS = 16;
+function defiDuJour(jour) {
+  const graine = graineDuJour(jour);
+  const rng = mulberry32(graine ^ 24301);
+  const voiture = CAR_IDS[Math.floor(rng() * CAR_IDS.length)];
+  const t = rng();
+  const ambiance = t < 0.45 ? "jour" : t < 0.75 ? "coucher" : "nuit";
+  const meteo = rng() < 0.25 ? "pluie" : void 0;
+  const longueur = 1200 + Math.floor(rng() * 700);
+  const densite = Math.round((0.5 + rng() * 0.35) * 100) / 100;
+  const regions = new Regions(graine);
+  const environnement = regions.region(0).theme;
+  const dessin = new Dessinateur(graine, regions);
+  dessin.genererJusqua(longueur + 1);
+  const route = [];
+  for (let s = 0; s <= longueur; s += PAS_POINTS) {
+    const sp = dessin.echantillon(Math.min(longueur, s));
+    const l = Math.min(LIMITES.largeurMax, Math.max(LIMITES.largeurMin, Math.round(sp.w * 20) / 10));
+    route.push({ x: Math.round(sp.x * 10) / 10, z: Math.round(sp.z * 10) / 10, y: Math.round(sp.y * 10) / 10, l });
+  }
+  const brouillon = {
+    format: 1,
+    nom: `Défi du ${jourEnClair(jour)}`,
+    auteur: "Drift Club",
+    environnement,
+    ambiance,
+    route,
+    barrieres: [],
+    decor: { graine: graine & 2147483647, densite },
+    objets: [],
+    ...meteo ? { meteo } : {}
+  };
+  const track = buildTrack(brouillon);
+  const barrieres = [];
+  for (let i = 0; i < route.length - 1; i++) {
+    let kMax = 0;
+    for (let j = track.pointSample[i]; j <= track.pointSample[i + 1]; j++) kMax = Math.max(kMax, Math.abs(track.samples[j].k));
+    if (kMax <= 1 / 30) continue;
+    const der = barrieres[barrieres.length - 1];
+    if (der && der.a === i) der.a = i + 1;
+    else barrieres.push({ de: i, a: i + 1, cote: "ext" });
+  }
+  const clipping = zonesAutomatiques(brouillon, track, Math.max(2, Math.min(4, Math.round(track.length / 400))));
+  const level = { ...brouillon, barrieres, ...clipping.length > 0 ? { clipping } : {} };
+  const v = validateLevel(level);
+  if (!v.ok) throw new Error(`Défi du ${jour} invalide : ${v.erreurs.join(" ")}`);
+  return { jour, level: v.level, voiture };
+}
+
+// src/jour.ts
+function jourParis(d) {
+  return new Intl.DateTimeFormat("fr-CA", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+}
+function decalerJour(jour, n) {
+  const [a, m, j] = jour.split("-").map(Number);
+  return new Date(Date.UTC(a, m - 1, j + n)).toISOString().slice(0, 10);
+}
+
 // src/serveur/course.ts
 var MAX_BASE64 = 6e5;
 var MAX_OCTETS = PAS_MAX * 6 + 16;
@@ -6525,19 +7262,26 @@ async function sha256(o) {
 var refus = (code, message) => ({ ok: false, code, message });
 var estObjet = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
 var nombreFini = (v) => typeof v === "number" && Number.isFinite(v);
-async function traiterCourse(corps, empreinteServeur) {
+async function traiterCourse(corps, empreinteServeur, maintenant = /* @__PURE__ */ new Date()) {
   if (!estObjet(corps)) return refus("demande", "Demande invalide.");
   const d = corps;
   if (d.version !== empreinteServeur) {
     return refus("version", "Le jeu vient d'être mis à jour : il se recharge tout seul au retour au menu. Ce score reste enregistré sur l'appareil.");
   }
-  if (typeof d.niveau !== "string" || !/^(off|perso):[A-Za-z0-9_-]{1,80}$/.test(d.niveau)) return refus("demande", "Niveau invalide.");
+  if (typeof d.niveau !== "string" || !/^((off|perso):[A-Za-z0-9_-]{1,80}|jour:\d{4}-\d{2}-\d{2})$/.test(d.niveau)) return refus("demande", "Niveau invalide.");
   if (typeof d.mode !== "string" || !MODE_IDS.includes(d.mode)) return refus("demande", "Mode invalide.");
   if (typeof d.voiture !== "string" || !CAR_IDS.includes(d.voiture)) return refus("demande", "Voiture invalide.");
   if (!nombreFini(d.score) || !nombreFini(d.temps) || !nombreFini(d.meilleurDrift)) return refus("demande", "Score invalide.");
   if (typeof d.replay !== "string" || d.replay.length > MAX_BASE64) return refus("demande", "Replay invalide.");
   let brut;
-  if (d.niveau.startsWith("off:")) {
+  if (d.niveau.startsWith("jour:")) {
+    const jour = d.niveau.slice(5);
+    const aujourdhui = jourParis(maintenant);
+    if (!estJourValide(jour) || jour !== aujourdhui && jour !== decalerJour(aujourdhui, -1)) return refus("refuse", "Ce défi est terminé : essaie celui du jour !");
+    const defi = defiDuJour(jour);
+    if (d.voiture !== defi.voiture) return refus("refuse", "Le défi du jour se court avec la voiture imposée.");
+    brut = defi.level;
+  } else if (d.niveau.startsWith("off:")) {
     const id = d.niveau.slice(4);
     brut = NIVEAUX_OFFICIELS.find((n) => n.id === id)?.data;
     if (brut === void 0) return refus("demande", "Niveau officiel inconnu.");
@@ -6562,4 +7306,4 @@ async function traiterCourse(corps, empreinteServeur) {
 export {
   traiterCourse
 };
-export const EMPREINTE = '3cde1dbb5c017add';
+export const EMPREINTE = '659f1f8536d768da';

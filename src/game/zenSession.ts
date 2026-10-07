@@ -6,6 +6,7 @@ import { RouteZen } from '../core/zen/route';
 import { ZenSim, type EvenementZen } from '../core/zen/zenSim';
 import { ZenWorld } from '../render/zenWorld';
 import { CAMERA_LOIN, CAMERA_PROCHE, type ChaseConfig } from '../render/camera';
+import { NOMS_VUES, vueSuivante } from '../render/vuesEmbarquees';
 import { camDepuisUrl, type CamLibre } from '../debug/camLibre';
 import { FixedStepLoop } from './loop';
 import type { InputState } from '../core/input';
@@ -13,6 +14,8 @@ import { clamp, wrapAngle } from '../core/math/vec';
 import { interpolatePose } from './pose';
 import { toggleFullscreen, type SessionDeps } from './session';
 import type { ScenePhoto } from './photo';
+import { vibrationChoc, vibrationHorsPiste } from '../input/gamepad';
+import { SIM_DT } from '../core/constants';
 
 export interface ZenCallbacks {
   onPause(): void;
@@ -46,7 +49,7 @@ export class ZenSession {
 
   constructor(private seed: number, private readonly deps: SessionDeps, private readonly cb: ZenCallbacks) {
     this.loop = new FixedStepLoop(() => this.simStep());
-    this.camCfg = deps.reglages.cameraLoin ? CAMERA_LOIN : CAMERA_PROCHE;
+    this.camCfg = deps.reglages.camera === 'loin' ? CAMERA_LOIN : CAMERA_PROCHE;
     this.construire();
     deps.debug?.attach(CARS[deps.reglages.voiture], MODES[deps.reglages.mode], this.camCfg);
     if (deps.debug) this.exposerDebug();
@@ -67,6 +70,8 @@ export class ZenSession {
       renderer: d.renderer, route: this.route, assets: d.assets, carId: r.voiture, color: r.couleur,
       skin: skinChoisie(r.skins, r.voiture), fumee: r.fumee, quality: d.quality.level,
     });
+    // caméra choisie (poursuite, éloignée ou embarquée) : le monde est recréé à chaque nouvelle route
+    this.world.vue = r.camera;
     this.world.troncons.appliquer(this.route.vider());
     this.sim = new ZenSim(this.route, CARS[r.voiture], MODES[r.mode]);
     while (this.world.troncons.travailler(this.sim.car.x, this.sim.car.z)) { /* terrain du départ */ }
@@ -133,8 +138,10 @@ export class ZenSession {
     const a = this.deps.input.consumeActions();
     if (a.pause) { this.cb.onPause(); return; }
     if (a.camera) {
-      this.deps.reglages.cameraLoin = !this.deps.reglages.cameraLoin;
-      this.camCfg = this.deps.reglages.cameraLoin ? CAMERA_LOIN : CAMERA_PROCHE;
+      const vue = (this.deps.reglages.camera = vueSuivante(this.deps.reglages.camera));
+      this.camCfg = vue === 'loin' ? CAMERA_LOIN : CAMERA_PROCHE;
+      this.world.vue = vue;
+      this.deps.hud.annonce(`Caméra : ${NOMS_VUES[vue]}`);
     }
     if (a.muet) this.deps.reglages.muet = this.deps.audio.toggleMute();
     if (a.pleinEcran) toggleFullscreen();
@@ -147,6 +154,7 @@ export class ZenSession {
     this.world.render();
     this.deps.hud.updateZen(this.sim.hud());
     this.deps.audio.updateEngine(car.rpm, car.throttle, car.rearSlip, car.speed, { gear: car.gear, onRoad: this.sim.onRoad });
+    if (!this.sim.onRoad) this.deps.input.gamepad?.vibrer(vibrationHorsPiste(car.speed), now);
     this.deps.debug?.frame(car, dt);
     if (this.deps.quality.sample(dt)) this.world.setQuality(this.deps.quality.level);
     this.travailler();
@@ -188,7 +196,9 @@ export class ZenSession {
   private simStep(): void {
     const input = this.pilote > 0 ? this.autopilote() : this.deps.input.state(this.deps.reglages.accelAuto);
     const events = this.sim.step(input, this.pendingReplace);
+    if (this.pendingReplace) this.deps.stats?.couper();
     this.pendingReplace = false;
+    if (this.pilote === 0) this.deps.stats?.pas(this.deps.reglages.voiture, this.sim.car.speed, this.sim.car.beta, true, SIM_DT);
     for (const e of events) this.handle(e);
   }
 
@@ -207,6 +217,7 @@ export class ZenSession {
       case 'choc':
         this.deps.audio.playCrash(e.impact);
         this.world.shake(e.impact);
+        this.deps.input.gamepad?.vibrer(vibrationChoc(e.impact), performance.now());
         break;
       case 'replace':
         this.world.resetCamera(this.sim.car);
@@ -238,6 +249,7 @@ export class ZenSession {
   pause(): void {
     this.paused = true;
     this.deps.audio.stopEngine();
+    this.deps.input.gamepad?.arreterVibrations();
   }
 
   resume(): void {

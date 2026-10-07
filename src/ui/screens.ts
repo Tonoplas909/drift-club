@@ -4,22 +4,25 @@ import { CARS, CAR_IDS } from '../core/physics/cars';
 import { MODE_IDS, MODE_NOMS } from '../core/physics/assists';
 import type { RaceResult } from '../core/race/race';
 import { validateLevel } from '../core/level/validate';
+import type { Ambiance } from '../core/level/types';
 import type { Reglages, Qualite } from '../storage/store';
 import { COULEURS } from './couleurs';
 import { accentSkin, choisirSkin, couleurEffective, skinChoisie, skinDef, skinsDe, type SkinId, type SkinsChoisies } from '../core/skins';
 import { RARETES } from '../core/raretes';
 import { FUMEES, fumeeDef, type FumeeId } from '../core/fumees';
 import { ECONOMIE, fumeeDebloquee, livreeDebloquee, type GainCourse, type Progression } from '../core/economie';
-import { fondFumee, iconeCadenas, iconeCle, iconeFumee } from './svg';
+import { fondFumee, iconeCadenas, iconeCle, iconeFumee, iconeMedaille } from './svg';
+import { NOMS_MEDAILLES, medaille, prochaineMedaille, type Medaille } from '../core/medailles';
 import { formatScore, formatTime } from './format';
+import { NOMS_VUES, VUES_CAMERA } from '../render/vuesEmbarquees';
 
-export function levelSummary(data: unknown): { nom: string; longueur: number; ambiance: 'jour' | 'coucher'; theme: string } | null {
+export function levelSummary(data: unknown): { nom: string; longueur: number; ambiance: Ambiance; pluie: boolean; theme: string } | null {
   const v = validateLevel(data);
   if (!v.ok) return null;
   let l = 0;
   const r = v.level.route;
   for (let i = 1; i < r.length; i++) l += Math.hypot(r[i].x - r[i - 1].x, r[i].y - r[i - 1].y, r[i].z - r[i - 1].z);
-  return { nom: v.level.nom, longueur: l, ambiance: v.level.ambiance, theme: THEMES[v.level.environnement].nom };
+  return { nom: v.level.nom, longueur: l, ambiance: v.level.ambiance, pluie: v.level.meteo === 'pluie', theme: THEMES[v.level.environnement].nom };
 }
 
 type Child = Node | string | null | undefined | false;
@@ -53,7 +56,7 @@ const DESCRIPTIONS_MODES: Record<ModeId, string> = {
   exigeant: 'Aucune aide. Tout se dose à la main.',
 };
 
-export interface NiveauCarte { nom: string; detail: string; /** place du joueur dans le classement en ligne (texte prêt à afficher) */ place: string; /** raison pour laquelle le niveau ne se lance pas */ desactive?: string }
+export interface NiveauCarte { nom: string; detail: string; /** meilleure médaille obtenue (niveaux officiels) */ medaille?: Medaille | null; /** place du joueur dans le classement en ligne (texte prêt à afficher) */ place: string; /** raison pour laquelle le niveau ne se lance pas */ desactive?: string }
 
 /** Bloc « clés gagnées » de l'écran des résultats (aussi réutilisé par la version mise à jour après la réponse du serveur). */
 export function blocGains(c: GainCourse, onCaisses?: () => void): HTMLElement {
@@ -65,6 +68,17 @@ export function blocGains(c: GainCourse, onCaisses?: () => void): HTMLElement {
       h('small', {}, `Total : ${s(c.total)}`, c.total >= ECONOMIE.coutCaisse ? ' · une caisse est prête !' : ''),
     ),
     onCaisses && h('button', { class: 'btn sm' + (c.total >= ECONOMIE.coutCaisse ? '' : ' sec'), onclick: onCaisses }, 'Caisses'),
+  );
+}
+
+/** Médaille de la course et points qui manquent pour la suivante (écran d'arrivée). */
+function ligneMedaille(score: number, seuils: readonly [number, number, number]): HTMLElement {
+  const m = medaille(score, seuils), p = prochaineMedaille(score, seuils);
+  const suite = p && `encore ${formatScore(p.manque)} points pour ${p.medaille === 'or' ? 'l\'or' : p.medaille === 'argent' ? 'l\'argent' : 'le bronze'}`;
+  return h('div', { class: 'ligne-medaille' + (m ? ' ' + m : '') },
+    m && iconeMedaille(m),
+    m ? h('b', {}, `Médaille ${m === 'or' ? 'd\'or' : m === 'argent' ? 'd\'argent' : 'de bronze'}`) : null,
+    suite ? h('span', {}, m ? ` · ${suite}` : `Pas de médaille : ${suite}`) : null,
   );
 }
 
@@ -109,23 +123,27 @@ export class Screens {
     )));
   }
 
-  accueil(o: { onJouer(): void; onZen(): void; onGarage(): void; onCaisses(): void; onEditeur(): void; onCompte(): void; onReglages(): void; persistent: boolean; compte: string }): void {
+  accueil(o: { onJouer(): void; onDefi(): void; onZen(): void; onGarage(): void; onCaisses(): void; onEditeur(): void; onStatistiques(): void; onCompte(): void; onReglages(): void; persistent: boolean; compte: string; /** rappel des touches */ aide: string }): void {
     const compte = h('button', { class: 'btn sec', onclick: o.onCompte }, o.compte);
     this.boutonCompte = compte;
     this.show(h('div', { class: 'screen accueil' },
       h('h1', { class: 'logo big' }, 'Drift', h('span', {}, 'Club')),
       h('div', { class: 'menu' },
         h('button', { class: 'btn big', onclick: o.onJouer }, 'Jouer'),
+        h('button', { class: 'btn defi-btn', title: 'Un nouveau niveau chaque jour, voiture imposée, podium récompensé', onclick: o.onDefi }, 'Défi du jour'),
         h('button', { class: 'btn sec', title: 'Balade sans fin, sans score : la route se dessine au fil des kilomètres', onclick: o.onZen }, 'Mode Zen'),
         h('div', { class: 'duo' },
           h('button', { class: 'btn sec', onclick: o.onGarage }, 'Garage'),
           h('button', { class: 'btn sec', onclick: o.onCaisses }, 'Caisses'),
         ),
-        h('button', { class: 'btn sec', onclick: o.onEditeur }, 'Éditeur'),
+        h('div', { class: 'duo' },
+          h('button', { class: 'btn sec', onclick: o.onEditeur }, 'Éditeur'),
+          h('button', { class: 'btn sec', onclick: o.onStatistiques }, 'Statistiques'),
+        ),
         compte,
         h('button', { class: 'btn sec', onclick: o.onReglages }, 'Réglages'),
       ),
-      h('p', { class: 'hint' }, 'Z/W ou ↑ accélérer · S ou ↓ freiner · Q/A, D ou ← → tourner · Espace frein à main · R replacer · ⌫ recommencer · C caméra · Échap pause · manette prise en charge'),
+      h('p', { class: 'hint' }, o.aide),
       !o.persistent && h('p', { class: 'warn' }, 'Stockage indisponible : tes records et réglages ne seront pas enregistrés.'),
     ));
   }
@@ -140,6 +158,7 @@ export class Screens {
       h('div', { class: 'cardw' },
         h('button', { class: 'card' + (c.desactive ? ' off' : ''), title: c.desactive ?? '', onclick: () => (c.desactive ? this.toast(c.desactive) : choisir(i)) },
           h('span', { class: 'num' }, String(i + 1)),
+          c.medaille && h('span', { class: 'medaille-carte', title: `Médaille : ${NOMS_MEDAILLES[c.medaille]}` }, iconeMedaille(c.medaille)),
           h('b', {}, c.nom),
           h('small', {}, c.detail),
           h('span', { class: 'rec' }, c.place),
@@ -286,7 +305,7 @@ export class Screens {
     render();
   }
 
-  reglages(o: { reglages: Reglages; touch: boolean; onChange(r: Reglages): void; onRetour(): void }): void {
+  reglages(o: { reglages: Reglages; touch: boolean; onChange(r: Reglages): void; onTouches(): void; onRetour(): void }): void {
     const r = { ...o.reglages };
     const change = () => { o.onChange({ ...r }); render(); };
     const QUALITES: [Qualite, string][] = [['auto', 'Auto'], ['basse', 'Basse'], ['haute', 'Haute']];
@@ -307,16 +326,21 @@ export class Screens {
         h('div', { class: 'seg' }, ...QUALITES.map(([q, label]) =>
           h('button', { class: 'tab' + (q === r.qualite ? ' on' : ''), onclick: () => { r.qualite = q; change(); } }, label))),
         h('h3', {}, 'Conduite'),
-        h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.cameraLoin, onchange: (e: Event) => { r.cameraLoin = (e.target as HTMLInputElement).checked; change(); } }), 'Caméra éloignée (touche C)'),
+        h('p', { class: 'sub' }, 'Caméra (la touche C passe à la suivante en course)'),
+        h('div', { class: 'seg vues' }, ...VUES_CAMERA.map((v) =>
+          h('button', { class: 'tab' + (v === r.camera ? ' on' : ''), onclick: () => { r.camera = v; change(); } }, NOMS_VUES[v]))),
+        h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.fantome, onchange: (e: Event) => { r.fantome = (e.target as HTMLInputElement).checked; change(); } }), 'Fantôme de mon record (voiture translucide qui refait ta meilleure course)'),
         h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.detailPoints, onchange: (e: Event) => { r.detailPoints = (e.target as HTMLInputElement).checked; change(); } }), 'Détail des points de drift (vitesse, durée, angle)'),
         h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.indicateurAngle, onchange: (e: Event) => { r.indicateurAngle = (e.target as HTMLInputElement).checked; change(); } }), 'Indicateur d\'angle sous la voiture'),
         o.touch && h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.accelAuto, onchange: (e: Event) => { r.accelAuto = (e.target as HTMLInputElement).checked; change(); } }), 'Accélération automatique (tactile)'),
+        h('h3', {}, 'Touches'),
+        h('button', { class: 'btn sec', onclick: o.onTouches }, 'Changer les touches (clavier et manette)'),
         h('h3', {}, 'Manette'),
-        h('p', { class: 'hint' }, 'Gâchettes : accélérer et freiner · stick gauche : tourner · A / Croix : frein à main · B / Rond : replacer · Y / Triangle : caméra · Start : pause'),
         h('label', { class: 'line' }, h('span', {}, 'Zone morte du stick'),
           h('input', { type: 'range', min: '0', max: '0.4', step: '0.01', value: String(r.manette.zoneMorte), oninput: (e: Event) => { r.manette = { ...r.manette, zoneMorte: parseFloat((e.target as HTMLInputElement).value) }; o.onChange({ ...r }); } })),
         h('label', { class: 'line' }, h('span', {}, 'Direction : précise ↔ vive'),
           h('input', { type: 'range', min: '0', max: '1', step: '0.05', value: String(r.manette.sensibilite), oninput: (e: Event) => { r.manette = { ...r.manette, sensibilite: parseFloat((e.target as HTMLInputElement).value) }; o.onChange({ ...r }); } })),
+        h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: r.manette.vibrations, onchange: (e: Event) => { r.manette = { ...r.manette, vibrations: (e.target as HTMLInputElement).checked }; change(); } }), 'Vibrations (drift encaissé, choc, hors piste)'),
         h('button', { class: 'btn', onclick: o.onRetour }, 'Retour'),
       )));
     };
@@ -349,15 +373,17 @@ export class Screens {
     )));
   }
 
-  resultats(o: { result: RaceResult; record: boolean; persistent: boolean; /** clés gagnées à l'arrivée et total */ cles?: GainCourse; /** bloc de clés du compte, mis à jour après la réponse du serveur (prioritaire sur `cles`) */ gainsEnLigne?: HTMLElement | null; onCaisses?: () => void; onRecommencer(): void; onSuivant: (() => void) | null; onMenu(): void; menuLabel?: string; /** bloc classement en ligne, rempli après l'envoi du score */ enLigne?: HTMLElement | null }): void {
+  resultats(o: { result: RaceResult; /** niveau qu'on vient de finir (« Niveau 3 · Col du Loup ») */ niveau?: string; /** seuils [bronze, argent, or] du niveau (niveaux officiels) */ seuils?: readonly [number, number, number]; record: boolean; persistent: boolean; /** clés gagnées à l'arrivée et total */ cles?: GainCourse; /** bloc de clés du compte, mis à jour après la réponse du serveur (prioritaire sur `cles`) */ gainsEnLigne?: HTMLElement | null; onCaisses?: () => void; onRecommencer(): void; onSuivant: (() => void) | null; onMenu(): void; menuLabel?: string; /** carte de score à partager */ onPartager?: () => void; /** revoir la course */ onRevoir?: () => void; /** bloc classement en ligne, rempli après l'envoi du score */ enLigne?: HTMLElement | null }): void {
     const r = o.result;
     const ecart = r.time - r.targetTime;
     // deux colonnes (score | clés et boutons) sur téléphone en paysage, sinon une seule pile (voir styles.css)
     this.show(h('div', { class: 'screen dim' }, h('div', { class: 'panel resultats' },
       h('div', { class: 'res-g' },
       h('h2', {}, 'Arrivée !'),
+      o.niveau && h('p', { class: 'sub niveau-fini' }, o.niveau),
       o.record && h('div', { class: 'badge' }, o.persistent ? 'Nouveau record !' : 'Nouveau record (non enregistré)'),
       h('div', { class: 'score' }, formatScore(r.score)),
+      o.seuils && ligneMedaille(r.score, o.seuils),
       h('table', { class: 'detail' },
         h('tr', {}, h('td', {}, 'Points de drift'), h('td', {}, formatScore(r.driftPoints))),
         h('tr', {}, h('td', {}, 'Bonus de temps'), h('td', {}, formatScore(r.bonus))),
@@ -371,6 +397,8 @@ export class Screens {
       h('div', { class: 'row' },
         h('button', { class: 'btn', onclick: o.onRecommencer }, 'Recommencer'),
         o.onSuivant && h('button', { class: 'btn', onclick: o.onSuivant }, 'Niveau suivant'),
+        o.onRevoir && h('button', { class: 'btn sec', title: 'Revois ta course avec des caméras de télé, au ralenti ou en accéléré', onclick: o.onRevoir }, 'Revoir'),
+        o.onPartager && h('button', { class: 'btn sec', title: 'Une image de ta course avec ton score, à partager', onclick: o.onPartager }, 'Partager'),
         h('button', { class: 'btn sec', onclick: o.onMenu }, o.menuLabel ?? 'Menu'),
       ),
       ),

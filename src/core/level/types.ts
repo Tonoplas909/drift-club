@@ -1,4 +1,8 @@
-export type Ambiance = 'jour' | 'coucher';
+/** L'ORDRE est figé : le code de partage stocke l'indice (encode.ts). */
+export const AMBIANCES = ['jour', 'coucher', 'nuit'] as const;
+export type Ambiance = (typeof AMBIANCES)[number];
+/** Météo d'un niveau : la pluie rend la route plus glissante (voir ADHERENCE_PLUIE). */
+export type Meteo = 'pluie';
 /**
  * Décors disponibles. L'ORDRE est figé : le code de partage stocke l'indice (encode.ts).
  * Ajouter un thème = l'ajouter À LA FIN ici, puis dans `THEMES` (core/env/themes.ts) et `THEMES_VISUELS` (render/themes.ts).
@@ -11,6 +15,13 @@ export type TypeObjet = 'arbre' | 'sapin' | 'rocher' | 'pneus' | 'barriere' | 'p
 export interface PointRoute { x: number; z: number; y: number; l: number }
 export interface Barriere { de: number; a: number; cote: CoteBarriere }
 export interface ObjetPlace { type: TypeObjet; x: number; z: number; rot: number }
+
+export type CoteClipping = 'gauche' | 'droite';
+/**
+ * Zone de clipping (comme les juges des compétitions de drift) : le bord de la route, côté `cote`, entre les points
+ * `de` et `a`. Le frôler en glisse multiplie les points du drift (voir core/track/clipping.ts).
+ */
+export interface ZoneClipping { de: number; a: number; cote: CoteClipping }
 
 /** Lac : polygone (x, z en mètres) dont la surface est à la hauteur `niveau` (m). */
 export interface PlanEau { points: { x: number; z: number }[]; niveau: number }
@@ -27,6 +38,10 @@ export interface Level {
   objets: ObjetPlace[];
   /** lacs (optionnel : les niveaux sans eau n'ont pas ce champ) */
   eau?: PlanEau[];
+  /** zones de clipping (optionnel) */
+  clipping?: ZoneClipping[];
+  /** météo (optionnel : beau temps si absent) */
+  meteo?: Meteo;
 }
 
 export const LIMITES = {
@@ -52,4 +67,5 @@ export const LIMITES = {
   eauNiveauMax: 150,
   /** distance libre minimale (m) entre le bord de la route et un lac : la route reste au sec */
   eauMarge: 6,
+  clippingMax: 12,
 } as const;

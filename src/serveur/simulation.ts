@@ -10,3 +10,4 @@ export { CAR_IDS } from '../core/physics/cars';
 export { MODE_IDS } from '../core/physics/assists';
 export { depuisBase64, decompresserReplay } from '../core/replay/replay';
 export { verifierCourse, PAS_MAX } from '../core/replay/verifier';
+export { defiDuJour, estJourValide } from '../core/defi';

@@ -5,7 +5,7 @@ import type { Terrain } from '../core/track/terrain';
 import type { Environment } from '../core/env/types';
 import type { CarId, CarState } from '../core/physics/types';
 import type { Assets } from './assets';
-import { paletteDe, type Palette } from './palettes';
+import { palettePluie, paletteDe, type Palette } from './palettes';
 import { decorDuTheme, THEMES_VISUELS } from './themes';
 import { Snowfall, optionsMeteo } from './weather';
 import { Scintillement } from './scintillement';
@@ -18,6 +18,9 @@ import { buildDecor, DecorVisible } from './decor';
 import { CarView, type CarPose } from './carView';
 import { SmokeSystem, SkidMarks } from './effects';
 import { ChaseCamera, type ChaseConfig, type CameraTarget } from './camera';
+import { estEmbarquee, type VueCamera } from './vuesEmbarquees';
+import { construireZonesClipping } from './clipping';
+import { zonesPiste } from '../core/track/clipping';
 import { SpeedGauge, gaugeRatio } from './speedGauge';
 import { CARS } from '../core/physics/cars';
 import { skinDef, type SkinId } from '../core/skins';
@@ -55,6 +58,8 @@ export class World {
   private readonly scintille: Scintillement | null = null;
   private readonly terrainGroup: THREE.Group;
   private readonly carView: CarView;
+  /** fantôme du record (voiture translucide), s'il y en a un */
+  private fantome: CarView | null = null;
   private readonly gauge = new SpeedGauge();
   /** vitesse à laquelle la jauge est pleine (m/s) */
   private readonly gaugeMax: number;
@@ -69,12 +74,20 @@ export class World {
   camLibre: CamLibre | null = null;
   /** caméra du mode photo (pendant la pause) : remplace la caméra de poursuite */
   camPhoto: CamLibre | null = null;
+  /** il pleut sur ce niveau (la pluie reste visible même en qualité basse) */
+  private pluie = false;
+  /** phares (nuit) */
+  private phares: THREE.SpotLight | null = null;
+  /** vue choisie (touche C) : poursuite, éloignée ou embarquée */
+  vue: VueCamera = 'proche';
 
   constructor(private readonly init: WorldInit) {
     const { renderer, level, track, terrain, env, assets, quality } = init;
     this.quality = quality;
     const q = QUALITY[quality];
-    const p = (this.palette = paletteDe(level.environnement, level.ambiance));
+    const pluie = level.meteo === 'pluie';
+    const base = paletteDe(level.environnement, level.ambiance);
+    const p = (this.palette = pluie ? palettePluie(base) : base);
 
     renderer.shadowMap.enabled = q.shadows;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -99,6 +112,9 @@ export class World {
     const tex = createRoadTextures(p, renderer.capabilities.getMaxAnisotropy());
     this.owned.push(tex.road, tex.curb, tex.checker);
     this.scene.add(buildRoad(track, p, tex));
+    const clipping = construireZonesClipping(track, zonesPiste(level, track));
+    this.scene.add(clipping.groupe);
+    this.owned.push(clipping);
     this.terrainGroup = buildTerrain(level, track, terrain, p, quality);
     const hPlafond = THEMES_VISUELS[level.environnement].plafond;
     if (hPlafond !== undefined) this.terrainGroup.add(...buildPlafond(terrain, hPlafond, p.plafond ?? 0xe4dcae, level.decor.graine, quality));
@@ -117,15 +133,23 @@ export class World {
     this.decor = decorDuTheme(assets, level.environnement, level.ambiance);
     const decorGroupe = buildDecor(env, assets, quality, q.shadows, this.decor);
     this.scene.add(decorGroupe);
-    const meteo = THEMES_VISUELS[level.environnement].meteo;
+    // pluie du niveau : elle remplace la météo du décor et reste visible quelle que soit la qualité (elle change la conduite)
+    const meteo = pluie ? { type: 'pluie' as const, nombre: 1800 } : THEMES_VISUELS[level.environnement].meteo;
     const theme = THEMES_VISUELS[level.environnement];
     if (theme.scintillement) this.scintille = new Scintillement(decorGroupe, theme.scintillement);
     // après Scintillement : les modèles aux instances colorées une à une ne sont pas triés
     this.decorVisible = new DecorVisible(decorGroupe);
     if (meteo) {
       this.snow = new Snowfall(meteo.nombre, 5, optionsMeteo(meteo.type));
-      this.snow.points.visible = quality === 'haute';
+      this.snow.points.visible = pluie || quality === 'haute';
       this.scene.add(this.snow.points);
+    }
+    this.pluie = pluie;
+    // nuit : les phares de la voiture éclairent la route devant elle
+    if (level.ambiance === 'nuit') {
+      this.phares = new THREE.SpotLight(0xfff1d6, 140, 90, 0.5, 0.55, 1.1);
+      this.phares.castShadow = false;
+      this.scene.add(this.phares, this.phares.target);
     }
 
     this.carView = new CarView(assets.cars[init.carId], init.color, q.shadows, skinDef(init.carId, init.skin));
@@ -145,7 +169,7 @@ export class World {
     const fog = this.scene.fog as THREE.Fog;
     fog.near = q.fogFar * this.palette.brume * 0.3;
     fog.far = q.fogFar * this.palette.brume;
-    if (this.snow) this.snow.points.visible = level === 'haute';
+    if (this.snow) this.snow.points.visible = this.pluie || level === 'haute';
   }
 
   resize(w: number, h: number): void {
@@ -162,6 +186,22 @@ export class World {
   resetCamera(car: CarState): void {
     this.setTarget(car);
     this.chase.reset(this.target, { dist: 7, height: 2.8, lookAhead: 4, fovMin: 60, fovMax: 72 }, this.init.terrain);
+  }
+
+  /** Ajoute le fantôme du record : une voiture translucide qui rejoue la meilleure course. */
+  ajouterFantome(carId: CarId): void {
+    if (this.fantome) { this.scene.remove(this.fantome.root); this.fantome.dispose(); }
+    this.fantome = new CarView(this.init.assets.cars[carId], '#bfe6ff', false);
+    this.fantome.devenirFantome();
+    this.fantome.root.visible = false;
+    this.scene.add(this.fantome.root);
+  }
+
+  /** Place le fantôme (null : caché, par exemple après son arrivée). */
+  placerFantome(pose: CarPose | null): void {
+    if (!this.fantome) return;
+    this.fantome.root.visible = pose !== null;
+    if (pose) this.fantome.update(pose);
   }
 
   resetEffects(): void {
@@ -184,6 +224,8 @@ export class World {
 
     this.setTarget(car, pose.x, pose.y, pose.z);
     this.chase.update(this.target, cfg, dt, this.init.terrain);
+    const embarquee = estEmbarquee(this.vue) && !this.camLibre && !this.camPhoto ? this.vue : null;
+    this.carView.poserCamera(this.camera, embarquee);
     if (this.camLibre) {
       this.camera.position.set(...this.camLibre.pos);
       this.camera.lookAt(...this.camLibre.cible);
@@ -192,8 +234,10 @@ export class World {
     if (this.camPhoto) {
       this.camera.position.set(...this.camPhoto.pos);
       this.camera.lookAt(...this.camPhoto.cible);
+      const fov = this.camPhoto.fov;
+      if (fov && Math.abs(this.camera.fov - fov) > 0.01) { this.camera.fov = fov; this.camera.updateProjectionMatrix(); }
     }
-    this.gauge.root.visible = !this.camPhoto;
+    this.gauge.root.visible = !this.camPhoto && (embarquee === null || embarquee === 'roue');
     this.sky.position.copy(this.camera.position);
     this.eau?.update(dt);
     if (this.snow?.points.visible) this.snow.update(dt, this.camera.position);
@@ -201,6 +245,11 @@ export class World {
     const params = CARS[this.init.carId];
     this.gauge.update(pose.x, pose.y, pose.z, params.width, gaugeRatio(car.speed, car.reverse, this.gaugeMax), this.camera, dt);
 
+    if (this.phares) {
+      const fx = Math.sin(pose.heading), fz = Math.cos(pose.heading);
+      this.phares.position.set(pose.x + fx * 2, pose.y + 0.75, pose.z + fz * 2);
+      this.phares.target.position.set(pose.x + fx * 22, pose.y - 0.4, pose.z + fz * 22);
+    }
     const d = this.palette.sunDir;
     this.sun.position.set(pose.x + d[0] * 80, pose.y + d[1] * 80, pose.z + d[2] * 80);
     this.sun.target.position.set(pose.x, pose.y, pose.z);
@@ -227,6 +276,7 @@ export class World {
       for (const w of m.wheels) shared.add(w.geometry);
     }
     this.carView.dispose();
+    this.fantome?.dispose();
     this.gauge.dispose();
     this.smoke.dispose();
     this.skids.dispose();

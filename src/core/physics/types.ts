@@ -77,4 +77,6 @@ export interface StepContext {
   assists: AssistParams;
   ground: Ground;
   onRoad: boolean;
+  /** adhérence de la route (1 : sec, ADHERENCE_PLUIE sous la pluie) */
+  adherence?: number;
 }

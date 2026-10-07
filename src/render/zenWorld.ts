@@ -16,6 +16,7 @@ import { anneauReliefs, anneauVille } from './terrainMesh';
 import { CarView, type CarPose } from './carView';
 import { SmokeSystem, SkidMarks } from './effects';
 import { ChaseCamera, type ChaseConfig, type CameraTarget } from './camera';
+import { estEmbarquee, type VueCamera } from './vuesEmbarquees';
 import { SpeedGauge, gaugeRatio } from './speedGauge';
 import { Snowfall } from './weather';
 import { THEMES_VISUELS } from './themes';
@@ -67,6 +68,8 @@ export class ZenWorld {
   camLibre: CamLibre | null = null;
   /** caméra du mode photo (pendant la pause) : remplace la caméra de poursuite */
   camPhoto: CamLibre | null = null;
+  /** vue choisie (touche C) : poursuite, éloignée ou embarquée */
+  vue: VueCamera = 'proche';
 
   constructor(private readonly init: ZenWorldInit) {
     const { renderer, route, assets, quality } = init;
@@ -194,6 +197,8 @@ export class ZenWorld {
 
     this.setTarget(car, pose.x, pose.y, pose.z);
     this.chase.update(this.target, cfg, dt, route.sol);
+    const embarquee = estEmbarquee(this.vue) && !this.camLibre && !this.camPhoto ? this.vue : null;
+    this.carView.poserCamera(this.camera, embarquee);
     if (this.camLibre) {
       this.camera.position.set(...this.camLibre.pos);
       this.camera.lookAt(...this.camLibre.cible);
@@ -202,8 +207,10 @@ export class ZenWorld {
     if (this.camPhoto) {
       this.camera.position.set(...this.camPhoto.pos);
       this.camera.lookAt(...this.camPhoto.cible);
+      const fov = this.camPhoto.fov;
+      if (fov && Math.abs(this.camera.fov - fov) > 0.01) { this.camera.fov = fov; this.camera.updateProjectionMatrix(); }
     }
-    this.gauge.root.visible = !this.camPhoto;
+    this.gauge.root.visible = !this.camPhoto && (embarquee === null || embarquee === 'roue');
     const cam = this.camera.position;
     this.sky.position.copy(cam);
 

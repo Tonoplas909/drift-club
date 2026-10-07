@@ -47,6 +47,10 @@
     { "de": 14, "a": 23, "cote": "ext" },
     { "de": 24, "a": 33, "cote": "ext" }
   ],
+  "clipping": [
+    { "de": 12, "a": 16, "cote": "droite" },
+    { "de": 24, "a": 28, "cote": "droite" }
+  ],
   "decor": { "graine": 2718, "densite": 0.75 },
   "objets": []
 }

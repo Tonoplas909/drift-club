@@ -13,6 +13,146 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.20',
+    date: '07/10/2026',
+    titre: 'Correctif : mode Zen',
+    notes: [
+      'Le mode Zen restait bloqué sur l\'écran « Préparation de la route » : c\'est réparé.',
+      'Si une route ne peut pas être préparée, un message s\'affiche désormais avec un bouton Retour, au lieu d\'un chargement sans fin.',
+    ],
+  },
+  {
+    version: '0.5.19',
+    date: '07/10/2026',
+    titre: 'Statistiques sur ton compte',
+    notes: [
+      'Connecté, tes statistiques de pilote suivent ton compte : elles s\'additionnent d\'un appareil à l\'autre et ne se perdent plus en changeant de navigateur.',
+      'La première fois, ce que tu avais déjà roulé sur cet appareil est versé sur ton compte.',
+    ],
+  },
+  {
+    version: '0.5.18',
+    date: '07/10/2026',
+    titre: 'Votes dans l\'Atelier',
+    notes: [
+      'Nouvel onglet « Votes » dans l\'Atelier : regarde les livrées proposées par les autres joueurs et donne ton avis (j\'aime / j\'aime pas). Un vote par livrée, et pas sur les tiennes.',
+      'Les livrées les plus aimées passent en premier pour la validation, et la plus aimée de la semaine est mise en avant sur l\'écran des caisses.',
+    ],
+  },
+  {
+    version: '0.5.17',
+    date: '07/10/2026',
+    titre: 'Défi du jour',
+    notes: [
+      'Nouveau : le Défi du jour, depuis l\'accueil. Chaque jour à minuit, un nouveau niveau : un décor, une ambiance, parfois la pluie, des zones de clipping, et une voiture imposée pour tout le monde.',
+      'Le classement du jour est vérifié par le serveur comme les autres. Le podium est récompensé : 5 clés au 1er, 3 au 2e, 2 au 3e, à récupérer le lendemain en revenant sur le défi.',
+      'L\'écran montre aussi les vainqueurs des derniers défis.',
+    ],
+  },
+  {
+    version: '0.5.16',
+    date: '07/10/2026',
+    titre: 'Pluie et nuit',
+    notes: [
+      'Nouvelle ambiance « Nuit » : ciel étoilé et lune, tes phares éclairent la route, fenêtres et lampadaires allumés en ville et au Japon. Le Touge de Minuit se court enfin… à minuit.',
+      'Nouvelle météo « Pluie » : ciel gris, route mouillée, embruns, et surtout 20 % d\'adhérence en moins : le drift se déclenche plus tôt et se rattrape plus tard.',
+      'Les deux se choisissent dans l\'éditeur (Décor › Ambiance et Météo).',
+    ],
+  },
+  {
+    version: '0.5.15',
+    date: '07/10/2026',
+    titre: 'Zones de clipping',
+    notes: [
+      'Nouveau : les zones de clipping, comme chez les juges de drift. Des bandes hachurées jaunes et noires marquent certains bords de route, à l\'extérieur des grands virages.',
+      'Frôle le bord dans la zone en glisse : plus tu passes près, plus le drift rapporte, jusqu\'à deux fois plus au ras du bord. Le facteur « clipping » s\'affiche avec le détail des points.',
+      'Tous les niveaux officiels en ont, et l\'éditeur a un outil « Clipping » pour en poser sur tes routes. Les records déjà établis sont gardés.',
+      'Les messages en course (caméra choisie, fantôme) s\'affichent enfin : ils n\'apparaissaient qu\'en mode Zen.',
+    ],
+  },
+  {
+    version: '0.5.14',
+    date: '07/10/2026',
+    titre: 'Fantôme de ton record',
+    notes: [
+      'Bats-toi contre toi-même : sur un niveau où tu as un record, une voiture translucide refait ta meilleure course en même temps que toi.',
+      'Un fantôme par niveau et par mode de conduite, gardé sur ton appareil ; un nouveau record le remplace. Il se coupe dans les Réglages.',
+    ],
+  },
+  {
+    version: '0.5.13',
+    date: '07/10/2026',
+    titre: 'Revoir sa course',
+    notes: [
+      'À l\'arrivée, « Revoir » rejoue ta course comme à la télé : caméras au bord de la route qui zooment sur ta voiture, hélicoptère, poursuite ou caméra embarquée.',
+      'Ralenti (×¼, ×½) ou accéléré (×2, ×4), barre de temps, ±5 s (flèches ← →), Espace pour la pause, C pour changer de caméra.',
+      'Mets en pause et ouvre le mode photo pour immortaliser ton plus beau drift.',
+    ],
+  },
+  {
+    version: '0.5.12',
+    date: '07/10/2026',
+    titre: 'Caméras embarquées',
+    notes: [
+      'Cinq nouvelles caméras, à faire défiler avec la touche C (ou Y / Triangle) : capot, calandre au ras du pare-chocs, conducteur (planche de bord et volant qui tourne avec toi), roue arrière pour voir le pneu fumer, et toit.',
+      'La caméra choisie est retenue, et se choisit aussi dans les Réglages.',
+    ],
+  },
+  {
+    version: '0.5.11',
+    date: '07/10/2026',
+    titre: 'Statistiques du pilote',
+    notes: [
+      'Nouvel écran Statistiques depuis l\'accueil : kilomètres parcourus (dont en mode Zen), temps passé en glisse, plus long drift, meilleur drift, courses finies, voiture la plus jouée et tes médailles.',
+      'Tout est compté sur ton appareil, à partir de maintenant.',
+    ],
+  },
+  {
+    version: '0.5.10',
+    date: '07/10/2026',
+    titre: 'Carte de score à partager',
+    notes: [
+      'À l\'arrivée, le bouton « Partager » crée une image de ta course : ta voiture sur la ligne d\'arrivée, avec le niveau, ton score, ta médaille, ton meilleur drift, ton temps, ta voiture et l\'adresse du jeu.',
+      'Sur téléphone, elle se partage directement ; sur ordinateur, elle s\'enregistre.',
+    ],
+  },
+  {
+    version: '0.5.9',
+    date: '07/10/2026',
+    titre: 'Touches personnalisables',
+    notes: [
+      'Change tes touches dans Réglages › Touches : clique sur une commande puis appuie sur la touche voulue. Tu peux mettre deux touches par commande.',
+      'Les boutons de la manette se changent aussi : gâchettes, frein à main, replacer, caméra, pause, recommencer.',
+      'Échap met toujours en pause. Le rappel des touches de l\'accueil suit tes choix.',
+    ],
+  },
+  {
+    version: '0.5.8',
+    date: '07/10/2026',
+    titre: 'Vibrations de la manette',
+    notes: [
+      'La manette vibre : une petite impulsion quand un drift est encaissé (plus forte avec le combo), une secousse aux chocs et un grondement léger hors piste. Ça marche dans Chrome et Edge.',
+      'Les vibrations se coupent dans Réglages › Manette.',
+    ],
+  },
+  {
+    version: '0.5.7',
+    date: '07/10/2026',
+    titre: 'Médailles',
+    notes: [
+      'Chaque niveau officiel a ses médailles de bronze, d\'argent et d\'or. L\'or demande une course digne du haut du classement.',
+      'À l\'arrivée, tu vois la médaille gagnée et les points qui manquent pour la suivante. Ta meilleure médaille s\'affiche sur la liste des niveaux, tous modes confondus.',
+    ],
+  },
+  {
+    version: '0.5.6',
+    date: '07/10/2026',
+    titre: 'Le niveau rappelé à l\'arrivée',
+    notes: [
+      'L\'écran d\'arrivée rappelle le niveau que tu viens de finir : son numéro et son nom (par exemple « Niveau 3 · Col du Loup »), ou seulement son nom pour un niveau de l\'éditeur.',
+    ],
+  },
+  {
     version: '0.5.5',
     date: '06/10/2026',
     titre: 'Bonus de temps adouci',

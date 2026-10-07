@@ -1,11 +1,10 @@
-import { LIMITES, ENVIRONNEMENTS } from './types';
-import type { Level, PointRoute, Barriere, ObjetPlace, Ambiance, CoteBarriere, TypeObjet, Environnement, PlanEau } from './types';
+import { LIMITES, ENVIRONNEMENTS, AMBIANCES } from './types';
+import type { Level, PointRoute, Barriere, ObjetPlace, Ambiance, CoteBarriere, TypeObjet, Environnement, PlanEau, ZoneClipping, CoteClipping } from './types';
 import { aire, autoIntersection } from '../env/eau';
 import * as dm from '../math/dmath';
 
 export type ResultatValidation = { ok: true; level: Level } | { ok: false; erreurs: string[] };
 
-const AMBIANCES: readonly string[] = ['jour', 'coucher'];
 const COTES: readonly string[] = ['gauche', 'droite', 'deux', 'ext'];
 const TYPES_OBJETS: readonly string[] = ['arbre', 'sapin', 'rocher', 'pneus', 'barriere', 'panneau'];
 
@@ -33,9 +32,10 @@ export function validateLevel(raw: unknown): ResultatValidation {
   if (typeof raw.environnement !== 'string' || !(ENVIRONNEMENTS as readonly string[]).includes(raw.environnement)) {
     e.push(`environnement : valeur inconnue (attendu : ${ENVIRONNEMENTS.join(', ')}).`);
   }
-  if (typeof raw.ambiance !== 'string' || !AMBIANCES.includes(raw.ambiance)) {
-    e.push('ambiance : « jour » ou « coucher ».');
+  if (typeof raw.ambiance !== 'string' || !(AMBIANCES as readonly string[]).includes(raw.ambiance)) {
+    e.push('ambiance : « jour », « coucher » ou « nuit ».');
   }
+  if (raw.meteo !== undefined && raw.meteo !== 'pluie') e.push('meteo : « pluie » ou absente.');
 
   // Route
   const route: PointRoute[] = [];
@@ -87,6 +87,26 @@ export function validateLevel(raw: unknown): ResultatValidation {
       }
       barrieres.push({ de: b.de, a: b.a, cote: b.cote as CoteBarriere });
     });
+  }
+
+  // Zones de clipping (optionnelles)
+  const clipping: ZoneClipping[] = [];
+  if (raw.clipping !== undefined) {
+    if (!Array.isArray(raw.clipping)) {
+      e.push('clipping : doit être une liste.');
+    } else {
+      if (raw.clipping.length > LIMITES.clippingMax) e.push(`clipping : ${LIMITES.clippingMax} zones au maximum.`);
+      raw.clipping.forEach((z: unknown, i: number) => {
+        if (
+          !isObj(z) || !isInt(z.de) || !isInt(z.a) || (z.cote !== 'gauche' && z.cote !== 'droite') ||
+          z.de < 0 || z.a <= z.de || z.a > route.length - 1
+        ) {
+          e.push(`clipping[${i}] : « de » < « a » (indices de points) et côté gauche ou droite.`);
+          return;
+        }
+        clipping.push({ de: z.de, a: z.a, cote: z.cote as CoteClipping });
+      });
+    }
   }
 
   // Décor
@@ -165,6 +185,8 @@ export function validateLevel(raw: unknown): ResultatValidation {
       decor,
       objets,
       ...(eau.length > 0 ? { eau } : {}),
+      ...(clipping.length > 0 ? { clipping } : {}),
+      ...(raw.meteo === 'pluie' ? { meteo: 'pluie' as const } : {}),
     },
   };
 }
