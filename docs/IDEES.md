@@ -212,3 +212,4 @@ serveur à mettre à jour.
 | 0.5.17 | **Défi du jour** : un niveau tiré de la date (dessinateur du mode Zen) avec voiture, ambiance et météo imposées, classement du jour vérifié par le serveur, podium récompensé (5, 3, 2 clés), défis passés (migration 0011) |
 | 0.5.18 | **Votes dans l'Atelier** : j'aime / j'aime pas sur les propositions en attente, modération triée par popularité, livrée de la semaine sur l'écran des caisses (migration 0012) |
 | 0.5.19 | **Statistiques du pilote rattachées au compte** : envoi des ajouts, total additionné par le serveur, plusieurs appareils (migration 0013) |
+| 0.5.20 | Correctif : le mode Zen restait bloqué sur « Préparation de la route » depuis la 0.5.12 (caméra choisie avant que la route existe) |
