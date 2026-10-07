@@ -29,3 +29,12 @@ Les idées pour la suite sont dans `docs/IDEES.md` : y ajouter les nouvelles, et
 - Avant de pousser : `npx vitest run`, `npx tsc --noEmit`, `npm run build`.
 - Un push sur `main` lance les tests puis publie sur GitHub Pages.
 - Supabase : les migrations (`supabase/migrations/`) sont appliquées à la main par le propriétaire dans le SQL Editor ; le code client doit rester utilisable tant qu'elles ne sont pas passées.
+
+## Automatisations Claude Code (`.claude/`)
+
+- **Hooks** (`.claude/settings.json`) :
+  - `session-start.sh` installe les dépendances dans les sessions cloud.
+  - `purete-core.sh` refuse aussitôt une modification de `src/core` qui casse le déterminisme.
+  - `fonction-a-jour.sh` régénère la fonction `verifier-course` en fin de tour quand `src/core` ou `levels/` ont changé.
+- **`/publie`** (`.claude/skills/publie/`) : version, note de version, idées, vérifications, PR, fusion et suppression de la branche.
+- **Sous-agent `relecteur-drift`** (`.claude/agents/`) : relit un diff selon les règles ci-dessus avant une PR.
