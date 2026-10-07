@@ -72,6 +72,10 @@ const K_RECORDS = 'driftclub.v1.records';
 const K_NIVEAUX = 'driftclub.v1.niveaux';
 const K_PROGRESSION = 'driftclub.v1.progression';
 const K_STATISTIQUES = 'driftclub.v1.statistiques';
+/** statistiques du compte : dernier total connu et ajouts pas encore envoyés ({ id, stats }) ; comptes ayant reçu l'historique de l'appareil */
+const K_STATS_COMPTE = 'driftclub.v1.statistiques.compte';
+const K_STATS_ATTENTE = 'driftclub.v1.statistiques.attente';
+const K_STATS_IMPORTEES = 'driftclub.v1.statistiques.importees';
 /** replay du record de chaque niveau et mode (fantôme), le plus récent en dernier */
 const K_FANTOMES = 'driftclub.v1.fantomes';
 /** fantômes gardés au plus (quelques ko chacun) */
@@ -252,6 +256,26 @@ export class Store {
 
   saveStatistiques(s: unknown): void {
     this.write(K_STATISTIQUES, s);
+  }
+
+  /** Données brutes gardées pour un compte (total connu ou ajouts en attente), relues par `lireStatistiques`. */
+  loadStatsCompte(quoi: 'total' | 'attente', id: string): unknown {
+    const raw = this.read(quoi === 'total' ? K_STATS_COMPTE : K_STATS_ATTENTE);
+    return typeof raw === 'object' && raw !== null && (raw as { id?: unknown }).id === id ? (raw as { stats?: unknown }).stats ?? null : null;
+  }
+
+  saveStatsCompte(quoi: 'total' | 'attente', id: string, stats: unknown): void {
+    this.write(quoi === 'total' ? K_STATS_COMPTE : K_STATS_ATTENTE, { id, stats });
+  }
+
+  /** Comptes qui ont déjà reçu l'historique de cet appareil (une seule fois par compte). */
+  statsImportees(): string[] {
+    const r = this.read(K_STATS_IMPORTEES);
+    return Array.isArray(r) ? r.filter((x): x is string => typeof x === 'string').slice(-20) : [];
+  }
+
+  marquerStatsImportees(id: string): void {
+    this.write(K_STATS_IMPORTEES, [...this.statsImportees().filter((x) => x !== id), id]);
   }
 
   loadLivreesAtelier(): unknown[] {

@@ -60,7 +60,8 @@ import { enregistrerImage } from './ui/partageImage';
 import { SITE_URL } from './online/config';
 import { zoneGains, type ZoneGains } from './ui/gains';
 import { ecranTouches, aideTouches } from './ui/touches';
-import { CompteurPilote, lireStatistiques } from './game/statistiques';
+import { CompteurPilote, estVide, fusionnerStatistiques, lireStatistiques, statistiquesVides, type Statistiques } from './game/statistiques';
+import { StatistiquesEnLigne } from './online/statistiques';
 import { ecranStatistiques } from './ui/statistiques';
 import { ecranRevoir } from './ui/revoir';
 import { ecranDefi } from './ui/defi';
@@ -113,6 +114,7 @@ export class App {
   private readonly progressionEnLigne = new ProgressionEnLigne(clientParDefaut);
   private readonly atelier = new AtelierEnLigne(clientParDefaut);
   private readonly defis = new DefiService(clientParDefaut);
+  private readonly statsEnLigne = new StatistiquesEnLigne(clientParDefaut);
   /** livrées de l'Atelier : chargement en cours ou dernier fait, et quand (rechargées au plus toutes les 5 min) */
   private livreesAtelier: Promise<void> | null = null;
   private livreesAtelierLe = 0;
@@ -227,7 +229,64 @@ export class App {
 
   private save(): void {
     this.store.saveReglages(this.reglages);
-    if (this.stats?.modifie) { this.store.saveStatistiques(this.stats.stats); this.stats.modifie = false; }
+    if (this.stats?.modifie) {
+      this.store.saveStatistiques(this.stats.stats);
+      if (this.statsCompte && this.stats.attente) this.store.saveStatsCompte('attente', this.statsCompte.id, this.stats.attente);
+      this.stats.modifie = false;
+      // envoi au compte, au plus toutes les 15 s (pause, arrivée, sortie de course)
+      if (this.statsCompte && Date.now() - this.dernierEnvoiStats > 15_000) void this.synchroStatistiques();
+    }
+  }
+
+  /** Statistiques du compte connecté : dernier total connu du serveur (null : pas encore lu, ou service absent). */
+  private statsCompte: { id: string; total: Statistiques | null; absent: boolean } | null = null;
+  private envoiStats = false;
+  private dernierEnvoiStats = 0;
+
+  /** Connexion ou déconnexion : les ajouts des courses sont mis de côté pour le compte connecté. */
+  private brancherStatistiques(id: string | null): void {
+    if (this.statsCompte?.id === id) return;
+    if (!id) { this.statsCompte = null; this.stats.attente = null; return; }
+    const total = this.store.loadStatsCompte('total', id);
+    const attente = this.store.loadStatsCompte('attente', id);
+    this.statsCompte = { id, total: total ? lireStatistiques(total) : null, absent: false };
+    this.stats.attente = attente ? lireStatistiques(attente) : statistiquesVides();
+    void this.synchroStatistiques();
+  }
+
+  /**
+   * Envoie au compte ce qui s'est ajouté depuis le dernier envoi (le serveur additionne : plusieurs appareils
+   * s'ajoutent sans s'écraser). La première fois qu'un compte n'a encore rien, l'historique de l'appareil lui est
+   * versé. Ne lève jamais ; hors ligne, les ajouts attendent le prochain envoi.
+   */
+  private async synchroStatistiques(): Promise<void> {
+    const c = this.statsCompte;
+    if (!c || this.envoiStats) return;
+    this.envoiStats = true;
+    this.dernierEnvoiStats = Date.now();
+    try {
+      const lu = await this.statsEnLigne.charger();
+      if (this.statsCompte !== c) return;
+      if (!lu.ok) { c.absent = lu.raison === 'absent'; return; }
+      c.absent = false;
+      if (lu.valeur) { c.total = lu.valeur; this.store.saveStatsCompte('total', c.id, lu.valeur); }
+      if (!this.stats.attente) return;
+      if (lu.valeur === null && !this.store.statsImportees().includes(c.id)) {
+        this.stats.attente = fusionnerStatistiques(this.stats.attente, this.stats.stats);
+        this.store.marquerStatsImportees(c.id);
+      }
+      if (estVide(this.stats.attente)) return;
+      // les courses qui finissent pendant l'envoi s'ajoutent à une nouvelle attente
+      const envoi = this.stats.attente;
+      this.stats.attente = statistiquesVides();
+      const r = await this.statsEnLigne.ajouter(envoi);
+      if (this.statsCompte !== c) return;
+      if (r.ok) { c.total = r.valeur; this.store.saveStatsCompte('total', c.id, r.valeur); }
+      else this.stats.attente = fusionnerStatistiques(envoi, this.stats.attente);
+      this.store.saveStatsCompte('attente', c.id, this.stats.attente);
+    } finally {
+      this.envoiStats = false;
+    }
   }
 
   /** Remplace les livrées de l'Atelier du jeu ; renvoie vrai si la liste a changé. */
@@ -308,6 +367,7 @@ export class App {
 
   private compteChange(e: EtatCompte): void {
     this.screens.majCompte(this.libelleCompte(e));
+    this.brancherStatistiques(e.statut === 'connecte' && e.pseudo ? e.id : null);
     if (e.statut === 'connecte' && e.pseudo) {
       if (this.compteProg?.id !== e.id) {
         const gardee = this.store.loadProgressionCompte(e.id);
@@ -675,11 +735,19 @@ export class App {
   }
 
   /** Statistiques du pilote, avec les médailles gagnées (records de l'appareil). */
-  private statistiquesEcran(retour: () => void): void {
+  private statistiquesEcran(retour: () => void, relire = true): void {
     this.showroom?.stop();
     const medailles = { bronze: 0, argent: 0, or: 0 };
     for (const n of NIVEAUX_OFFICIELS) { const m = this.meilleureMedaille(n.id); if (m) medailles[m]++; }
-    this.screens.monter(ecranStatistiques({ stats: this.stats.stats, medailles, niveaux: NIVEAUX_OFFICIELS.length, onRetour: retour }));
+    const c = this.statsCompte, e = this.compte.etat;
+    // compte connecté (et migration 0013 passée) : le total du compte et ce qui attend d'être envoyé
+    const duCompte = c !== null && !c.absent;
+    const stats = duCompte ? fusionnerStatistiques(c.total ?? statistiquesVides(), this.stats.attente ?? statistiquesVides()) : this.stats.stats;
+    const source = duCompte ? `ton compte${e.statut === 'connecte' && e.pseudo ? ` (${e.pseudo})` : ''}` : 'cet appareil';
+    const ecran = ecranStatistiques({ stats, source, medailles, niveaux: NIVEAUX_OFFICIELS.length, onRetour: retour });
+    this.screens.monter(ecran);
+    // total du compte relu : l'écran se met à jour s'il est encore affiché
+    if (c && relire && !this.envoiStats) void this.synchroStatistiques().then(() => { if (ecran.isConnected) this.statistiquesEcran(retour, false); });
   }
 
   private appliquerTouches(): void {

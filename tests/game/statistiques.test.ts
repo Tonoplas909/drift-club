@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CompteurPilote, formatDuree, lireStatistiques, statistiquesVides, voiturePreferee } from '../../src/game/statistiques';
+import { CompteurPilote, estVide, formatDuree, fusionnerStatistiques, lireStatistiques, statistiquesVides, voiturePreferee } from '../../src/game/statistiques';
 
 describe('statistiques du pilote', () => {
   it('compte la distance (course ou Zen, par voiture), la glisse et le plus long drift', () => {
@@ -36,5 +36,24 @@ describe('statistiques du pilote', () => {
     expect(formatDuree(42)).toBe('42 s');
     expect(formatDuree(600)).toBe('10 min');
     expect(formatDuree(3900)).toBe('1 h 05');
+  });
+});
+
+describe('statistiques du compte', () => {
+  it('les courses jouées connecté vont aussi dans l\'attente du compte, pas avant', () => {
+    const c = new CompteurPilote(statistiquesVides(), () => '2026-10-07');
+    c.pas('kei', 10, 0, false, 1);
+    c.attente = statistiquesVides();
+    c.pas('kei', 10, 0.5, false, 1);
+    c.drift(500); c.courseFinie();
+    expect(c.stats.distanceCourse).toBe(20);
+    expect(c.attente).toMatchObject({ distanceCourse: 10, drifts: 1, courses: 1, meilleurDrift: 500, tempsGlisse: 1 });
+  });
+  it('fusion : sommes, records au maximum, date la plus ancienne', () => {
+    const a = { ...statistiquesVides(), distanceZen: 5, plusLongDrift: 3, drifts: 2, parVoiture: { kei: 5 }, depuis: '2026-10-05' };
+    const b = { ...statistiquesVides(), distanceZen: 1, plusLongDrift: 2, drifts: 1, parVoiture: { kei: 1, turbo: 2 }, depuis: '2026-10-01' };
+    expect(fusionnerStatistiques(a, b)).toMatchObject({ distanceZen: 6, plusLongDrift: 3, drifts: 3, parVoiture: { kei: 6, turbo: 2 }, depuis: '2026-10-01' });
+    expect(estVide(statistiquesVides())).toBe(true);
+    expect(estVide(a)).toBe(false);
   });
 });

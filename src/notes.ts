@@ -13,6 +13,15 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.19',
+    date: '07/10/2026',
+    titre: 'Statistiques sur ton compte',
+    notes: [
+      'Connecté, tes statistiques de pilote suivent ton compte : elles s\'additionnent d\'un appareil à l\'autre et ne se perdent plus en changeant de navigateur.',
+      'La première fois, ce que tu avais déjà roulé sur cet appareil est versé sur ton compte.',
+    ],
+  },
+  {
     version: '0.5.18',
     date: '07/10/2026',
     titre: 'Votes dans l\'Atelier',
