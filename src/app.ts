@@ -17,7 +17,7 @@ import { prepareLevel, type PreparedLevel } from './game/prepare';
 import { forcerDecor } from './game/decorUrl';
 import { NIVEAUX_OFFICIELS, cleNiveauOfficiel } from './levels';
 import { Screens, levelSummary, type NiveauCarte } from './ui/screens';
-import { formatDistance } from './ui/format';
+import { formatDistance, titreNiveau } from './ui/format';
 import { skinChoisie, choisirSkin, ajouterLivreesAtelier, skinDef } from './core/skins';
 import { fumeeDef } from './core/fumees';
 import { defAtelier, lireLivreeOfficielle, versLigneOfficielle, type LivreeOfficielle } from './core/atelier';
@@ -866,6 +866,7 @@ export class App {
       gains?.majTotal(this.prog().progression.cles);
       this.screens.resultats({
         result: r, record, persistent: this.persistent,
+        niveau: titreNiveau(cur.index, cur.prepared.level.nom),
         cles: gainLocal ? { ...gainLocal, total: this.progression.cles } : undefined,
         gainsEnLigne: gains?.el,
         onCaisses: () => this.caisses(montrer),

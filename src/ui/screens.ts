@@ -349,13 +349,14 @@ export class Screens {
     )));
   }
 
-  resultats(o: { result: RaceResult; record: boolean; persistent: boolean; /** clés gagnées à l'arrivée et total */ cles?: GainCourse; /** bloc de clés du compte, mis à jour après la réponse du serveur (prioritaire sur `cles`) */ gainsEnLigne?: HTMLElement | null; onCaisses?: () => void; onRecommencer(): void; onSuivant: (() => void) | null; onMenu(): void; menuLabel?: string; /** bloc classement en ligne, rempli après l'envoi du score */ enLigne?: HTMLElement | null }): void {
+  resultats(o: { result: RaceResult; /** niveau qu'on vient de finir (« Niveau 3 · Col du Loup ») */ niveau?: string; record: boolean; persistent: boolean; /** clés gagnées à l'arrivée et total */ cles?: GainCourse; /** bloc de clés du compte, mis à jour après la réponse du serveur (prioritaire sur `cles`) */ gainsEnLigne?: HTMLElement | null; onCaisses?: () => void; onRecommencer(): void; onSuivant: (() => void) | null; onMenu(): void; menuLabel?: string; /** bloc classement en ligne, rempli après l'envoi du score */ enLigne?: HTMLElement | null }): void {
     const r = o.result;
     const ecart = r.time - r.targetTime;
     // deux colonnes (score | clés et boutons) sur téléphone en paysage, sinon une seule pile (voir styles.css)
     this.show(h('div', { class: 'screen dim' }, h('div', { class: 'panel resultats' },
       h('div', { class: 'res-g' },
       h('h2', {}, 'Arrivée !'),
+      o.niveau && h('p', { class: 'sub niveau-fini' }, o.niveau),
       o.record && h('div', { class: 'badge' }, o.persistent ? 'Nouveau record !' : 'Nouveau record (non enregistré)'),
       h('div', { class: 'score' }, formatScore(r.score)),
       h('table', { class: 'detail' },

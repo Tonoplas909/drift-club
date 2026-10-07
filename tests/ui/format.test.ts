@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatScore, formatTime, formatDistance } from '../../src/ui/format';
+import { formatScore, formatTime, formatDistance, titreNiveau } from '../../src/ui/format';
 
 describe('formatage', () => {
   it('score avec espaces fines', () => {
@@ -15,5 +15,9 @@ describe('formatage', () => {
   it('distance', () => {
     expect(formatDistance(1234)).toBe('1,2 km');
     expect(formatDistance(850)).toBe('850 m');
+  });
+  it('nom du niveau à l\'arrivée', () => {
+    expect(titreNiveau(2, 'Col du Loup')).toBe('Niveau 3 · Col du Loup');
+    expect(titreNiveau(-1, 'Ma route')).toBe('Ma route');
   });
 });

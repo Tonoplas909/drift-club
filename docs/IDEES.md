@@ -14,7 +14,7 @@ la fonction `verifier-course` (`npx vite-node tools/gen-fonction.ts`).
 | [Manette](#manette) | petit | non | fait (0.5.3) |
 | [Mode photo](#mode-photo) | petit | non | fait (0.5.3) |
 | [Ambiance sonore par décor](#ambiance-sonore-par-décor) | petit | non | fait (0.5.3) |
-| [Niveau rappelé à l'arrivée](#niveau-rappelé-à-larrivée) | petit | non | nouveau |
+| [Niveau rappelé à l'arrivée](#niveau-rappelé-à-larrivée) | petit | non | fait (0.5.6) |
 | [Médailles par niveau](#médailles-par-niveau) | petit | non | nouveau |
 | [Vibrations de la manette](#vibrations-de-la-manette) | petit | non | nouveau |
 | [Touches personnalisables](#touches-personnalisables) | petit | non | nouveau |
@@ -197,3 +197,4 @@ serveur à mettre à jour.
 | 0.5.3 | **Manette** (gâchettes progressives, zone morte et sensibilité réglables), **mode photo** depuis la pause (caméra libre, filtres, capture enregistrée ou partagée), **ambiance sonore** propre à chaque décor (réglable, fondu enchaîné entre régions en mode Zen) |
 | 0.5.4 | **Bonus de temps** enfin gagnable : temps cible réaliste (× 1,25), 2 500 points par seconde d'avance sur le double du temps cible, plafonné aux points de drift |
 | 0.5.5 | Bonus de temps adouci : 1 000 points par seconde d'avance sur 1,5 × le temps cible, plafonné à la moitié des points de drift |
+| 0.5.6 | Numéro et nom du niveau rappelés sur l'écran d'arrivée |

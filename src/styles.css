@@ -407,6 +407,7 @@ input[type=text], input[type=email], input[type=password] { user-select: text; -
 .gains small { opacity: .7; font-size: 13px; font-weight: 700; }
 
 .panel.resultats .res-g, .panel.resultats .res-d { display: contents; }
+.panel.resultats .niveau-fini { margin-top: -10px; font-weight: 700; opacity: .75; }
 
 /* Écran des caisses */
 .screen.caisses { --cw: 132px; --ch: 132px; --gap: 10px; gap: 0; padding: 10px 12px; }
@@ -545,6 +546,7 @@ input[type=text], input[type=email], input[type=password] { user-select: text; -
   .panel.resultats { flex-direction: row; align-items: flex-start; width: min(760px, 94vw); gap: 20px; padding: 12px 18px; }
   .panel.resultats .res-g, .panel.resultats .res-d { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
   .panel.resultats h2 { font-size: 26px; }
+  .panel.resultats .niveau-fini { margin-top: -4px; font-size: 14px; }
   .panel.resultats .score { font-size: 40px; }
   .panel.resultats .detail { font-size: 14px; }
   .panel.resultats .row .btn { font-size: 15px; padding: 5px 14px; }
