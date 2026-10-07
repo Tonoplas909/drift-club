@@ -13,6 +13,16 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.13',
+    date: '07/10/2026',
+    titre: 'Revoir sa course',
+    notes: [
+      'À l\'arrivée, « Revoir » rejoue ta course comme à la télé : caméras au bord de la route qui zooment sur ta voiture, hélicoptère, poursuite ou caméra embarquée.',
+      'Ralenti (×¼, ×½) ou accéléré (×2, ×4), barre de temps, ±5 s (flèches ← →), Espace pour la pause, C pour changer de caméra.',
+      'Mets en pause et ouvre le mode photo pour immortaliser ton plus beau drift.',
+    ],
+  },
+  {
     version: '0.5.12',
     date: '07/10/2026',
     titre: 'Caméras embarquées',

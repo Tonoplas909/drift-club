@@ -61,6 +61,7 @@ import { zoneGains, type ZoneGains } from './ui/gains';
 import { ecranTouches, aideTouches } from './ui/touches';
 import { CompteurPilote, lireStatistiques } from './game/statistiques';
 import { ecranStatistiques } from './ui/statistiques';
+import { ecranRevoir } from './ui/revoir';
 
 /** D'où vient la course : `index` ≥ 0 pour un niveau officiel, `retour` ramène à l'écran d'origine. */
 interface Contexte { index: number; retour: () => void; menuLabel: string }
@@ -856,10 +857,11 @@ export class App {
     this.ecouterManetteEnPause();
   }
 
-  /** Mode photo depuis la pause : HUD masqué, caméra libre ; Retour (ou Échap) revient à la pause. */
-  private modePhoto(): void {
+  /** Mode photo depuis la pause (ou « Revoir ») : HUD masqué, caméra libre ; Retour (ou Échap) revient à la pause, ou à `retour`. */
+  private modePhoto(retour?: () => void, avant?: () => void): void {
     const session = this.session;
     if (!session?.enPause) return;
+    avant?.();
     this.hud.show(false);
     const photo = new ModePhoto({
       canvas: $('scene') as HTMLCanvasElement,
@@ -867,7 +869,11 @@ export class App {
       rendre: (cam) => session.rendrePhoto(cam),
       partager: this.touch,
       toast: (m) => this.screens.toast(m),
-      onQuitter: () => { this.photo = null; this.hud.show(true); if (this.session === session) this.pauseRace(); },
+      onQuitter: () => {
+        this.photo = null; this.hud.show(true);
+        if (this.session !== session) return;
+        if (retour) retour(); else this.pauseRace();
+      },
     });
     this.photo = photo;
     this.onEscape = () => photo.quitter();
@@ -926,10 +932,32 @@ export class App {
         onMenu: () => this.quitterCourse(),
         menuLabel: cur.contexte.menuLabel,
         onPartager: () => void this.partagerCarte(r, titreNiveau(cur.index, cur.prepared.level.nom), record, cur.index),
+        onRevoir: () => this.revoir(titreNiveau(cur.index, cur.prepared.level.nom), montrer),
         enLigne,
       });
     };
     montrer();
+  }
+
+  /** « Revoir sa course » depuis les résultats : la course rejouée comme un film ; `retour` réaffiche les résultats. */
+  private revoir(titre: string, retour: () => void): void {
+    const s = this.session;
+    if (!(s instanceof GameSession)) return;
+    this.screens.loading('Préparation du film de ta course…');
+    window.setTimeout(() => {
+      if (this.session !== s) return;
+      if (!s.lancerFilm()) { retour(); this.screens.toast('Cette course ne peut pas être rejouée.'); return; }
+      const quitter = (): void => { this.onEscape = null; s.arreterFilm(); this.hud.show(false); retour(); };
+      const afficher = (): void => {
+        this.onEscape = quitter;
+        this.screens.monter(ecranRevoir({
+          titre, lecteur: s,
+          onPhoto: () => this.modePhoto(() => { s.reglerFilm({ photo: false }); afficher(); }, () => s.reglerFilm({ photo: true })),
+          onQuitter: quitter,
+        }));
+      };
+      afficher();
+    }, 30);
   }
 
   /** Carte de score : capture de la course (vue de trois quarts), niveau, score, médaille, voiture ; partagée ou téléchargée. */

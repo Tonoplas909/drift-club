@@ -665,3 +665,14 @@ input[type=text], input[type=email], input[type=password] { user-select: text; -
 .stats-medailles { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
 .stat-medaille { display: inline-flex; align-items: center; gap: 6px; font-size: 22px; }
 .stat-medaille .ico-medaille { font-size: 34px; line-height: 0; }
+
+/* Revoir sa course */
+.screen.dim.film { justify-content: space-between; align-items: stretch; padding: 12px; pointer-events: none; background: none; color: var(--ink); }
+.screen.film > * { pointer-events: auto; }
+.film-titre { align-self: center; background: rgba(21, 19, 28, .7); color: #fff; border-radius: 12px; padding: 4px 14px; font-weight: 600; margin-top: 64px; }
+.film-titre b { color: var(--yellow); }
+.film-commandes { background: rgba(255, 246, 229, .94); border: 3px solid var(--ink); border-radius: 18px; padding: 8px 12px; display: flex; flex-direction: column; gap: 8px; max-width: 980px; width: 100%; align-self: center; }
+.film-ligne { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.film-barre { flex: 1; min-width: 160px; accent-color: var(--orange); }
+.film-temps { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 128px; text-align: right; }
+.film-ligne .seg .tab { padding: 4px 10px; font-size: 14px; }
