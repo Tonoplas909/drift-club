@@ -15,10 +15,13 @@ describe.each(NIVEAUX_OFFICIELS.map((n) => [n.id, n.data] as const))('relief du 
   const { level, track } = r;
   const terrain = new Terrain(track, level.decor.graine, THEMES[level.environnement].relief, level.eau);
   const S = track.samples;
+  // sur un pont, la route est au-dessus du terrain (qui suit la route du dessous) : ces échantillons sont à part
+  const surPont = (i: number): boolean => !!track.pont?.[i];
 
   it('le terrain suit la chaussée et l\'accotement (centre, bords) : jamais au-dessus de la route', () => {
     let pire = -Infinity;
     for (let i = 0; i < S.length; i += 2) {
+      if (surPont(i)) continue;
       const sp = S[i];
       for (const lat of [-sp.w, -sp.w / 2, 0, sp.w / 2, sp.w, sp.w + 0.8, -sp.w - 0.8]) {
         const x = sp.x + sp.nx * lat, z = sp.z + sp.nz * lat;
@@ -32,6 +35,7 @@ describe.each(NIVEAUX_OFFICIELS.map((n) => [n.id, n.data] as const))('relief du 
 
   it('pente de la route pour la physique : raisonnable', () => {
     for (let i = 0; i < S.length; i += 3) {
+      if (surPont(i)) continue;
       const g = terrain.gradientAt(S[i].x, S[i].z);
       expect(Math.hypot(g.gx, g.gz)).toBeLessThan(0.6);
     }
@@ -40,6 +44,7 @@ describe.each(NIVEAUX_OFFICIELS.map((n) => [n.id, n.data] as const))('relief du 
   it('pas de falaise : le terrain ne varie jamais de plus de 3,5 m d\'un mètre à l\'autre près de la route', () => {
     let pire = 0;
     for (let i = 0; i < S.length; i += 4) {
+      if (surPont(i)) continue;
       const sp = S[i];
       for (const side of [-1, 1]) {
         let prev = terrain.heightAt(sp.x + sp.nx * side * (sp.w + 1), sp.z + sp.nz * side * (sp.w + 1));

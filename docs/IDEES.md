@@ -229,3 +229,4 @@ serveur à mettre à jour.
 | 0.5.20 | Correctif : le mode Zen restait bloqué sur « Préparation de la route » depuis la 0.5.12 (caméra choisie avant que la route existe) |
 | 0.5.21 | **Ponts dans l'éditeur** : la route peut se croiser avec au moins 7 m de différence de hauteur, la portion du dessus devient un pont (tablier, garde-corps, piliers), le croisement à la même hauteur reste refusé |
 | 0.5.22 | **Niveau aléatoire** dans « Mes niveaux » : route tirée au sort (dessinateur du mode Zen) dans le décor choisi ou au hasard, avec barrières et zones de clipping, à retoucher dans l'éditeur |
+| 0.5.23 | **19 nouveaux niveaux officiels** (50 au total) : quatre avec un pont, quatre sous la pluie, sept de nuit, dans tous les décors (Irohazaka, Col de la Bonette, Mirage de midi, Pluie sous les néons…) |
