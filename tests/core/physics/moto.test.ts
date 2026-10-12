@@ -70,6 +70,17 @@ describe('motos', () => {
     c.beta = 120 * DEG; c.speed = 3;
     expect(chute(CARS.supermotard, c, 0)).toBe(false);
   });
+  it('marche arrière (frein tenu) : jamais de chute, même à pleine vitesse arrière', () => {
+    const c = createCarState(0, 0, 0);
+    let tombe = false;
+    for (let i = 0; i < 10 / SIM_DT; i++) {
+      stepCar(c, inp({ frein: 1 }), ctxOf('supermotard', 'semi'), SIM_DT);
+      tombe ||= chute(CARS.supermotard, c, 0);
+    }
+    expect(c.reverse).toBe(true);
+    expect(c.speed).toBeGreaterThan(VITESSE_CHUTE);
+    expect(tombe).toBe(false);
+  });
   it('en course, une chute fait perdre le drift et replace la moto', () => {
     const level = straightLevel(400);
     const track = buildTrack(level);

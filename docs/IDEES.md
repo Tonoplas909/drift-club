@@ -224,12 +224,12 @@ serveur à mettre à jour.
 
 ### Wheelie à moto
 
-Ajouter des motos. Sur une moto, un wheelie (roue avant en l'air) rapporte des points, d'autant plus qu'il dure. Il se
+Suite des [Motos](#motos). Sur une moto, un wheelie (roue avant en l'air) rapporte des points, d'autant plus qu'il dure. Il se
 tient à l'accélérateur et au frein : trop de gaz et la moto se cabre et tombe en arrière, trop de frein et elle
 retombe sur la roue avant ; il faut doser les deux pour garder l'équilibre. Le frein avant et le frein arrière
 doivent être deux commandes distinctes (aujourd'hui il n'y a qu'un frein), et la manette doit pouvoir doser les
-gâchettes finement. Il faut un modèle de moto dans `src/core/physics` (tangage, roue avant et arrière, centre de masse
-haut) : rien de tel n'existe encore, d'où l'effort. Le score du wheelie (points par seconde, bonus au-delà d'un seuil)
+gâchettes finement. La Supermotard (0.5.25) a déjà un modèle deux-roues dans `src/core/physics` (inclinaison, chute) ;
+il lui manque le tangage (roue avant qui décolle, centre de masse haut) et les deux freins, d'où l'effort. Le score du wheelie (points par seconde, bonus au-delà d'un seuil)
 vit dans `src/core` ; la chute est une fin de figure, comme la sortie de piste. Serveur : la simulation et la fonction
 sont à régénérer ; une moto a son propre classement, ou ses niveaux à elle (les voitures n'ont pas de wheelie).
 

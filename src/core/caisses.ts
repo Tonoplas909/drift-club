@@ -5,7 +5,7 @@ import { RARETES, RARETE_IDS, type Rarete } from './raretes';
 import { SKINS, SKIN_DEFAUT, skinDef, skinValide, versionDesLivrees, type SkinId } from './skins';
 import { CLE_FUMEE, FUMEES, FUMEE_DEFAUT, fumeeDef, fumeeValide } from './fumees';
 
-/** Collection d'objets des caisses : une voiture (ses livrées) ou `fumee` (les fumées de pneus). */
+/** Collection d'objets des caisses : un véhicule (ses livrées) ou `fumee` (les fumées de pneus). */
 export type CleCollection = CarId | typeof CLE_FUMEE;
 
 /** Toutes les collections, dans l'ordre du catalogue. */
@@ -19,7 +19,7 @@ export const defautDe = (cle: CleCollection): SkinId => (cle === CLE_FUMEE ? FUM
 /** `id` existe-t-il dans la collection `cle` ? */
 export const idValide = (cle: CleCollection, id: unknown): id is SkinId => (cle === CLE_FUMEE ? fumeeValide(id) : skinValide(cle, id));
 
-/** Un objet des caisses : une livrée d'une voiture, ou une fumée (`car` vaut alors `fumee`), tel qu'il sort d'une caisse. */
+/** Un objet des caisses : une livrée d'un véhicule, ou une fumée (`car` vaut alors `fumee`), tel qu'il sort d'une caisse. */
 export interface Objet { car: CleCollection; skin: SkinId; rarete: Rarete }
 
 export const estFumee = (o: Pick<Objet, 'car'>): boolean => o.car === CLE_FUMEE;
@@ -39,7 +39,7 @@ export interface Tirage { objet: Objet; doublon: boolean }
 export const TAILLE_BANDE = 60;
 export const INDEX_GAGNANT = TAILLE_BANDE - 8;
 
-/** Contenu des caisses par collection : les livrées de chaque voiture et les fumées, sans « unie » ni « classique ». */
+/** Contenu des caisses par collection : les livrées de chaque véhicule et les fumées, sans « unie » ni « classique ». */
 export function contenuCaisses(): Record<string, { id: string; rarete: Rarete }[]> {
   const out: Record<string, { id: string; rarete: Rarete }[]> = {};
   for (const car of CAR_IDS) out[car] = SKINS[car].filter((s) => s.id !== SKIN_DEFAUT).map((s) => ({ id: s.id, rarete: s.rarete }));
@@ -47,7 +47,7 @@ export function contenuCaisses(): Record<string, { id: string; rarete: Rarete }[
   return out;
 }
 
-/** Contenu des caisses : toutes les livrées de toutes les voitures et toutes les fumées, rangées par rareté. */
+/** Contenu des caisses : toutes les livrées de tous les véhicules et toutes les fumées, rangées par rareté. */
 function construireParRarete(): Record<Rarete, Objet[]> {
   const out = Object.fromEntries(RARETE_IDS.map((r) => [r, [] as Objet[]])) as Record<Rarete, Objet[]>;
   const contenu = contenuCaisses();

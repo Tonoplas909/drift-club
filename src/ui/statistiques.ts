@@ -22,7 +22,7 @@ export function ecranStatistiques(o: { stats: Statistiques; /** « ton compte (M
       tuile(`${s.plusLongDrift.toFixed(1).replace('.', ',')} s`, 'plus long drift'),
       tuile(formatScore(s.meilleurDrift), 'meilleur drift', `${formatScore(s.drifts)} drift${s.drifts > 1 ? 's' : ''} encaissé${s.drifts > 1 ? 's' : ''}`),
       tuile(formatScore(s.courses), `course${s.courses > 1 ? 's' : ''} finie${s.courses > 1 ? 's' : ''}`),
-      tuile(pref ? CARS[pref].nom : '—', 'voiture la plus jouée', pref ? formatDistance(s.parVoiture[pref] ?? 0) : undefined),
+      tuile(pref ? CARS[pref].nom : '—', 'véhicule le plus joué', pref ? formatDistance(s.parVoiture[pref] ?? 0) : undefined),
     ),
     h('h3', {}, 'Médailles'),
     h('div', { class: 'stats-medailles' },

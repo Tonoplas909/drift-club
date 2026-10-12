@@ -159,8 +159,9 @@ export class RaceSim {
     const impact = resolveCollisions(this.car, this.config.car, this.world);
     const tombe = chute(this.config.car, this.car, impact);
     const crash = impact > CRASH_IMPACT || tombe;
-    if (impact > CRASH_IMPACT) ev.push({ type: 'choc', impact });
+    // une chute a son propre son et sa secousse : pas de « choc » en plus
     if (tombe) ev.push({ type: 'chute' });
+    else if (impact > CRASH_IMPACT) ev.push({ type: 'choc', impact });
 
     // Progression (fenêtre autour de la dernière position : anti-raccourci)
     const proj = projectOnTrack(track, this.car.x, this.car.z, this.progressIndex);

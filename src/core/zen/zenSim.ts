@@ -72,9 +72,10 @@ export class ZenSim {
     for (const t of route.finisPres(this.car.x, this.car.z, 45, this.proches)) {
       for (const m of t.mondes) impact = Math.max(impact, resolveCollisions(this.car, this.ctx.params, m));
     }
-    if (impact > CRASH_IMPACT) ev.push({ type: 'choc', impact });
     const tombe = chute(this.ctx.params, this.car, impact);
+    // une chute a son propre son et sa secousse : pas de « choc » en plus
     if (tombe) ev.push({ type: 'chute' });
+    else if (impact > CRASH_IMPACT) ev.push({ type: 'choc', impact });
 
     // progression : projection dans une fenêtre autour de la dernière position (anti-raccourci)
     let best = this.progressIndex, bestD2 = Infinity;

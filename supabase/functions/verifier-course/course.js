@@ -11062,7 +11062,7 @@ var VITESSE_CHUTE = 20 / 3.6;
 function chute(p, car, impact) {
   if (p.genre !== "moto") return false;
   if (impact > 2 * CRASH_IMPACT) return true;
-  return car.speed > VITESSE_CHUTE && Math.abs(car.beta) > (p.betaChute ?? Infinity);
+  return !car.reverse && car.speed > VITESSE_CHUTE && Math.abs(car.beta) > (p.betaChute ?? Infinity);
 }
 
 // src/core/physics/car.ts
@@ -11511,8 +11511,8 @@ var RaceSim = class {
     const impact = resolveCollisions(this.car, this.config.car, this.world);
     const tombe = chute(this.config.car, this.car, impact);
     const crash = impact > CRASH_IMPACT || tombe;
-    if (impact > CRASH_IMPACT) ev.push({ type: "choc", impact });
     if (tombe) ev.push({ type: "chute" });
+    else if (impact > CRASH_IMPACT) ev.push({ type: "choc", impact });
     const proj = projectOnTrack(track, this.car.x, this.car.z, this.progressIndex);
     const sp = track.samples[proj.index];
     const lat = Math.abs(proj.lateral);
@@ -12190,4 +12190,4 @@ async function traiterCourse(corps, empreinteServeur, maintenant = /* @__PURE__ 
 export {
   traiterCourse
 };
-export const EMPREINTE = 'fa28f2846cdce631';
+export const EMPREINTE = 'e17391c7c78d9be6';
