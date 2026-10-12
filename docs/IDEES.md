@@ -28,6 +28,7 @@ la fonction `verifier-course` (`npx vite-node tools/gen-fonction.ts`).
 | [Votes dans l'Atelier](#votes-dans-latelier) | moyen | oui (migration) | fait (0.5.18) |
 | [Pluie et nuit](#pluie-et-nuit) | moyen | oui (simulation) | fait (0.5.16) |
 | [Ponts dans l'éditeur](#ponts-dans-léditeur) | moyen | oui (simulation) | fait (0.5.21) |
+| [Niveau aléatoire dans l'éditeur](#niveau-aléatoire-dans-léditeur) | petit | non | fait (0.5.22) |
 | [Fantômes et tandem](#fantômes-et-tandem) | gros | oui (migration + stockage) | à faire |
 | [Clubs](#clubs) | gros | oui (migration) | à faire |
 | [Saison](#saison) | gros | oui (migration) | à faire |
@@ -162,6 +163,11 @@ pont (tablier, garde-corps, piliers) et l'autre passe dessous ; à la même haut
 voiture doit savoir sur quelle portion elle roule (le sol n'a plus une seule hauteur) : ça passe dans la simulation
 (`src/core`) et la fonction serveur est à régénérer.
 
+### Niveau aléatoire dans l'éditeur
+
+Partir d'une base tirée au sort plutôt que d'une page blanche : la route du dessinateur du mode Zen (celle du défi du
+jour), dans le décor choisi ou au hasard, avec ses barrières et ses zones de clipping, puis la retoucher.
+
 ## Grosses
 
 ### Fantômes et tandem
@@ -222,3 +228,4 @@ serveur à mettre à jour.
 | 0.5.19 | **Statistiques du pilote rattachées au compte** : envoi des ajouts, total additionné par le serveur, plusieurs appareils (migration 0013) |
 | 0.5.20 | Correctif : le mode Zen restait bloqué sur « Préparation de la route » depuis la 0.5.12 (caméra choisie avant que la route existe) |
 | 0.5.21 | **Ponts dans l'éditeur** : la route peut se croiser avec au moins 7 m de différence de hauteur, la portion du dessus devient un pont (tablier, garde-corps, piliers), le croisement à la même hauteur reste refusé |
+| 0.5.22 | **Niveau aléatoire** dans « Mes niveaux » : route tirée au sort (dessinateur du mode Zen) dans le décor choisi ou au hasard, avec barrières et zones de clipping, à retoucher dans l'éditeur |

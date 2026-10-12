@@ -13,6 +13,15 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.22',
+    date: '12/10/2026',
+    titre: 'Niveau aléatoire dans l\'éditeur',
+    notes: [
+      'Mes niveaux : nouveau bouton « Niveau aléatoire ». Choisis un décor (ou « Surprise ») et une route est tirée au sort pour toi, avec ses barrières et ses zones de clipping.',
+      'Le niveau s\'ouvre dans l\'éditeur : déplace les points, ajoute des virages ou des objets, puis teste-le et partage-le comme les autres.',
+    ],
+  },
+  {
     version: '0.5.21',
     date: '12/10/2026',
     titre: 'Ponts dans l\'éditeur',

@@ -3,7 +3,9 @@ import { h } from '../ui/screens';
 import { dialogue } from '../ui/dialog';
 import { formatDistance, libelleAmbiance } from '../ui/format';
 import type { Level } from '../core/level/types';
-import { LIMITES } from '../core/level/types';
+import { LIMITES, ENVIRONNEMENTS, type Environnement } from '../core/level/types';
+import { THEMES } from '../core/env/themes';
+import { niveauAleatoire } from '../core/editor/aleatoire';
 import { validateLevel } from '../core/level/validate';
 import { analyseLevel } from '../core/editor/analyse';
 import { newLevel, copyLevel } from '../core/editor/ops';
@@ -54,6 +56,23 @@ export function afficherHub(screens: Screens, o: OptionsHub): void {
     o.onModifier(ajouter(copyLevel(v.level, nomCopie(v.level.nom))));
   };
 
+  /** Niveau de départ tiré au sort (route du mode Zen, barrières, clipping), dans le décor choisi ou au hasard. */
+  const aleatoire = async (): Promise<void> => {
+    const choix = [
+      { label: 'Surprise', detail: 'décor au hasard', valeur: '' },
+      ...ENVIRONNEMENTS.map((e) => ({ label: THEMES[e].nom, valeur: e })),
+    ];
+    const r = await dialogue(o.root, {
+      titre: 'Niveau aléatoire',
+      lignes: ['Une route tirée au sort, avec ses barrières et ses zones de clipping, à modifier ensuite comme tu veux.'],
+      choix, ok: '',
+    });
+    if (!r.ok || r.choix === null) return;
+    const level = niveauAleatoire(Math.floor(Math.random() * 0x100000000), (r.choix || undefined) as Environnement | undefined);
+    const nom = `${THEMES[level.environnement].nom} aléatoire`.slice(0, LIMITES.nomMax);
+    o.onModifier(ajouter({ ...level, nom, auteur: '' }));
+  };
+
   const ligne = (n: MonNiveau): HTMLElement => {
     const a = analyseLevel(n.level);
     const raison = a.ok ? '' : (a.erreurs[0] ?? a.problemes[0]?.message ?? 'Niveau invalide.');
@@ -96,12 +115,13 @@ export function afficherHub(screens: Screens, o: OptionsHub): void {
       h('h2', {}, 'Mes niveaux'),
       h('div', { class: 'row' },
         h('button', { class: 'btn', onclick: () => o.onModifier(ajouter(newLevel())) }, 'Nouveau niveau'),
+        h('button', { class: 'btn sec', onclick: () => void aleatoire() }, 'Niveau aléatoire'),
         h('button', { class: 'btn sec', onclick: () => void copierOfficiel() }, 'Copier un niveau officiel'),
         h('button', { class: 'btn sec', onclick: o.onImporter }, 'Importer'),
       ),
       !o.persistent && h('p', { class: 'warn' }, 'Stockage indisponible : tes niveaux ne seront pas conservés après fermeture.'),
       niveaux.length === 0
-        ? h('p', { class: 'sub' }, "Aucun niveau pour l'instant : crée-en un, copie un niveau officiel ou importe un niveau.")
+        ? h('p', { class: 'sub' }, "Aucun niveau pour l'instant : crée-en un, tire-en un au hasard, copie un niveau officiel ou importe un niveau.")
         : h('div', { class: 'niv-liste' }, ...niveaux.map(ligne)),
       h('div', { class: 'row' }, h('button', { class: 'btn sec', onclick: o.onRetour }, 'Retour')),
     )));
