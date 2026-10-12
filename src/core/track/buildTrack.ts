@@ -3,6 +3,7 @@ import { clamp, wrapAngle } from '../math/vec';
 import { sampleRoute, type P4 } from './spline';
 import { SampleGrid } from './grid';
 import * as dm from '../math/dmath';
+import { detecterPonts } from './ponts';
 
 export interface TrackSample {
   x: number; y: number; z: number;
@@ -30,6 +31,8 @@ export interface TrackData {
   pointSample: number[];
   grid: SampleGrid;
   bounds: { minX: number; maxX: number; minZ: number; maxZ: number };
+  /** échantillons sur un pont (1), null ou absent sans pont (voir ponts.ts) */
+  pont?: Uint8Array | null;
 }
 
 const STEP = 1;
@@ -78,7 +81,10 @@ export function buildTrack(level: Level): TrackData {
     samples[i].k = sum / cnt;
   }
 
-  return finirPiste(samples, pointS.map((s) => Math.min(n - 1, Math.round(s / STEP))));
+  const track = finirPiste(samples, pointS.map((s) => Math.min(n - 1, Math.round(s / STEP))));
+  // croisements à des hauteurs différentes : la portion du dessus devient un pont
+  track.pont = detecterPonts(track);
+  return track;
 }
 
 /**

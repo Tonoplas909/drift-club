@@ -27,6 +27,7 @@ la fonction `verifier-course` (`npx vite-node tools/gen-fonction.ts`).
 | [Zones de clipping](#zones-de-clipping) | moyen | oui (simulation) | fait (0.5.15) |
 | [Votes dans l'Atelier](#votes-dans-latelier) | moyen | oui (migration) | fait (0.5.18) |
 | [Pluie et nuit](#pluie-et-nuit) | moyen | oui (simulation) | fait (0.5.16) |
+| [Ponts dans l'éditeur](#ponts-dans-léditeur) | moyen | oui (simulation) | fait (0.5.21) |
 | [Fantômes et tandem](#fantômes-et-tandem) | gros | oui (migration + stockage) | à faire |
 | [Clubs](#clubs) | gros | oui (migration) | à faire |
 | [Saison](#saison) | gros | oui (migration) | à faire |
@@ -154,6 +155,13 @@ gouttes (la pluie du cyberpunk existe), reflets sur la route, et **adhérence r�
 elle passe dans la simulation (`src/core`), le niveau la déclare (format de niveau à étendre), et la fonction serveur
 est à régénérer.
 
+### Ponts dans l'éditeur
+
+Pouvoir faire se croiser la route : si les deux portions ont assez de différence de hauteur, celle du dessus devient un
+pont (tablier, garde-corps, piliers) et l'autre passe dessous ; à la même hauteur, le croisement reste refusé. La
+voiture doit savoir sur quelle portion elle roule (le sol n'a plus une seule hauteur) : ça passe dans la simulation
+(`src/core`) et la fonction serveur est à régénérer.
+
 ## Grosses
 
 ### Fantômes et tandem
@@ -213,3 +221,4 @@ serveur à mettre à jour.
 | 0.5.18 | **Votes dans l'Atelier** : j'aime / j'aime pas sur les propositions en attente, modération triée par popularité, livrée de la semaine sur l'écran des caisses (migration 0012) |
 | 0.5.19 | **Statistiques du pilote rattachées au compte** : envoi des ajouts, total additionné par le serveur, plusieurs appareils (migration 0013) |
 | 0.5.20 | Correctif : le mode Zen restait bloqué sur « Préparation de la route » depuis la 0.5.12 (caméra choisie avant que la route existe) |
+| 0.5.21 | **Ponts dans l'éditeur** : la route peut se croiser avec au moins 6 m de différence de hauteur, la portion du dessus devient un pont (tablier, garde-corps, piliers), le croisement à la même hauteur reste refusé |

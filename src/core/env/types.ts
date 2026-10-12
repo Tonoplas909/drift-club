@@ -30,8 +30,9 @@ export interface EnvItem {
   manual: boolean;
 }
 
-export interface CircleCollider { x: number; z: number; r: number }
-export interface SegmentCollider { ax: number; az: number; bx: number; bz: number }
+/** `hauteur` : la voiture ne le heurte que si sa hauteur est dans [min, max] (garde-corps d'un pont, piliers) ; absent : toujours. */
+export interface CircleCollider { x: number; z: number; r: number; hauteur?: [number, number] }
+export interface SegmentCollider { ax: number; az: number; bx: number; bz: number; hauteur?: [number, number] }
 export interface BarrierPiece { x: number; y: number; z: number; rot: number; len: number }
 
 export interface Environment {
@@ -41,6 +42,8 @@ export interface Environment {
   barriers: BarrierPiece[];
   /** cloisons du couloir (backrooms) : tronçons de mur étirés en longueur, solides (leurs segments sont dans `segments`) */
   cloisons?: BarrierPiece[];
+  /** piliers sous les ponts : du sol (`bas`) au-dessous du tablier (`haut`) */
+  piliers?: { x: number; z: number; bas: number; haut: number }[];
 }
 
 export const VARIANTS: Record<DecorKind, number> = {

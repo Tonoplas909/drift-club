@@ -13,6 +13,17 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.21',
+    date: '12/10/2026',
+    titre: 'Ponts dans l\'éditeur',
+    notes: [
+      'Éditeur : la route peut maintenant se croiser ! Avec au moins 6 m de différence de hauteur entre les deux portions, celle du dessus devient un pont, et l\'autre passe dessous.',
+      'Les ponts ont un tablier en béton, des garde-corps (impossible de tomber) et des piliers posés à côté de la route du dessous.',
+      'À la même hauteur, le croisement reste refusé : l\'éditeur indique où, avec l\'écart de hauteur actuel.',
+      'Les ponts sont dessinés dans la vue de l\'éditeur, par-dessus la route qui passe dessous.',
+    ],
+  },
+  {
     version: '0.5.20',
     date: '07/10/2026',
     titre: 'Correctif : mode Zen',

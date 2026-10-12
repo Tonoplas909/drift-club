@@ -4150,6 +4150,102 @@ var SampleGrid = class {
   }
 };
 
+// src/core/track/ponts.ts
+var HAUTEUR_PONT = 6;
+var DEBORD = 10;
+function parcourir(track, f) {
+  const S = track.samples, scratch3 = [];
+  for (let i = 0; i < S.length; i += 2) {
+    const a = S[i];
+    track.grid.query(a.x, a.z, a.w + 14, scratch3);
+    for (const j of scratch3) {
+      if (j <= i) continue;
+      const b = S[j];
+      const seuil = a.w + b.w + 4;
+      if (b.s - a.s <= 2 * seuil) continue;
+      if (hypot(a.x - b.x, a.z - b.z) < seuil) f(a, b, i, j);
+    }
+  }
+}
+function detecterPonts(track) {
+  const p = new Uint8Array(track.samples.length);
+  let trouve = false;
+  parcourir(track, (a, b, i, j) => {
+    if (Math.abs(a.y - b.y) < HAUTEUR_PONT) return;
+    p[a.y > b.y ? i : j] = 1;
+    trouve = true;
+  });
+  if (!trouve) return null;
+  const n = p.length, out = new Uint8Array(n);
+  for (let i = 0; i < n; i++) {
+    if (!p[i]) continue;
+    for (let k = Math.max(0, i - DEBORD); k <= Math.min(n - 1, i + DEBORD); k++) out[k] = 1;
+  }
+  return out;
+}
+function croisementsBas(track) {
+  const out = [];
+  let dernier = -Infinity;
+  parcourir(track, (a, b) => {
+    const ecart = Math.abs(a.y - b.y);
+    if (ecart >= HAUTEUR_PONT || a.s - dernier <= 30) return;
+    dernier = a.s;
+    out.push({ s: a.s, s2: b.s, x: a.x, z: a.z, ecart });
+  });
+  return out;
+}
+function plagesPonts(pont) {
+  const out = [];
+  if (!pont) return out;
+  for (let i = 0; i < pont.length; i++) {
+    if (!pont[i]) continue;
+    const de = i;
+    while (i + 1 < pont.length && pont[i + 1]) i++;
+    out.push({ de, a: i });
+  }
+  return out;
+}
+var SolPiste = class {
+  constructor(terrain, track) {
+    this.terrain = terrain;
+    this.track = track;
+  }
+  /** échantillon de la route où se trouve la voiture (sa progression) */
+  indice = 0;
+  /** Hauteur du tablier sous (x, z) s'il y a un pont sur la portion de la voiture, sinon null. */
+  tablier(x, z) {
+    const pont = this.track.pont;
+    if (!pont) return null;
+    const S = this.track.samples;
+    const i0 = Math.max(0, this.indice - 25), i1 = Math.min(S.length - 1, this.indice + 35);
+    let best = -1, bestD = Infinity;
+    for (let i = i0; i <= i1; i++) {
+      const dx2 = S[i].x - x, dz2 = S[i].z - z, d = dx2 * dx2 + dz2 * dz2;
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    }
+    if (best < 0 || !pont[best]) return null;
+    const sp = S[best];
+    const dx = x - sp.x, dz = z - sp.z;
+    if (Math.abs(dx * sp.nx + dz * sp.nz) > sp.w + 1.5) return null;
+    return sp.y + sp.grade * (dx * sp.tx + dz * sp.tz);
+  }
+  heightAt(x, z) {
+    if (!this.track.pont) return this.terrain.heightAt(x, z);
+    return this.tablier(x, z) ?? this.terrain.heightAt(x, z);
+  }
+  gradientAt(x, z) {
+    if (!this.track.pont) return this.terrain.gradientAt(x, z);
+    const e = 0.5;
+    return {
+      gx: (this.heightAt(x + e, z) - this.heightAt(x - e, z)) / (2 * e),
+      gz: (this.heightAt(x, z + e) - this.heightAt(x, z - e)) / (2 * e)
+    };
+  }
+};
+
 // src/core/track/buildTrack.ts
 var STEP = 1;
 var A_LAT = 8;
@@ -4201,7 +4297,9 @@ function buildTrack(level) {
     }
     samples[i].k = sum / cnt;
   }
-  return finirPiste(samples, pointS.map((s) => Math.min(n - 1, Math.round(s / STEP))));
+  const track = finirPiste(samples, pointS.map((s) => Math.min(n - 1, Math.round(s / STEP))));
+  track.pont = detecterPonts(track);
+  return track;
 }
 function finirPiste(samples, pointSample = []) {
   const n = samples.length;
@@ -4244,36 +4342,18 @@ var MAX_PAR_TYPE = 5;
 function geometryProblems(track) {
   const problems = [];
   const S = track.samples;
-  const scratch3 = [];
-  let crossings = 0;
-  let lastFlag = -Infinity;
-  for (let i = 0; i < S.length && crossings < MAX_PAR_TYPE; i += 2) {
-    const a = S[i];
-    track.grid.query(a.x, a.z, a.w + 14, scratch3);
-    for (const j of scratch3) {
-      if (j <= i) continue;
-      const b = S[j];
-      const thr = a.w + b.w + 4;
-      if (b.s - a.s <= 2 * thr) continue;
-      if (hypot(a.x - b.x, a.z - b.z) < thr) {
-        if (a.s - lastFlag > 30) {
-          const msg = `La route se croise ou passe trop près d'elle-même (vers ${Math.round(a.s)} m et ${Math.round(b.s)} m).`;
-          problems.push({
-            type: "croisement",
-            s: a.s,
-            x: a.x,
-            z: a.z,
-            s2: b.s,
-            x2: b.x,
-            z2: b.z,
-            message: msg
-          });
-          crossings++;
-          lastFlag = a.s;
-        }
-        break;
-      }
-    }
+  for (const c of croisementsBas(track).slice(0, MAX_PAR_TYPE)) {
+    const b = S[Math.min(S.length - 1, Math.round(c.s2))];
+    problems.push({
+      type: "croisement",
+      s: c.s,
+      x: c.x,
+      z: c.z,
+      s2: c.s2,
+      x2: b.x,
+      z2: b.z,
+      message: `La route se croise à la même hauteur vers ${Math.round(c.s)} m et ${Math.round(c.s2)} m (${(Math.floor(c.ecart * 10) / 10).toFixed(1).replace(".", ",")} m d'écart de hauteur) : écarte-les ou mets au moins ${HAUTEUR_PONT} m de différence pour faire un pont.`
+    });
   }
   let inTight = false;
   let tight = 0;
@@ -4487,11 +4567,14 @@ function* remplir(g, track, every, radius) {
   const bas = new Float32Array(n).fill(-Infinity);
   const haut = new Float32Array(n).fill(Infinity);
   const sw = new Float32Array(n), swy = new Float32Array(n);
+  const pont = track.pont;
   for (let k = 0; k < idx.length; k++) {
     const sp = track.samples[idx[k]];
     const epaule = sp.w + 1.5;
+    const surPont = pont ? pont[idx[k]] === 1 : false;
     surCases(g, sp, radius, (c, dd) => {
       if (dd < g.d[c]) g.d[c] = dd;
+      if (surPont) return;
       const e = Math.max(0, dd - epaule);
       if (e < ecart[c]) ecart[c] = e;
       const dev = PENTE_TALUS * e;
@@ -4501,6 +4584,7 @@ function* remplir(g, track, every, radius) {
     if (k % PAS_ETAPE === PAS_ETAPE - 1) yield;
   }
   for (let k = 0; k < idx.length; k++) {
+    if (pont && pont[idx[k]] === 1) continue;
     const sp = track.samples[idx[k]];
     const epaule = sp.w + 1.5;
     surCases(g, sp, radius, (c, dd) => {
@@ -4515,6 +4599,11 @@ function* remplir(g, track, every, radius) {
   for (let i = 0; i < n; i++) {
     if (i % (PAS_ETAPE * 200) === 0) yield;
     if (g.d[i] === Infinity) continue;
+    if (!(sw[i] > 0)) {
+      g.h[i] = bas[i] > -Infinity ? bas[i] : haut[i] < Infinity ? haut[i] : Infinity;
+      if (g.h[i] === Infinity) g.d[i] = Infinity;
+      continue;
+    }
     const nat = swy[i] / sw[i] + rise(ecart[i], bruitCase(g, i));
     g.h[i] = bas[i] <= haut[i] ? Math.min(haut[i], Math.max(bas[i], nat)) : (bas[i] + haut[i]) / 2;
   }
@@ -4636,13 +4725,15 @@ var Terrain = class {
   }
   /** Hauteur du terrain : versant + lacs, puis les talus des tronçons voisins (la chaussée impose sa hauteur, le terrain la quitte en pente bornée). */
   heightAt(x, z) {
-    const S = this.track.samples;
+    const S = this.track.samples, pont = this.track.pont;
     this.track.grid.query(x, z, RAYON_CHAUSSEE, scratchTerrain);
-    const n = scratchTerrain.length;
-    for (let k = 0; k < n; k++) {
+    let n = 0;
+    for (let k = 0; k < scratchTerrain.length; k++) {
+      if (pont && pont[scratchTerrain[k]] === 1) continue;
       const sp = S[scratchTerrain[k]];
-      candTalus[k] = sp;
-      sCandTalus[k] = sp.s;
+      candTalus[n] = sp;
+      sCandTalus[n] = sp.s;
+      n++;
     }
     return appliquerTalus(this.hauteurGrille(x, z), x, z, candTalus, sCandTalus, n);
   }
@@ -5236,6 +5327,47 @@ var CERCLES_MULTIPLES = {
 };
 var SOLID_DISTANCE = 40;
 
+// src/core/env/ponts.ts
+var HAUTEUR_OBSTACLE = [2.5, 3];
+var PAS_PILIERS = 9;
+function ajouterPonts(env, track, terrain) {
+  const S = track.samples, pont = track.pont;
+  if (!pont) return;
+  const piliers = env.piliers ??= [];
+  const voisins = [];
+  for (const p of plagesPonts(pont)) {
+    for (let i = p.de; i < p.a; i += 2) {
+      const j = Math.min(i + 2, p.a);
+      const a = S[i], c = S[j];
+      const y = (a.y + c.y) / 2;
+      for (const side of [1, -1]) {
+        const ax = a.x + a.nx * side * (a.w + 0.6), az = a.z + a.nz * side * (a.w + 0.6);
+        const bx = c.x + c.nx * side * (c.w + 0.6), bz = c.z + c.nz * side * (c.w + 0.6);
+        env.segments.push({ ax, az, bx, bz, hauteur: [y - HAUTEUR_OBSTACLE[0], y + HAUTEUR_OBSTACLE[1]] });
+        env.barriers.push({ x: (ax + bx) / 2, y, z: (az + bz) / 2, rot: atan2(bx - ax, bz - az), len: hypot(bx - ax, bz - az) });
+      }
+    }
+    for (let i = p.de + 4; i <= p.a - 4; i += PAS_PILIERS) {
+      const sp = S[i];
+      const sol = terrain.heightAt(sp.x, sp.z);
+      if (sp.y - sol < 3) continue;
+      track.grid.query(sp.x, sp.z, 24, voisins);
+      let libre = true;
+      for (const k of voisins) {
+        if (Math.abs(S[k].s - sp.s) < 30 || pont[k]) continue;
+        const o = S[k], r = o.w + 2.5;
+        if ((o.x - sp.x) * (o.x - sp.x) + (o.z - sp.z) * (o.z - sp.z) < r * r) {
+          libre = false;
+          break;
+        }
+      }
+      if (!libre) continue;
+      piliers.push({ x: sp.x, z: sp.z, bas: sol, haut: sp.y - 0.7 });
+      env.circles.push({ x: sp.x, z: sp.z, r: 0.8, hauteur: [sol - HAUTEUR_OBSTACLE[0], sp.y - 2.5] });
+    }
+  }
+}
+
 // src/core/env/generate.ts
 function forestThreshold(densite, min = 0) {
   return Math.max(1 - (0.35 + 0.5 * densite), min);
@@ -5324,8 +5456,21 @@ function* decorEnEtapes(level, track, terrain, opts = {}) {
     return hypot(g.gx, g.gz);
   };
   const posés = [];
+  const pont = track.pont ?? null;
+  const surTablier = (x, z, marge) => {
+    if (!pont) return false;
+    track.grid.query(x, z, 20 + marge, voisins);
+    for (const i of voisins) {
+      if (!pont[i]) continue;
+      const sp = S[i], r = sp.w + marge;
+      if ((sp.x - x) * (sp.x - x) + (sp.z - z) * (sp.z - z) < r * r) return true;
+    }
+    return false;
+  };
+  const hauteur = (y) => pont ? { hauteur: [y - HAUTEUR_OBSTACLE[0], y + HAUTEUR_OBSTACLE[1]] } : {};
   const add = (item) => {
     if (garder && !item.manual && !garder(item.x, item.z)) return;
+    if (pont && !item.manual && surTablier(item.x, item.z, 4)) return;
     env.items.push(item);
     const box = boiteDe(item.kind, item.variant);
     if (theme.bord.sansChevauchement) {
@@ -5352,6 +5497,10 @@ function* decorEnEtapes(level, track, terrain, opts = {}) {
     for (let i = i0; i < i1; i += 2) {
       const j = Math.min(i + 2, i1);
       const sp = S[i];
+      if (pont && pont[i]) {
+        leftCovered[i] = rightCovered[i] = 1;
+        continue;
+      }
       let sides;
       if (b3.cote === "gauche") sides = [1];
       else if (b3.cote === "droite") sides = [-1];
@@ -5364,7 +5513,7 @@ function* decorEnEtapes(level, track, terrain, opts = {}) {
         const a = S[i], c = S[j];
         const ax = a.x + a.nx * side * (a.w + 0.8), az = a.z + a.nz * side * (a.w + 0.8);
         const bx = c.x + c.nx * side * (c.w + 0.8), bz = c.z + c.nz * side * (c.w + 0.8);
-        env.segments.push({ ax, az, bx, bz });
+        env.segments.push({ ax, az, bx, bz, ...hauteur((a.y + c.y) / 2) });
         const mx = (ax + bx) / 2, mz = (az + bz) / 2;
         env.barriers.push({ x: mx, y: terrain.heightAt(mx, mz), z: mz, rot: atan2(bx - ax, bz - az), len: hypot(bx - ax, bz - az) });
         const covered = side > 0 ? leftCovered : rightCovered;
@@ -5376,7 +5525,7 @@ function* decorEnEtapes(level, track, terrain, opts = {}) {
     const rot = o.rot * DEG;
     if (o.type === "barriere") {
       const dx = sin(rot) * 2, dz = cos(rot) * 2;
-      env.segments.push({ ax: o.x - dx, az: o.z - dz, bx: o.x + dx, bz: o.z + dz });
+      env.segments.push({ ax: o.x - dx, az: o.z - dz, bx: o.x + dx, bz: o.z + dz, ...hauteur(terrain.heightAt(o.x, o.z)) });
       env.barriers.push({ x: o.x, y: terrain.heightAt(o.x, o.z), z: o.z, rot, len: 4 });
       continue;
     }
@@ -5414,7 +5563,8 @@ function* decorEnEtapes(level, track, terrain, opts = {}) {
     const poserMur = (ax, az, bx, bz) => {
       const mx = (ax + bx) / 2, mz = (az + bz) / 2;
       if (garder && !garder(mx, mz)) return;
-      env.segments.push({ ax, az, bx, bz });
+      if (pont && surTablier(mx, mz, 3)) return;
+      env.segments.push({ ax, az, bx, bz, ...hauteur(terrain.heightAt(mx, mz)) });
       cloisons.push({ x: mx, y: Math.min(terrain.heightAt(ax, az), terrain.heightAt(bx, bz)), z: mz, rot: atan2(bx - ax, bz - az), len: hypot(bx - ax, bz - az) });
       const seg = { ax, az, bx, bz };
       const i0 = Math.floor(Math.min(ax, bx) / CASE_MUR), i1 = Math.floor(Math.max(ax, bx) / CASE_MUR);
@@ -5737,6 +5887,7 @@ function* decorEnEtapes(level, track, terrain, opts = {}) {
       }
     }
   }
+  if (pont) ajouterPonts(env, track, terrain);
   return env;
 }
 
@@ -6369,6 +6520,7 @@ function resolveCollisions(car, params, world) {
       if (circVisited[i] === visitStamp) continue;
       circVisited[i] = visitStamp;
       const c = world.circles[i];
+      if (c.hauteur && (car.y < c.hauteur[0] || car.y > c.hauteur[1])) continue;
       const dx = cx - c.x, dz = cz - c.z;
       const d = hypot(dx, dz);
       const pen = rc + c.r - d;
@@ -6385,6 +6537,7 @@ function resolveCollisions(car, params, world) {
       if (segVisited[i] === visitStamp) continue;
       segVisited[i] = visitStamp;
       const s = world.segments[i];
+      if (s.hauteur && (car.y < s.hauteur[0] || car.y > s.hauteur[1])) continue;
       const ex = s.bx - s.ax, ez = s.bz - s.az;
       const len2 = ex * ex + ez * ez;
       const t = len2 > 1e-9 ? clamp(((cx - s.ax) * ex + (cz - s.az) * ez) / len2, 0, 1) : 0;
@@ -6592,6 +6745,8 @@ var RaceSim = class {
   sp;
   pending = [];
   zones;
+  /** sol de la voiture : le terrain, ou le tablier d'un pont sur la portion de route où elle roule */
+  sol;
   /** proximité du bord dans une zone de clipping, au dernier pas */
   clipping = 0;
   constructor(cfg) {
@@ -6600,7 +6755,8 @@ var RaceSim = class {
     this.countdown = cfg.countdown ?? 3;
     this.world = buildCollisionWorld(cfg.env);
     this.zones = zonesPiste(cfg.level, cfg.track);
-    this.ctx = { params: cfg.car, assists: cfg.assists, ground: cfg.terrain, onRoad: true, adherence: adherenceDe(cfg.level) };
+    this.sol = new SolPiste(cfg.terrain, cfg.track);
+    this.ctx = { params: cfg.car, assists: cfg.assists, ground: this.sol, onRoad: true, adherence: adherenceDe(cfg.level) };
     const idx = Math.min(6, cfg.track.samples.length - 1);
     const s0 = cfg.track.samples[idx];
     this.car = createCarState(s0.x, s0.z, atan2(s0.tx, s0.tz), cfg.terrain.heightAt(s0.x, s0.z));
@@ -6624,6 +6780,7 @@ var RaceSim = class {
       this.car.rpm = 900 + clamp(input.gaz, 0, 1) * (this.config.car.rpmMax - 2300);
       return ev;
     }
+    this.sol.indice = this.progressIndex;
     if (this.phase === "arrivee") {
       this.ctx.onRoad = this.onRoad;
       stepCar(this.car, COAST, this.ctx, SIM_DT);
@@ -6701,7 +6858,8 @@ var RaceSim = class {
     const s = Math.max(0, this.maxProgressS - 5);
     const idx = Math.min(track.samples.length - 1, Math.round(s));
     const sp = track.samples[idx];
-    const fresh = createCarState(sp.x, sp.z, atan2(sp.tx, sp.tz), this.config.terrain.heightAt(sp.x, sp.z));
+    this.sol.indice = idx;
+    const fresh = createCarState(sp.x, sp.z, atan2(sp.tx, sp.tz), this.sol.heightAt(sp.x, sp.z));
     fresh.wheelSpin = this.car.wheelSpin;
     Object.assign(this.car, fresh);
     copyCarState(this.car, this.prevCar);
@@ -7306,4 +7464,4 @@ async function traiterCourse(corps, empreinteServeur, maintenant = /* @__PURE__ 
 export {
   traiterCourse
 };
-export const EMPREINTE = '659f1f8536d768da';
+export const EMPREINTE = '02d349708045b4e9';

@@ -15,7 +15,7 @@ import type { InputManager } from '../input/manager';
 import { vibrationChoc, vibrationDrift, vibrationHorsPiste } from '../input/gamepad';
 import type { Reglages } from '../storage/store';
 import { FixedStepLoop } from './loop';
-import { interpolatePose } from './pose';
+import { interpolatePose, SolAffiche } from './pose';
 import type { Hud } from './hud';
 import type { PreparedLevel } from './prepare';
 import { camDepuisUrl, type CamLibre } from '../debug/camLibre';
@@ -89,8 +89,11 @@ export class GameSession {
   private fantome: Film | null = null;
   /** pas de simulation joués depuis le départ */
   private pas = 0;
+  /** sol de l'affichage : le tablier des ponts ou le terrain, selon la hauteur de la voiture */
+  private readonly solAffiche: SolAffiche;
 
   constructor(private readonly level: PreparedLevel, private readonly deps: SessionDeps, private readonly cb: SessionCallbacks) {
+    this.solAffiche = new SolAffiche(level.terrain, level.track);
     this.world = new World({
       renderer: deps.renderer, level: level.level, track: level.track, terrain: level.terrain, env: level.env,
       assets: deps.assets, carId: deps.reglages.voiture, color: deps.reglages.couleur, skin: skinChoisie(deps.reglages.skins, deps.reglages.voiture), fumee: deps.reglages.fumee, quality: deps.quality.level,
@@ -110,10 +113,10 @@ export class GameSession {
     const cam = camDepuisUrl(location.search);
     if (cam) this.world.camLibre = cam;
     const tp = (s: number): void => {
-      const { track, terrain } = this.level;
+      const { track } = this.level;
       const sp = track.samples[Math.max(0, Math.min(track.samples.length - 1, Math.round(s)))];
       for (const c of [this.race.car, this.race.prevCar]) {
-        c.x = sp.x; c.z = sp.z; c.y = terrain.heightAt(sp.x, sp.z); c.heading = Math.atan2(sp.tx, sp.tz);
+        c.x = sp.x; c.z = sp.z; this.solAffiche.ref = sp.y; c.y = this.solAffiche.heightAt(sp.x, sp.z); c.heading = Math.atan2(sp.tx, sp.tz);
         c.vx = c.vz = c.speed = 0;
       }
     };
@@ -166,7 +169,7 @@ export class GameSession {
 
     const alpha = this.loop.advance(dt);
     const car = this.race.car;
-    const pose = interpolatePose(this.race.prevCar, car, alpha, this.level.terrain);
+    const pose = interpolatePose(this.race.prevCar, car, alpha, this.solAffiche);
     this.world.placerFantome(this.poseFantome(alpha));
     this.world.update(pose, car, dt, this.camCfg);
     this.world.render();
@@ -243,7 +246,7 @@ export class GameSession {
     }
     this.world.camPhoto = cam;
     const car = this.voitureAffichee();
-    this.world.update(interpolatePose(car, car, 1, this.level.terrain), car, 0, this.camCfg);
+    this.world.update(interpolatePose(car, car, 1, this.solAffiche), car, 0, this.camCfg);
     this.world.render();
   }
 
@@ -292,7 +295,7 @@ export class GameSession {
     const f = this.fantome;
     const i = this.pas - 1;
     if (!f || i < 0 || i >= f.images.length) return null;
-    return interpolatePose(f.images[Math.max(0, i - 1)].car, f.images[i].car, alpha, this.level.terrain);
+    return interpolatePose(f.images[Math.max(0, i - 1)].car, f.images[i].car, alpha, this.solAffiche);
   }
 
   // --- Revoir sa course ------------------------------------------------------------------------------------
@@ -324,7 +327,7 @@ export class GameSession {
     this.world.resetEffects();
     this.deps.audio.stopEngine();
     // l'écran de course derrière les résultats : la voiture arrêtée après la ligne
-    this.world.update(interpolatePose(this.race.prevCar, this.race.car, 1, this.level.terrain), this.race.car, 0, this.camCfg);
+    this.world.update(interpolatePose(this.race.prevCar, this.race.car, 1, this.solAffiche), this.race.car, 0, this.camCfg);
     this.world.render();
     this.deps.hud.update(this.race.hud());
   }
@@ -381,7 +384,7 @@ export class GameSession {
     // cap de l'hélicoptère lissé (les drifts ne le font pas tourner d'un coup)
     const cible = car.speed > 2 ? Math.atan2(car.vx, car.vz) : car.heading;
     f.cap += wrapAngle(cible - f.cap) * (1 - Math.exp(-1.5 * dtFilm));
-    const pose = interpolatePose(prev.car, car, a, this.level.terrain);
+    const pose = interpolatePose(prev.car, car, a, this.solAffiche);
     this.world.camPhoto = this.planFilm({ ...car, x: pose.x, y: pose.y, z: pose.z }, prev.s + (cur.s - prev.s) * a);
     const vue = this.world.vue;
     if (f.camera === 'poursuite') this.world.vue = 'proche';

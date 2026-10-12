@@ -8,6 +8,7 @@ import { smoothstep, DEG } from '../math/vec';
 import { CERCLES_MULTIPLES, COLLIDER_RADIUS, SANS_COLLISION, SOLID_DISTANCE, VARIANTS, type DecorKind, type EnvItem, type Environment } from './types';
 import { THEMES, TYPES_VILLE, tirerType, type Essence } from './themes';
 import { jusquAuBout } from '../track/terrain';
+import { ajouterPonts, HAUTEUR_OBSTACLE } from './ponts';
 import { batimentDe, boiteDe } from './ville';
 import * as dm from '../math/dmath';
 
@@ -149,8 +150,22 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
     return dm.hypot(g.gx, g.gz);
   };
   const posés: { x: number; z: number; r: number }[] = [];
+  // ponts : rien n'est posé sous un tablier, et les obstacles ne gênent que les voitures à leur hauteur
+  const pont = track.pont ?? null;
+  const surTablier = (x: number, z: number, marge: number): boolean => {
+    if (!pont) return false;
+    track.grid.query(x, z, 20 + marge, voisins);
+    for (const i of voisins) {
+      if (!pont[i]) continue;
+      const sp = S[i], r = sp.w + marge;
+      if ((sp.x - x) * (sp.x - x) + (sp.z - z) * (sp.z - z) < r * r) return true;
+    }
+    return false;
+  };
+  const hauteur = (y: number): { hauteur?: [number, number] } => (pont ? { hauteur: [y - HAUTEUR_OBSTACLE[0], y + HAUTEUR_OBSTACLE[1]] } : {});
   const add = (item: EnvItem): void => {
     if (garder && !item.manual && !garder(item.x, item.z)) return;
+    if (pont && !item.manual && surTablier(item.x, item.z, 4)) return;
     env.items.push(item);
     const box = boiteDe(item.kind, item.variant);
     if (theme.bord.sansChevauchement) {
@@ -181,6 +196,8 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
     for (let i = i0; i < i1; i += 2) {
       const j = Math.min(i + 2, i1);
       const sp = S[i];
+      // sur un pont, les garde-corps du pont remplacent les barrières (voir ajouterPonts)
+      if (pont && pont[i]) { leftCovered[i] = rightCovered[i] = 1; continue; }
       let sides: number[];
       if (b.cote === 'gauche') sides = [1];
       else if (b.cote === 'droite') sides = [-1];
@@ -193,7 +210,7 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
         const a = S[i], c = S[j];
         const ax = a.x + a.nx * side * (a.w + 0.8), az = a.z + a.nz * side * (a.w + 0.8);
         const bx = c.x + c.nx * side * (c.w + 0.8), bz = c.z + c.nz * side * (c.w + 0.8);
-        env.segments.push({ ax, az, bx, bz });
+        env.segments.push({ ax, az, bx, bz, ...hauteur((a.y + c.y) / 2) });
         const mx = (ax + bx) / 2, mz = (az + bz) / 2;
         env.barriers.push({ x: mx, y: terrain.heightAt(mx, mz), z: mz, rot: dm.atan2(bx - ax, bz - az), len: dm.hypot(bx - ax, bz - az) });
         const covered = side > 0 ? leftCovered : rightCovered;
@@ -207,7 +224,7 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
     const rot = o.rot * DEG;
     if (o.type === 'barriere') {
       const dx = dm.sin(rot) * 2, dz = dm.cos(rot) * 2;
-      env.segments.push({ ax: o.x - dx, az: o.z - dz, bx: o.x + dx, bz: o.z + dz });
+      env.segments.push({ ax: o.x - dx, az: o.z - dz, bx: o.x + dx, bz: o.z + dz, ...hauteur(terrain.heightAt(o.x, o.z)) });
       env.barriers.push({ x: o.x, y: terrain.heightAt(o.x, o.z), z: o.z, rot, len: 4 });
       continue;
     }
@@ -251,7 +268,8 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
     const poserMur = (ax: number, az: number, bx: number, bz: number): void => {
       const mx = (ax + bx) / 2, mz = (az + bz) / 2;
       if (garder && !garder(mx, mz)) return;
-      env.segments.push({ ax, az, bx, bz });
+      if (pont && surTablier(mx, mz, 3)) return;
+      env.segments.push({ ax, az, bx, bz, ...hauteur(terrain.heightAt(mx, mz)) });
       cloisons.push({ x: mx, y: Math.min(terrain.heightAt(ax, az), terrain.heightAt(bx, bz)), z: mz, rot: dm.atan2(bx - ax, bz - az), len: dm.hypot(bx - ax, bz - az) });
       const seg = { ax, az, bx, bz };
       const i0 = Math.floor(Math.min(ax, bx) / CASE_MUR), i1 = Math.floor(Math.max(ax, bx) / CASE_MUR);
@@ -589,5 +607,6 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
     }
   }
 
+  if (pont) ajouterPonts(env, track, terrain);
   return env;
 }
