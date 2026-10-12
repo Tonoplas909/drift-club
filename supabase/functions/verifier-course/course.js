@@ -5154,37 +5154,37 @@ var echangeur_holographique_default = {
       l: 13.5
     },
     {
-      x: -0,
+      x: 0,
       z: 40,
       y: 13.61,
       l: 13.5
     },
     {
-      x: -0,
+      x: 0,
       z: 20,
       y: 14.3,
       l: 13.5
     },
     {
-      x: -0,
+      x: 0,
       z: 0,
       y: 15,
       l: 13.5
     },
     {
-      x: -0,
+      x: 0,
       z: -23.3,
       y: 14.62,
       l: 13.5
     },
     {
-      x: -0,
+      x: 0,
       z: -46.7,
       y: 14.25,
       l: 13.5
     },
     {
-      x: -0,
+      x: 0,
       z: -70,
       y: 13.87,
       l: 13.5
@@ -12122,4 +12122,4 @@ async function traiterCourse(corps, empreinteServeur, maintenant = /* @__PURE__ 
 export {
   traiterCourse
 };
-export const EMPREINTE = 'a20b72201e21ef7e';
+export const EMPREINTE = 'de1e6d1dc2d9f07a';
