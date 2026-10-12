@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { gaugeRatio, gaugeColor } from '../../src/render/speedGauge';
+import { gaugeRatio, gaugeColor, repereDrift, SpeedGauge } from '../../src/render/speedGauge';
+import { DEFAULT_SCORE_PARAMS } from '../../src/core/scoring/score';
 
 describe('jauge de vitesse', () => {
   it('vide à l’arrêt et en marche arrière, pleine à la vitesse max', () => {
@@ -16,5 +17,17 @@ describe('jauge de vitesse', () => {
     expect(rouge.g).toBeLessThan(0.1);
     expect(milieu.r).toBeGreaterThan(vert.r);
     expect(milieu.g).toBeGreaterThan(rouge.g);
+  });
+  it('repère des drifts qui comptent : à la vitesse minimale du score', () => {
+    const pleine = 50;
+    const r = repereDrift(pleine);
+    expect(r).toBeCloseTo(DEFAULT_SCORE_PARAMS.speedMinKmh / 3.6 / pleine, 9);
+    // la jauge atteint le repère exactement à cette vitesse
+    expect(gaugeRatio(DEFAULT_SCORE_PARAMS.speedMinKmh / 3.6, false, pleine)).toBeCloseTo(r, 9);
+    expect(repereDrift(5)).toBe(1);
+    const g = new SpeedGauge();
+    g.setRepere(r);
+    g.setRepere(null);
+    g.dispose();
   });
 });

@@ -13,6 +13,15 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.24',
+    date: '12/10/2026',
+    titre: 'Repère de vitesse des drifts',
+    notes: [
+      'La jauge de vitesse à côté de la voiture a maintenant un repère : il marque les 30 km/h à partir desquels un drift commence à compter dans les points.',
+      'Le repère s\'allume dès que tu le dépasses : en dessous, tes glissades ne rapportent rien.',
+    ],
+  },
+  {
     version: '0.5.23',
     date: '12/10/2026',
     titre: '19 nouveaux niveaux',

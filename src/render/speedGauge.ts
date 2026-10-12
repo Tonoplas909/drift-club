@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { clamp } from '../core/math/vec';
+import { DEFAULT_SCORE_PARAMS } from '../core/scoring/score';
 
 const HAUTEUR = 1.0;
 const LARGEUR = 0.17;
@@ -12,6 +13,11 @@ const BAS = 0.35;
 /** Remplissage de la jauge : 0 à l'arrêt ou en marche arrière, 1 à `pleine` (m/s) et au-delà. */
 export function gaugeRatio(speed: number, reverse: boolean, pleine: number): number {
   return reverse ? 0 : clamp(speed / pleine, 0, 1);
+}
+
+/** Hauteur (0 à 1) du repère de la vitesse à partir de laquelle un drift compte dans les points. */
+export function repereDrift(pleine: number, kmh = DEFAULT_SCORE_PARAMS.speedMinKmh): number {
+  return clamp(kmh / 3.6 / pleine, 0, 1);
 }
 
 /** Couleur au niveau `t` de la jauge : vert → jaune → rouge. */
@@ -28,6 +34,9 @@ export class SpeedGauge {
   private readonly right = new THREE.Vector3();
   private readonly tmp = new THREE.Color();
   private shown = 0;
+  /** repère de la vitesse minimale des drifts qui comptent (caché tant qu'il n'est pas placé) */
+  private readonly repere = new THREE.Group();
+  private readonly repereTrait: THREE.MeshBasicMaterial;
 
   constructor() {
     const mat = (o: THREE.MeshBasicMaterialParameters) => {
@@ -51,7 +60,30 @@ export class SpeedGauge {
     back.renderOrder = 20;
     this.fill.renderOrder = 21;
     this.root.add(back, this.fill);
+    // repère : trait clair bordé de sombre, qui dépasse un peu de chaque côté de la jauge
+    const ombre = new THREE.Mesh(plane(LARGEUR + 2 * BORD + 0.1, 0.05), mat({ color: 0x14161c, opacity: 0.9 }));
+    ombre.position.y = -0.025;
+    this.repereTrait = mat({ color: 0xffffff, opacity: 0.6 });
+    const trait = new THREE.Mesh(plane(LARGEUR + 2 * BORD + 0.06, 0.022), this.repereTrait);
+    trait.position.set(0, -0.011, 0.002);
+    ombre.renderOrder = 22;
+    trait.renderOrder = 23;
+    this.repere.add(ombre, trait);
+    this.repere.visible = false;
+    this.root.add(this.repere);
     this.setFill(0);
+  }
+
+  /** Place le repère à la hauteur `t` (0 à 1) de la jauge, ou le cache (null). */
+  setRepere(t: number | null): void {
+    this.repere.visible = t !== null;
+    if (t !== null) this.repere.position.y = clamp(t, 0, 1) * HAUTEUR;
+  }
+
+  /** Le repère s'allume quand la vitesse le dépasse : le drift compte. */
+  private majRepere(): void {
+    if (!this.repere.visible) return;
+    this.repereTrait.opacity = this.shown * HAUTEUR >= this.repere.position.y ? 1 : 0.6;
   }
 
   /** Dégradé du bas (vert) jusqu'à la couleur du niveau atteint en haut. */
@@ -71,6 +103,7 @@ export class SpeedGauge {
   update(x: number, y: number, z: number, carWidth: number, ratio: number, camera: THREE.Camera, dt: number): void {
     this.shown += (ratio - this.shown) * (1 - Math.exp(-12 * dt));
     this.setFill(this.shown);
+    this.majRepere();
     this.right.set(1, 0, 0).applyQuaternion(camera.quaternion);
     this.right.y = 0;
     this.right.normalize().multiplyScalar(carWidth / 2 + ECART);
