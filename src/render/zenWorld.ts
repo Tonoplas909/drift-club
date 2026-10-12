@@ -64,6 +64,8 @@ export class ZenWorld {
   private palette: Palette;
   private yFond = 0;
   private readonly rear = [new THREE.Vector3(), new THREE.Vector3()];
+  /** moto : une seule roue arrière (fumée émise une fois, pas deux) */
+  private readonly rearSeule = [this.rear[0]];
   private readonly target: CameraTarget = { x: 0, y: 0, z: 0, heading: 0, vx: 0, vz: 0, speed: 0 };
   camLibre: CamLibre | null = null;
   /** caméra du mode photo (pendant la pause) : remplace la caméra de poursuite */
@@ -189,7 +191,7 @@ export class ZenWorld {
     const route = this.init.route;
     this.carView.update(pose);
     this.carView.rearWheels(this.rear);
-    if (car.rearSlip > 0.05 && car.speed > 1) this.smoke.emit(this.rear, car.rearSlip * 35, dt, car.vx, car.vz);
+    if (car.rearSlip > 0.05 && car.speed > 1) this.smoke.emit(CARS[this.init.carId].genre === 'moto' ? this.rearSeule : this.rear, car.rearSlip * 35, dt, car.vx, car.vz);
     this.smoke.update(dt);
     const marking = car.rearSlip > 0.35 && car.speed > 3;
     this.skids.add(0, this.rear[0], marking);

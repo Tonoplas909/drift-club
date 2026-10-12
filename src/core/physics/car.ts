@@ -14,6 +14,7 @@ export function createCarState(x: number, z: number, heading: number, y = 0): Ca
   return {
     x, y, z, heading, vx: 0, vz: 0, yawRate: 0, steer: 0, steerInput: 0, ax: 0, beta: 0, speed: 0,
     vLong: 0, vLat: 0, rearSlip: 0, wheelSpin: 0, rpm: 900, gear: 1, reverse: false, throttle: 0, throttleSmooth: 0, prevVelAngle: heading,
+    lean: 0,
   };
 }
 
@@ -118,11 +119,23 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
   const dirSign = vLong0 >= 0 ? 1 : -1;
   const alphaF = dm.atan2(vLat0 + car.yawRate * a, vAbs) - steer * dirSign;
   const alphaR = dm.atan2(vLat0 - car.yawRate * b, vAbs);
-  const Fyf = tireForce(alphaF, Fzf, muF, p.tireB, p.tireC) * frontLat;
-  const Fyr = tireForce(alphaR, Fzr, muR, p.tireB, p.tireC) * rearLat;
+  let Fyf = tireForce(alphaF, Fzf, muF, p.tireB, p.tireC) * frontLat;
+  let Fyr = tireForce(alphaR, Fzr, muR, p.tireB, p.tireC) * rearLat;
+  const cosD = dm.cos(steer), sinD = dm.sin(steer);
+
+  // Moto : elle penche pour tenir le virage ; au-delà de leanMax, les pneus lâchent (force latérale plafonnée)
+  const moto = p.genre === 'moto';
+  if (moto) {
+    const maxLat = m * G * dm.tan(p.leanMax ?? 0.8);
+    const lat = Math.abs(Fyr + Fyf * cosD + Ffx * sinD);
+    if (lat > maxLat) {
+      const k = maxLat / lat;
+      Fyf *= k;
+      Fyr *= k;
+    }
+  }
 
   // Somme des forces (repère voiture : x = avant, y = gauche) et couple
-  const cosD = dm.cos(steer), sinD = dm.sin(steer);
   const rolling = p.rollResist * (ctx.onRoad ? 1 : 4);
   const Fx = Frx + Ffx * cosD - Fyf * sinD - p.dragCoef * vLong0 * Math.abs(vLong0) - rolling * vLong0;
   const Fy = Fyr + Fyf * cosD + Ffx * sinD;
@@ -164,7 +177,7 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
     const dirIn = clamp(input.direction, -1, 1);
     const dir = dirIn !== 0 ? Math.sign(dirIn) : beta2 !== 0 ? -Math.sign(beta2) : 0;
     const amount = dirIn !== 0 ? Math.abs(dirIn) : 0.6;
-    const betaTarget = -dir * as.arcadeBeta * amount;
+    const betaTarget = -dir * Math.min(as.arcadeBeta, p.arcadeBetaMax ?? as.arcadeBeta) * amount;
     // au-delà de la cible dans le sens de la rotation : l'aide lâche prise (pleine à la cible, nulle à cible + 25°)
     const over = Math.max(0, Math.abs(beta2) - Math.abs(betaTarget)) * (Math.sign(beta2) === Math.sign(betaTarget) || betaTarget === 0 ? 1 : 0);
     const authority = 1 - smoothstep(0, 25 * DEG, over);
@@ -204,6 +217,13 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
   car.vLat = car.vx * c2 - car.vz * s2;
   car.speed = dm.hypot(car.vx, car.vz);
   car.beta = car.speed > 1 ? dm.atan2(car.vLat, car.vLong) : 0;
+  // Inclinaison de la moto : vers l'équilibre de l'accélération latérale, avec un temps de bascule
+  if (moto) {
+    const leanMax = p.leanMax ?? 0.8;
+    const cible = clamp(dm.atan(Fy / m / G), -leanMax, leanMax) * smoothstep(1, 4, car.speed);
+    const r = (p.leanRate ?? 3.5) * dt;
+    car.lean = clamp(car.lean + clamp(cible - car.lean, -r, r), -leanMax, leanMax);
+  }
   // accélération issue des forces (pas de la dérivée de vLong : la rotation du cap simulerait un freinage et fausserait le transfert de masse)
   const axNow = clamp(Fx / m, -15, 15);
   car.ax += (axNow - car.ax) * Math.min(1, 8 * dt);

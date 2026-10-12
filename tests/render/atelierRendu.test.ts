@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { buildSkinGeometry } from '../../src/render/skins';
 import { buildJdmCar, CAR_SHAPES } from '../../src/render/jdmCars';
 import { MOTIFS, type Reglage } from '../../src/core/atelier';
-import { CAR_IDS } from '../../src/core/physics/cars';
+import { VOITURE_IDS as CAR_IDS } from '../../src/core/physics/cars';
 import type { SkinDef, SkinElement } from '../../src/core/skins';
 
 /** Variante d'un motif avec tous ses réglages numériques au minimum ou au maximum. */

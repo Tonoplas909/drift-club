@@ -67,5 +67,7 @@ export function interpolatePose(prev: CarState, cur: CarState, alpha: number, gr
     groundRoll: Math.atan2(hl - hr, 1.6),
     pitch: clamp(cur.ax * 0.006, -0.05, 0.05),
     roll: clamp(cur.yawRate * cur.speed * 0.004, -0.08, 0.08),
+    // inclinaison des motos (absente des images enregistrées avant elles : 0)
+    lean: lerp(prev.lean ?? 0, cur.lean ?? 0, alpha),
   };
 }

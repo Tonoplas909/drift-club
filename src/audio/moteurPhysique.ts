@@ -28,11 +28,13 @@ export const PROFILS_MOTEUR: Record<CarId, ProfilMoteur> = {
   rotative: { cylindres: 4, admission: 58, echappement: 52, collecteur: 50, ligne: 88, silencieux: [8, 12, 18, 22], action: 0.06, sortie: 4, allumage: 0.03, rotatif: { recouvrement: 0.12, brap: 1 }, mix: { admission: 0.35, bloc: 0.6, sortie: 1 }, niveau: 1.75 },
   // quatre cylindres de break : placide, un peu étouffé
   break: { cylindres: 4, admission: 112, echappement: 110, collecteur: 112, ligne: 150, silencieux: [12, 18, 24, 30], action: 0.1, sortie: 6, allumage: 0.017, mix: MIX, niveau: 0.74 },
+  // monocylindre de supermotard : explosions espacées et sèches (« pom-pom-pom »), échappement court qui claque
+  supermotard: { cylindres: 1, admission: 60, echappement: 66, collecteur: 58, ligne: 86, silencieux: [8, 12, 16], action: 0.08, sortie: 4, allumage: 0.02, mix: { admission: 0.4, bloc: 0.45, sortie: 1 }, niveau: 0.3 },
 };
 
 /** Clarté du son (ouverture du passe-bas de la chaîne) : V8 sourd, petits moteurs pointus. */
 export const CLARTE_MOTEUR: Record<CarId, number> = {
-  equilibree: 1, legere: 1.1, turbo: 0.95, kei: 1.5, muscle: 0.7, rotative: 1.2, break: 0.9,
+  equilibree: 1, legere: 1.1, turbo: 0.95, kei: 1.5, muscle: 0.7, rotative: 1.2, break: 0.9, supermotard: 1.35,
 };
 
 export const NOM_PROCESSEUR = 'drift-club-moteur';

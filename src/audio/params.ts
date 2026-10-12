@@ -75,6 +75,8 @@ export const CAR_SOUND: Record<CarId, CarSound> = {
   rotative: { pitch: 1.25, detune: 4, saw: 0.45, sub: 0.2, upper: 0.62, cutBase: 520, cutRpm: 0.26, cutThrottle: 850, q: 3, drive: 1.6, noise: 0.11, level: 1.02, turbo: false, rpmMax: 9000 },
   // break : quatre cylindres placide, plutôt grave et rond
   break: { pitch: 0.94, detune: 7, saw: 0.5, sub: 0.6, upper: 0.2, cutBase: 340, cutRpm: 0.17, cutThrottle: 560, q: 2, drive: 1.5, noise: 0.06, level: 0.98, turbo: false, rpmMax: 6800 },
+  // monocylindre de supermotard : sec et nerveux, très haut dans les tours
+  supermotard: { pitch: 1.1, detune: 18, saw: 0.6, sub: 0.4, upper: 0.45, cutBase: 480, cutRpm: 0.22, cutThrottle: 750, q: 2.6, drive: 1.9, noise: 0.09, level: 1.05, turbo: false, rpmMax: 11000 },
 };
 
 export interface EngineTargets {

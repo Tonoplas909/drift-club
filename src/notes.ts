@@ -13,6 +13,18 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.25',
+    date: '12/10/2026',
+    titre: 'Première moto : La Supermotard',
+    notes: [
+      'Première moto : La Supermotard rejoint le Garage ! Très légère, elle penche dans les virages et se met en travers au frein arrière (touche frein à main).',
+      'Attention à l\'angle : au-delà de 70° de dérive, elle tombe. La chute fait perdre le drift en cours et te replace sur la route.',
+      'Son de monocylindre, pilote casqué aux couleurs de la moto, et des livrées en teintes d\'usine à gagner dans les caisses.',
+      'Les vues embarquées s\'adaptent : réservoir, fourche, casque, roue arrière et vue haute.',
+      'Le classement est commun aux voitures et aux motos, avec le même barème.',
+    ],
+  },
+  {
     version: '0.5.24',
     date: '12/10/2026',
     titre: 'Repère de vitesse des drifts',

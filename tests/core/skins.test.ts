@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { SKINS, SKIN_DEFAUT, skinChoisie, skinDef, choisirSkin, validerSkins, resoudreTeinte, accentSkin, couleurEffective } from '../../src/core/skins';
 import { RARETES, RARETE_IDS } from '../../src/core/raretes';
-import { CAR_IDS } from '../../src/core/physics/cars';
+import { CAR_IDS, VOITURE_IDS } from '../../src/core/physics/cars';
 
 describe('données des livrées', () => {
   it('au moins 28 livrées par voiture, « unie » en premier, ids uniques, noms et descriptions non vides', () => {
-    for (const car of CAR_IDS) {
+    for (const car of VOITURE_IDS) {
       const l = SKINS[car];
       expect(l.length).toBeGreaterThanOrEqual(28);
       expect(l[0].id).toBe('unie');
@@ -27,7 +27,7 @@ describe('données des livrées', () => {
     }
   });
   it('pyramide des raretés : au moins 8 communes (hors unie), au plus 3 exotiques, plus de communes que de rares', () => {
-    for (const car of CAR_IDS) {
+    for (const car of VOITURE_IDS) {
       const n = (r: string) => SKINS[car].filter((s) => s.id !== 'unie' && s.rarete === r).length;
       expect(n('commune')).toBeGreaterThanOrEqual(8);
       expect(n('exotique')).toBeLessThanOrEqual(3);
@@ -49,8 +49,20 @@ describe('données des livrées', () => {
   it('les livrées non forcées à pastille : accent défini pour tous les types d\'éléments', () => {
     for (const car of CAR_IDS) for (const s of SKINS[car]) expect(accentSkin(s, '#3a6ff0')).toMatch(/^#[0-9a-f]{6}$/i);
   });
-  it('chaque livrée non unie a au moins un élément', () => {
-    for (const car of CAR_IDS) for (const s of SKINS[car].slice(1)) expect(s.elements.length).toBeGreaterThan(0);
+  it('chaque livrée de voiture non unie a au moins un élément', () => {
+    for (const car of VOITURE_IDS) for (const s of SKINS[car].slice(1)) expect(s.elements.length).toBeGreaterThan(0);
+  });
+  it('motos : livrées en teintes imposées (pas de silhouette pour poser des motifs), de la commune à la légendaire', () => {
+    const l = SKINS.supermotard;
+    expect(l[0].id).toBe('unie');
+    expect(l.length).toBeGreaterThanOrEqual(8);
+    expect(new Set(l.map((s) => s.id)).size).toBe(l.length);
+    for (const s of l.slice(1)) {
+      expect(s.couleurForcee).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(s.elements).toEqual([]);
+      expect(s.description.trim().length).toBeGreaterThan(10);
+    }
+    for (const r of ['commune', 'rare', 'epique', 'legendaire']) expect(l.some((s) => s.id !== 'unie' && s.rarete === r)).toBe(true);
   });
 });
 

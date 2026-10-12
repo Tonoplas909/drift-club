@@ -1,4 +1,5 @@
 import { CARS } from '../core/physics/cars';
+import { CRASH_IMPACT } from '../core/physics/collision';
 import { MODES } from '../core/physics/assists';
 import { skinChoisie } from '../core/skins';
 import { THEMES } from '../core/env/themes';
@@ -218,6 +219,12 @@ export class ZenSession {
         this.deps.audio.playCrash(e.impact);
         this.world.shake(e.impact);
         this.deps.input.gamepad?.vibrer(vibrationChoc(e.impact), performance.now());
+        break;
+      case 'chute':
+        this.deps.audio.playCrash(2 * CRASH_IMPACT);
+        this.world.shake(2 * CRASH_IMPACT);
+        this.deps.input.gamepad?.vibrer(vibrationChoc(2 * CRASH_IMPACT), performance.now());
+        this.deps.hud.annonce('Chute !');
         break;
       case 'replace':
         this.world.resetCamera(this.sim.car);

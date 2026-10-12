@@ -3,7 +3,7 @@
  * administrateurs, valider (en choisissant la rareté) ou refuser celles des joueurs. L'aperçu 3D est celui du showroom.
  */
 import type { CarId } from '../core/physics/types';
-import { CARS, CAR_IDS } from '../core/physics/cars';
+import { CARS, VOITURE_IDS } from '../core/physics/cars';
 import { RARETES, RARETE_IDS, type Rarete } from '../core/raretes';
 import type { SkinDef, SkinElement } from '../core/skins';
 import { LIMITES_ATELIER, MOTIFS, TEINTES_RELATIVES, motifDe, validerElement, validerLivree, type LivreeAtelier, type Reglage } from '../core/atelier';
@@ -75,7 +75,7 @@ function lireBrouillon(raw: unknown, voiture: CarId, couleur: string): Brouillon
   const b = brouillonVide(voiture, couleur);
   if (typeof raw !== 'object' || raw === null) return b;
   const o = raw as Record<string, unknown>;
-  if (CAR_IDS.includes(o.voiture as CarId)) b.voiture = o.voiture as CarId;
+  if ((VOITURE_IDS as CarId[]).includes(o.voiture as CarId)) b.voiture = o.voiture as CarId;
   if (typeof o.couleurEssai === 'string' && HEX.test(o.couleurEssai)) b.couleurEssai = o.couleurEssai;
   if (typeof o.nom === 'string') b.nom = o.nom.slice(0, LIMITES_ATELIER.nomMax);
   if (typeof o.description === 'string') b.description = o.description.slice(0, LIMITES_ATELIER.descriptionMax);
@@ -252,7 +252,7 @@ export function ecranAtelier(o: OptionsAtelier): HTMLElement {
     };
 
     return [
-      h('div', { class: 'choices voitures' }, ...CAR_IDS.map((id) =>
+      h('div', { class: 'choices voitures' }, ...VOITURE_IDS.map((id) =>
         h('button', { class: 'choice' + (id === b.voiture ? ' on' : ''), onclick: () => { b.voiture = id; enregistrer(); dessiner(); } }, h('b', {}, CARS[id].nom)))),
       h('div', { class: 'swatches' + (b.couleurForcee ? ' figees' : '') }, ...COULEURS.map((c) =>
         h('button', { class: 'swatch' + (c.hex === b.couleurEssai ? ' on' : ''), style: `background:${c.hex}`, title: `Essayer en ${c.nom.toLowerCase()}`, 'aria-label': c.nom, disabled: !!b.couleurForcee, onclick: () => { b.couleurEssai = c.hex; enregistrer(); dessiner(); } }))),

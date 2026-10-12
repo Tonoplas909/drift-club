@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { VUES_CAMERA, angleVolant, estEmbarquee, lireVue, pointsVue, vueSuivante } from '../../src/render/vuesEmbarquees';
 import { CAR_SHAPES } from '../../src/render/jdmCars';
-import { CAR_IDS } from '../../src/core/physics/cars';
+import { VOITURE_IDS as CAR_IDS } from '../../src/core/physics/cars';
 
 describe('caméras embarquées', () => {
   it('la touche C fait le tour des vues', () => {

@@ -6,6 +6,7 @@ import type { Terrain } from '../track/terrain';
 import { projectOnTrack, nearestSample } from '../track/projection';
 import type { Environment } from '../env/types';
 import type { AssistParams, CarParams, CarState, StepContext } from '../physics/types';
+import { chute } from '../physics/moto';
 import { createCarState, copyCarState, stepCar } from '../physics/car';
 import { buildCollisionWorld, resolveCollisions, CRASH_IMPACT, type CollisionWorld } from '../physics/collision';
 import {
@@ -44,6 +45,8 @@ export type RaceEvent =
   | { type: 'decompte'; n: number }
   | ScoreEvent
   | { type: 'choc'; impact: number }
+  /** la moto est tombée (trop en travers, ou gros choc) : drift perdu, replacement */
+  | { type: 'chute' }
   | { type: 'replace'; auto: boolean }
   | { type: 'arrivee'; result: RaceResult };
 
@@ -154,8 +157,11 @@ export class RaceSim {
     this.ctx.onRoad = this.onRoad;
     stepCar(this.car, input, this.ctx, SIM_DT);
     const impact = resolveCollisions(this.car, this.config.car, this.world);
-    const crash = impact > CRASH_IMPACT;
-    if (crash) ev.push({ type: 'choc', impact });
+    const tombe = chute(this.config.car, this.car, impact);
+    const crash = impact > CRASH_IMPACT || tombe;
+    // une chute a son propre son et sa secousse : pas de « choc » en plus
+    if (tombe) ev.push({ type: 'chute' });
+    else if (impact > CRASH_IMPACT) ev.push({ type: 'choc', impact });
 
     // Progression (fenêtre autour de la dernière position : anti-raccourci)
     const proj = projectOnTrack(track, this.car.x, this.car.z, this.progressIndex);
@@ -189,6 +195,7 @@ export class RaceSim {
     // la voiture ne roule pas dans l'eau : elle est replacée dès qu'elle y entre
     if (!auto && this.config.terrain.distanceEau(this.car.x, this.car.z) > 0.5) auto = true;
     let reset = false;
+    if (tombe) auto = true;
     if (replacer || auto) {
       this.respawn();
       reset = true;

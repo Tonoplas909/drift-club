@@ -1,13 +1,18 @@
 import type { Ambiance, Barriere, Environnement, Level, Meteo, PointRoute } from './level/types';
 import { LIMITES } from './level/types';
 import type { CarId } from './physics/types';
-import { CAR_IDS } from './physics/cars';
 import { mulberry32 } from './math/rng';
 import { Dessinateur } from './zen/designer';
 import { Regions } from './zen/regions';
 import { buildTrack } from './track/buildTrack';
 import { zonesAutomatiques } from './track/clipping';
 import { validateLevel } from './level/validate';
+
+/**
+ * Véhicules tirés pour le défi du jour. Liste FIGÉE : y ajouter un véhicule changerait le défi des jours déjà joués
+ * (et refuserait leurs scores). Les nouveaux véhicules (motos) y entreront à partir d'une date fixée.
+ */
+export const VEHICULES_DEFI: readonly CarId[] = ['equilibree', 'legere', 'turbo', 'kei', 'muscle', 'rotative', 'break'];
 
 /** espacement (m) des points de contrôle repris sur la route dessinée (défi du jour ; l'éditeur en prend moins) */
 const PAS_POINTS = 16;
@@ -25,7 +30,7 @@ export interface NiveauGenere {
  */
 export function niveauGenere(graine: number, nom: string, pas = PAS_POINTS): NiveauGenere {
   const rng = mulberry32(graine ^ 0x5eed);
-  const voiture = CAR_IDS[Math.floor(rng() * CAR_IDS.length)];
+  const voiture = VEHICULES_DEFI[Math.floor(rng() * VEHICULES_DEFI.length)];
   const t = rng();
   const ambiance: Ambiance = t < 0.45 ? 'jour' : t < 0.75 ? 'coucher' : 'nuit';
   const meteo: Meteo | undefined = rng() < 0.25 ? 'pluie' : undefined;

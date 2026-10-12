@@ -218,6 +218,8 @@ export class FondMenu {
     vue.update({
       x, y: 0, z: this.z, heading: cap, steer: Math.max(-0.5, Math.min(0.5, -derive * 0.8)), wheelSpin: this.spin,
       groundPitch: 0, groundRoll: 0, pitch: -0.012, roll: 0.05 * Math.sin(w * this.t),
+      // une moto penche vers l'intérieur de la courbe (la trajectoire revient vers l'axe : à droite quand x > 0)
+      lean: -0.6 * Math.sin(w * this.t),
     });
     this.ombre.position.set(x, 0.03, this.z);
     this.ombre.scale.set(1.3, 1, 2.5);

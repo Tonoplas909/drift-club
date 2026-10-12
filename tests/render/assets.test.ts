@@ -4,7 +4,7 @@ import { toonGradient, toonMaterial, outlineGeometry, outlineMaterial } from '..
 import { coloredBox, wheelGeometry, borneGeometry, chevronGeometry, barrierGeometry, tireStack } from '../../src/render/procedural';
 import { buildJdmCar, CAR_SHAPES, PAINT, bodyProfile } from '../../src/render/jdmCars';
 import { bakeMesh, normalizeGeometry, paintGeometry, decorKey } from '../../src/render/assets';
-import { CARS, CAR_IDS } from '../../src/core/physics/cars';
+import { CARS, VOITURE_IDS as CAR_IDS } from '../../src/core/physics/cars';
 
 const finite = (g: THREE.BufferGeometry) => Array.from(g.getAttribute('position').array as Float32Array).every(Number.isFinite);
 const bbox = (g: THREE.BufferGeometry) => { g.computeBoundingBox(); return g.boundingBox!; };

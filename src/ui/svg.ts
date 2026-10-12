@@ -48,11 +48,26 @@ const SILHOUETTES: Record<CarId, { corps: string; vitre: string; roues: [number,
   // rotative : coin bas, phares escamotables sortis
   rotative: { corps: 'M3 21 L4 14.5 L21 12.5 L29 7.5 L42 7.5 L49 12.5 L62 15.5 L62 21 Z', vitre: 'M30.5 9 L41 9 L45.5 12.5 L26.5 12.5 Z', roues: [16, 48],
     detail: '<rect x="53" y="11.4" width="4.6" height="3.4" rx="0.8" fill="#dfe3ea" stroke="#15131c" stroke-width="1.2"/>' },
+  // supermotard : dessinée à part (iconeMoto), ces tracés ne servent pas
+  supermotard: { corps: '', vitre: '', roues: [14, 50] },
 };
+
+/** Petite moto de profil (l'avant est à droite) : réservoir et carénages `base`, casque `accent`. */
+function iconeMoto(b: string, a: string, classe: string): HTMLSpanElement {
+  const roue = (x: number) => `<circle cx="${x}" cy="22" r="6" fill="#1d1d24" stroke="#15131c" stroke-width="1.5"/><circle cx="${x}" cy="22" r="2" fill="#c9ced8"/>`;
+  return enSpan(classe, `<svg viewBox="0 0 64 30" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">`
+    + `<path d="M14 22 L26 16 L40 17 L50 22" fill="none" stroke="#34363e" stroke-width="3" stroke-linecap="round"/>`
+    + `<path d="M48 22 L44 9" stroke="#c9ced8" stroke-width="2.4" stroke-linecap="round"/>`
+    + `<path d="M8 13 L24 12.5 L28 9.5 L41 9.5 L46 12 L42 14.5 L22 15.5 L10 15.5 Z" fill="${b}" stroke="#15131c" stroke-width="1.8" stroke-linejoin="round"/>`
+    + `<path d="M22 12.5 L27 4.5 L33 6.5 L36 9.5" fill="none" stroke="#26272f" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`
+    + `<circle cx="30" cy="3.6" r="3.4" fill="${a}" stroke="#15131c" stroke-width="1.5"/>`
+    + `${roue(14)}${roue(50)}</svg>`);
+}
 
 /** Petite voiture vue de profil (l'avant est à droite) : carrosserie `base`, filet `accent` ; la silhouette suit le modèle. */
 export function iconeVoiture(base: string, accent: string, modele: CarId = 'equilibree', classe = 'ico-voiture'): HTMLSpanElement {
   const b = hexOk(base, '#e63b2e'), a = hexOk(accent, b);
+  if (modele === 'supermotard') return iconeMoto(b, a, classe);
   const m = SILHOUETTES[modele] ?? SILHOUETTES.equilibree;
   const [ra, rb] = m.roues;
   const roue = (x: number) => `<circle cx="${x}" cy="22" r="5" fill="#1d1d24" stroke="#15131c" stroke-width="1.5"/><circle cx="${x}" cy="22" r="1.8" fill="#c9ced8"/>`;

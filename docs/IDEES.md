@@ -29,6 +29,7 @@ la fonction `verifier-course` (`npx vite-node tools/gen-fonction.ts`).
 | [Pluie et nuit](#pluie-et-nuit) | moyen | oui (simulation) | fait (0.5.16) |
 | [Ponts dans l'éditeur](#ponts-dans-léditeur) | moyen | oui (simulation) | fait (0.5.21) |
 | [Niveau aléatoire dans l'éditeur](#niveau-aléatoire-dans-léditeur) | petit | non | fait (0.5.22) |
+| [Motos](#motos) | gros | oui (simulation + migration) | en cours (0.5.25 : La Supermotard) |
 | [Fantômes et tandem](#fantômes-et-tandem) | gros | oui (migration + stockage) | à faire |
 | [Clubs](#clubs) | gros | oui (migration) | à faire |
 | [Saison](#saison) | gros | oui (migration) | à faire |
@@ -183,6 +184,14 @@ drift (ou nouveaux classements, comme pour les zones de clipping).
 
 ## Grosses
 
+### Motos
+
+Des deux-roues jouables partout : la moto penche dans les virages, glisse de l'arrière au frein et tombe si elle part
+trop en travers. Plan détaillé dans la doc « Ajouter des motos à Drift Club ». Fait en 0.5.25 : fondations (genre de
+véhicule, inclinaison, chute, liste du défi figée), La Supermotard (physique, modèle et pilote, son, livrées en
+teintes, vues embarquées), migration 0014. Reste : d'autres motos, des livrées dessinées pour les motos, les motos
+dans le défi du jour.
+
 ### Fantômes et tandem
 
 - **Fantôme** : courir contre son propre record, ou contre le premier du classement (voiture translucide qui rejoue son
@@ -215,12 +224,12 @@ serveur à mettre à jour.
 
 ### Wheelie à moto
 
-Ajouter des motos. Sur une moto, un wheelie (roue avant en l'air) rapporte des points, d'autant plus qu'il dure. Il se
+Suite des [Motos](#motos). Sur une moto, un wheelie (roue avant en l'air) rapporte des points, d'autant plus qu'il dure. Il se
 tient à l'accélérateur et au frein : trop de gaz et la moto se cabre et tombe en arrière, trop de frein et elle
 retombe sur la roue avant ; il faut doser les deux pour garder l'équilibre. Le frein avant et le frein arrière
 doivent être deux commandes distinctes (aujourd'hui il n'y a qu'un frein), et la manette doit pouvoir doser les
-gâchettes finement. Il faut un modèle de moto dans `src/core/physics` (tangage, roue avant et arrière, centre de masse
-haut) : rien de tel n'existe encore, d'où l'effort. Le score du wheelie (points par seconde, bonus au-delà d'un seuil)
+gâchettes finement. La Supermotard (0.5.25) a déjà un modèle deux-roues dans `src/core/physics` (inclinaison, chute) ;
+il lui manque le tangage (roue avant qui décolle, centre de masse haut) et les deux freins, d'où l'effort. Le score du wheelie (points par seconde, bonus au-delà d'un seuil)
 vit dans `src/core` ; la chute est une fin de figure, comme la sortie de piste. Serveur : la simulation et la fonction
 sont à régénérer ; une moto a son propre classement, ou ses niveaux à elle (les voitures n'ont pas de wheelie).
 
@@ -255,3 +264,4 @@ sont à régénérer ; une moto a son propre classement, ou ses niveaux à elle 
 | 0.5.22 | **Niveau aléatoire** dans « Mes niveaux » : route tirée au sort (dessinateur du mode Zen) dans le décor choisi ou au hasard, avec barrières et zones de clipping, à retoucher dans l'éditeur |
 | 0.5.23 | **19 nouveaux niveaux officiels** (50 au total) : quatre avec un pont, quatre sous la pluie, sept de nuit, dans tous les décors (Irohazaka, Col de la Bonette, Mirage de midi, Pluie sous les néons…) |
 | 0.5.24 | Repère sur la jauge de vitesse : la vitesse (30 km/h) à partir de laquelle un drift rapporte des points |
+| 0.5.25 | **Première moto, La Supermotard** : elle penche dans les virages, glisse de l'arrière au frein, tombe trop en travers ; modèle et pilote, son de monocylindre, livrées en teintes, vues embarquées (migration 0014) |

@@ -1,6 +1,11 @@
 import type { Ground } from '../track/terrain';
 
-export type CarId = 'equilibree' | 'legere' | 'turbo' | 'kei' | 'muscle' | 'rotative' | 'break';
+export type VoitureId = 'equilibree' | 'legere' | 'turbo' | 'kei' | 'muscle' | 'rotative' | 'break';
+export type MotoId = 'supermotard';
+/** Identifiant d'un véhicule (voiture ou moto) : c'est lui qui voyage dans les replays, les scores et la base. */
+export type CarId = VoitureId | MotoId;
+/** Genre de véhicule : les motos penchent en virage et peuvent chuter (voir stepCar). */
+export type GenreVehicule = 'voiture' | 'moto';
 export type ModeId = 'arcade' | 'semi' | 'exigeant';
 
 export interface CarParams {
@@ -33,6 +38,16 @@ export interface CarParams {
   throttleRise: number;  // 1/s, montée de l'accélérateur lissé
   throttleFall: number;  // 1/s, descente de l'accélérateur lissé
   rpmMax: number;        // tr/min, régime au rupteur (son et compte-tours ; sans effet sur la dynamique)
+  /** genre (absent : voiture) */
+  genre?: GenreVehicule;
+  /** moto : inclinaison maximale (rad) ; l'adhérence latérale est plafonnée à g × tan(leanMax) */
+  leanMax?: number;
+  /** moto : vitesse de bascule de l'inclinaison (rad/s) */
+  leanRate?: number;
+  /** moto : dérive (rad) au-delà de laquelle elle chute */
+  betaChute?: number;
+  /** moto : angle de dérive maximal visé par l'aide Drift du mode Arcade (rad) */
+  arcadeBetaMax?: number;
 }
 
 export interface AssistParams {
@@ -70,6 +85,8 @@ export interface CarState {
   /** accélérateur lissé (−1..1) : c'est lui qui pilote la force motrice */
   throttleSmooth: number;
   prevVelAngle: number;
+  /** inclinaison (rad, + à gauche) : toujours 0 pour une voiture */
+  lean: number;
 }
 
 export interface StepContext {

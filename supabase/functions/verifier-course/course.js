@@ -10579,7 +10579,7 @@ async function empreinteNiveau(level) {
 }
 
 // src/core/physics/cars.ts
-var CAR_IDS = ["equilibree", "legere", "turbo", "kei", "muscle", "rotative", "break"];
+var CAR_IDS = ["equilibree", "legere", "turbo", "kei", "muscle", "rotative", "break", "supermotard"];
 var CARS = {
   equilibree: {
     id: "equilibree",
@@ -10797,8 +10797,47 @@ var CARS = {
     throttleRise: 4,
     throttleFall: 8,
     rpmMax: 6800
+  },
+  supermotard: {
+    id: "supermotard",
+    nom: "La Supermotard",
+    genre: "moto",
+    mass: 200,
+    wheelbase: 1.45,
+    cgToFront: 0.72,
+    cgHeight: 0.62,
+    gyration: 1,
+    engineForce: 1300,
+    maxSpeed: 47,
+    brakeForce: 2400,
+    handbrakeForce: 900,
+    dragCoef: 0.3,
+    rollResist: 3,
+    muFront: 1.05,
+    muRear: 1,
+    tireB: 9,
+    tireC: 1.4,
+    maxSteer: 0.45,
+    steerLock: 0.55,
+    steerSpeed: 2.6,
+    steerReturn: 7,
+    steerCounter: 2.2,
+    steerSpeedReduction: 0.09,
+    length: 2.1,
+    width: 0.8,
+    yawDamp: 1.2,
+    throttleRise: 6,
+    throttleFall: 10,
+    rpmMax: 11e3,
+    leanMax: 48 * DEG,
+    leanRate: 3.5,
+    betaChute: 70 * DEG,
+    arcadeBetaMax: 30 * DEG
   }
 };
+var estMoto = (p) => p.genre === "moto";
+var estMotoId = (id) => estMoto(CARS[id]);
+var VOITURE_IDS = CAR_IDS.filter((id) => !estMotoId(id));
 
 // src/core/physics/assists.ts
 var MODE_IDS = ["arcade", "semi", "exigeant"];
@@ -10912,203 +10951,6 @@ async function decompresserReplay(o, max) {
 // src/core/constants.ts
 var SIM_DT = 1 / 120;
 
-// src/core/physics/car.ts
-var G = 9.81;
-var GEAR_STEPS = [0, 0.2, 0.38, 0.56, 0.76];
-var LAT_MIN = 0.35;
-var REAR_LAT_MIN = 0.5;
-function createCarState(x, z, heading, y = 0) {
-  return {
-    x,
-    y,
-    z,
-    heading,
-    vx: 0,
-    vz: 0,
-    yawRate: 0,
-    steer: 0,
-    steerInput: 0,
-    ax: 0,
-    beta: 0,
-    speed: 0,
-    vLong: 0,
-    vLat: 0,
-    rearSlip: 0,
-    wheelSpin: 0,
-    rpm: 900,
-    gear: 1,
-    reverse: false,
-    throttle: 0,
-    throttleSmooth: 0,
-    prevVelAngle: heading
-  };
-}
-function copyCarState(src, dst) {
-  return Object.assign(dst ?? {}, src);
-}
-function tireForce(alpha, load, mu, B, C) {
-  return -mu * load * sin(C * atan(B * alpha));
-}
-function stepCar(car, input, ctx, dt) {
-  const p = ctx.params, as = ctx.assists;
-  const m = p.mass, L = p.wheelbase, a = p.cgToFront, b = L - a;
-  const sinH = sin(car.heading), cosH = cos(car.heading);
-  const vLong0 = car.vx * sinH + car.vz * cosH;
-  const vLat0 = car.vx * cosH - car.vz * sinH;
-  const speed0 = hypot(car.vx, car.vz);
-  const beta0 = speed0 > 1 ? atan2(vLat0, vLong0) : 0;
-  const dirIn = clamp(input.direction, -1, 1);
-  const speedRed = 1 / (1 + speed0 * p.steerSpeedReduction);
-  const slideRelax = smoothstep(10 * DEG, 35 * DEG, Math.abs(beta0));
-  const maxSteer = p.maxSteer * lerp(speedRed, 1, slideRelax);
-  const target = dirIn * maxSteer;
-  const cur = car.steerInput;
-  const versGlisse = vLong0 > 2 && Math.abs(beta0) > 8 * DEG && target * beta0 > 0;
-  let rate;
-  if (target * cur >= 0 && Math.abs(target) < Math.abs(cur)) rate = p.steerReturn;
-  else if (target * cur < 0 || versGlisse) rate = p.steerSpeed * p.steerCounter;
-  else rate = p.steerSpeed * (0.4 + 0.6 * (maxSteer / p.maxSteer));
-  car.steerInput += clamp(target - cur, -rate * dt, rate * dt);
-  let steer = car.steerInput;
-  if (as.counterSteer > 0 && vLong0 > 2 && Math.abs(beta0) > as.counterSteerDeadzone) {
-    const b0 = clamp(beta0, -1.2, 1.2);
-    const oppose = clamp(-dirIn * Math.sign(b0), 0, 1);
-    steer += as.counterSteer * (1 - 0.85 * oppose) * (b0 - Math.sign(b0) * as.counterSteerDeadzone);
-  }
-  steer = clamp(steer, -p.steerLock, p.steerLock);
-  car.steer = steer;
-  if (!car.reverse) {
-    if (input.frein > 0 && vLong0 <= 0.5 && input.gaz === 0) car.reverse = true;
-  } else if (input.gaz > 0 && vLong0 >= -0.5) {
-    car.reverse = false;
-  }
-  const throttle = car.reverse ? -input.frein : input.gaz;
-  const brake = car.reverse ? input.gaz : input.frein;
-  car.throttle = throttle;
-  const tsRate = Math.abs(throttle) > Math.abs(car.throttleSmooth) ? p.throttleRise : p.throttleFall;
-  car.throttleSmooth += clamp(throttle - car.throttleSmooth, -tsRate * dt, tsRate * dt);
-  const drive = car.throttleSmooth;
-  const Fzf = Math.max(0.1 * m * G, m * G * b / L - m * car.ax * p.cgHeight / L);
-  const Fzr = Math.max(0.1 * m * G, m * G * a / L + m * car.ax * p.cgHeight / L);
-  const surface = (ctx.onRoad ? 1 : 0.7) * (ctx.adherence ?? 1);
-  const muF = p.muFront * surface;
-  let muR = p.muRear * surface;
-  const arcadeDrift = as.arcadeDrift && input.freinAMain && speed0 > 8.3;
-  const handbrake = input.freinAMain && !as.arcadeDrift;
-  if (arcadeDrift) muR *= as.arcadeRearGrip;
-  if (handbrake) muR *= 0.5;
-  let Fdrive = 0;
-  if (drive > 0) {
-    const r = clamp(vLong0 / p.maxSpeed, 0, 1);
-    Fdrive = drive * p.engineForce * (1 - r * r);
-  } else if (drive < 0 && vLong0 > -8) {
-    Fdrive = drive * p.engineForce * 0.4;
-  }
-  let FbrakeF = 0, FbrakeR = 0;
-  if (brake > 0 && Math.abs(vLong0) > 0.3) {
-    const dir = Math.sign(vLong0);
-    FbrakeF = -dir * brake * p.brakeForce * 0.6;
-    FbrakeR = -dir * brake * p.brakeForce * 0.4;
-  }
-  if (handbrake && Math.abs(vLong0) > 0.3) FbrakeR -= Math.sign(vLong0) * p.handbrakeForce;
-  const maxRx = muR * Fzr;
-  const rearUse = clamp(Math.abs(Fdrive + FbrakeR) / maxRx, 0, 1);
-  const Frx = clamp(Fdrive + FbrakeR, -maxRx, maxRx);
-  const maxFx = muF * Fzf;
-  const frontUse = clamp(Math.abs(FbrakeF) / maxFx, 0, 1);
-  const Ffx = clamp(FbrakeF, -maxFx, maxFx);
-  const rearLat = Math.max(REAR_LAT_MIN, Math.sqrt(1 - rearUse * rearUse));
-  const frontLat = Math.max(LAT_MIN, Math.sqrt(1 - frontUse * frontUse));
-  const vAbs = Math.max(Math.abs(vLong0), 0.5);
-  const dirSign = vLong0 >= 0 ? 1 : -1;
-  const alphaF = atan2(vLat0 + car.yawRate * a, vAbs) - steer * dirSign;
-  const alphaR = atan2(vLat0 - car.yawRate * b, vAbs);
-  const Fyf = tireForce(alphaF, Fzf, muF, p.tireB, p.tireC) * frontLat;
-  const Fyr = tireForce(alphaR, Fzr, muR, p.tireB, p.tireC) * rearLat;
-  const cosD = cos(steer), sinD = sin(steer);
-  const rolling = p.rollResist * (ctx.onRoad ? 1 : 4);
-  const Fx = Frx + Ffx * cosD - Fyf * sinD - p.dragCoef * vLong0 * Math.abs(vLong0) - rolling * vLong0;
-  const Fy = Fyr + Fyf * cosD + Ffx * sinD;
-  const torque = a * (Fyf * cosD + Ffx * sinD) - b * Fyr;
-  const grad = ctx.ground.gradientAt(car.x, car.z);
-  car.vx += ((Fx * sinH + Fy * cosH) / m - G * grad.gx) * dt;
-  car.vz += ((Fx * cosH - Fy * sinH) / m - G * grad.gz) * dt;
-  car.yawRate += torque / (m * p.gyration * p.gyration) * dt;
-  const sp1 = hypot(car.vx, car.vz);
-  if (sp1 < 3) {
-    const t = smoothstep(0.5, 3, sp1);
-    const vl = car.vx * sinH + car.vz * cosH;
-    const vt = car.vx * cosH - car.vz * sinH;
-    car.yawRate = lerp(vl * tan(steer) / L, car.yawRate, t);
-    const damp = (1 - t) * Math.min(1, 10 * dt);
-    car.vx -= cosH * vt * damp;
-    car.vz += sinH * vt * damp;
-    const flatGround = hypot(grad.gx, grad.gz) < 0.03;
-    if (flatGround && sp1 < 0.3 && input.gaz === 0 && input.frein === 0) {
-      car.vx *= 0.9;
-      car.vz *= 0.9;
-    }
-  }
-  const vl2 = car.vx * sinH + car.vz * cosH;
-  const vt2 = car.vx * cosH - car.vz * sinH;
-  const sp2 = hypot(car.vx, car.vz);
-  const beta2 = sp2 > 2 ? atan2(vt2, vl2) : 0;
-  car.yawRate -= car.yawRate * p.yawDamp * smoothstep(15 * DEG, 70 * DEG, Math.abs(beta2)) * dt;
-  const velAngle = sp2 > 0.5 ? atan2(car.vx, car.vz) : car.heading;
-  const pathRate = wrapAngle(velAngle - car.prevVelAngle) / dt;
-  car.prevVelAngle = velAngle;
-  if (arcadeDrift && vl2 > 5) {
-    const dirIn2 = clamp(input.direction, -1, 1);
-    const dir = dirIn2 !== 0 ? Math.sign(dirIn2) : beta2 !== 0 ? -Math.sign(beta2) : 0;
-    const amount = dirIn2 !== 0 ? Math.abs(dirIn2) : 0.6;
-    const betaTarget = -dir * as.arcadeBeta * amount;
-    const over = Math.max(0, Math.abs(beta2) - Math.abs(betaTarget)) * (Math.sign(beta2) === Math.sign(betaTarget) || betaTarget === 0 ? 1 : 0);
-    const authority = 1 - smoothstep(0, 25 * DEG, over);
-    const rDesired = pathRate + 3 * (beta2 - betaTarget);
-    const dYaw = clamp((rDesired - car.yawRate) * Math.min(1, 10 * dt) * authority, -as.arcadeYawAccel * dt, as.arcadeYawAccel * dt);
-    car.yawRate += dYaw;
-    const turn = dirIn2 * as.arcadePathRate * dt * authority;
-    const c = cos(turn), s = sin(turn);
-    const nvx = car.vx * c + car.vz * s;
-    const nvz = car.vz * c - car.vx * s;
-    car.vx = nvx;
-    car.vz = nvz;
-  }
-  if (as.speedRetention > 0 && Math.abs(beta2) > 15 * DEG && brake === 0) {
-    const ns = hypot(car.vx, car.vz);
-    if (ns < speed0 && ns > 0.1) {
-      const k = (ns + (speed0 - ns) * as.speedRetention) / ns;
-      car.vx *= k;
-      car.vz *= k;
-    }
-  }
-  car.yawRate = clamp(car.yawRate, -12, 12);
-  car.heading = wrapAngle(car.heading + car.yawRate * dt);
-  car.x += car.vx * dt;
-  car.z += car.vz * dt;
-  car.y = ctx.ground.heightAt(car.x, car.z);
-  const s2 = sin(car.heading), c2 = cos(car.heading);
-  car.vLong = car.vx * s2 + car.vz * c2;
-  car.vLat = car.vx * c2 - car.vz * s2;
-  car.speed = hypot(car.vx, car.vz);
-  car.beta = car.speed > 1 ? atan2(car.vLat, car.vLong) : 0;
-  const axNow = clamp(Fx / m, -15, 15);
-  car.ax += (axNow - car.ax) * Math.min(1, 8 * dt);
-  const slide = clamp((Math.abs(alphaR) - 0.12) / 0.35, 0, 1) * smoothstep(3, 8, car.speed);
-  const spin = rearUse > 0.98 && throttle > 0 && car.speed < 15 ? 0.6 : 0;
-  car.rearSlip = clamp(Math.max(slide, spin, handbrake && car.speed > 3 ? 0.8 : 0), 0, 1);
-  car.wheelSpin = (car.wheelSpin + car.vLong / 0.34 * dt) % (Math.PI * 2);
-  const f = Math.abs(car.vLong) / p.maxSpeed;
-  let gear = 1;
-  for (let g = 1; g < GEAR_STEPS.length; g++) if (f >= GEAR_STEPS[g]) gear = g + 1;
-  car.gear = car.reverse ? -1 : gear;
-  const lo = GEAR_STEPS[gear - 1];
-  const hi = gear < GEAR_STEPS.length ? GEAR_STEPS[gear] : 1;
-  const inGear = clamp((f - lo) / Math.max(1e-6, hi - lo), 0, 1);
-  const targetRpm = car.speed < 0.5 && throttle <= 0 ? 900 : 1500 + inGear * (p.rpmMax - 2e3) + (spin > 0 ? 1200 : 0);
-  car.rpm += (clamp(targetRpm, 900, p.rpmMax) - car.rpm) * Math.min(1, 12 * dt);
-}
-
 // src/core/physics/collision.ts
 var CRASH_IMPACT = 2.5;
 var RESTITUTION = 0.3;
@@ -11213,6 +11055,228 @@ function resolveCollisions(car, params, world) {
     }
   }
   return impact;
+}
+
+// src/core/physics/moto.ts
+var VITESSE_CHUTE = 20 / 3.6;
+function chute(p, car, impact) {
+  if (p.genre !== "moto") return false;
+  if (impact > 2 * CRASH_IMPACT) return true;
+  return !car.reverse && car.speed > VITESSE_CHUTE && Math.abs(car.beta) > (p.betaChute ?? Infinity);
+}
+
+// src/core/physics/car.ts
+var G = 9.81;
+var GEAR_STEPS = [0, 0.2, 0.38, 0.56, 0.76];
+var LAT_MIN = 0.35;
+var REAR_LAT_MIN = 0.5;
+function createCarState(x, z, heading, y = 0) {
+  return {
+    x,
+    y,
+    z,
+    heading,
+    vx: 0,
+    vz: 0,
+    yawRate: 0,
+    steer: 0,
+    steerInput: 0,
+    ax: 0,
+    beta: 0,
+    speed: 0,
+    vLong: 0,
+    vLat: 0,
+    rearSlip: 0,
+    wheelSpin: 0,
+    rpm: 900,
+    gear: 1,
+    reverse: false,
+    throttle: 0,
+    throttleSmooth: 0,
+    prevVelAngle: heading,
+    lean: 0
+  };
+}
+function copyCarState(src, dst) {
+  return Object.assign(dst ?? {}, src);
+}
+function tireForce(alpha, load, mu, B, C) {
+  return -mu * load * sin(C * atan(B * alpha));
+}
+function stepCar(car, input, ctx, dt) {
+  const p = ctx.params, as = ctx.assists;
+  const m = p.mass, L = p.wheelbase, a = p.cgToFront, b = L - a;
+  const sinH = sin(car.heading), cosH = cos(car.heading);
+  const vLong0 = car.vx * sinH + car.vz * cosH;
+  const vLat0 = car.vx * cosH - car.vz * sinH;
+  const speed0 = hypot(car.vx, car.vz);
+  const beta0 = speed0 > 1 ? atan2(vLat0, vLong0) : 0;
+  const dirIn = clamp(input.direction, -1, 1);
+  const speedRed = 1 / (1 + speed0 * p.steerSpeedReduction);
+  const slideRelax = smoothstep(10 * DEG, 35 * DEG, Math.abs(beta0));
+  const maxSteer = p.maxSteer * lerp(speedRed, 1, slideRelax);
+  const target = dirIn * maxSteer;
+  const cur = car.steerInput;
+  const versGlisse = vLong0 > 2 && Math.abs(beta0) > 8 * DEG && target * beta0 > 0;
+  let rate;
+  if (target * cur >= 0 && Math.abs(target) < Math.abs(cur)) rate = p.steerReturn;
+  else if (target * cur < 0 || versGlisse) rate = p.steerSpeed * p.steerCounter;
+  else rate = p.steerSpeed * (0.4 + 0.6 * (maxSteer / p.maxSteer));
+  car.steerInput += clamp(target - cur, -rate * dt, rate * dt);
+  let steer = car.steerInput;
+  if (as.counterSteer > 0 && vLong0 > 2 && Math.abs(beta0) > as.counterSteerDeadzone) {
+    const b0 = clamp(beta0, -1.2, 1.2);
+    const oppose = clamp(-dirIn * Math.sign(b0), 0, 1);
+    steer += as.counterSteer * (1 - 0.85 * oppose) * (b0 - Math.sign(b0) * as.counterSteerDeadzone);
+  }
+  steer = clamp(steer, -p.steerLock, p.steerLock);
+  car.steer = steer;
+  if (!car.reverse) {
+    if (input.frein > 0 && vLong0 <= 0.5 && input.gaz === 0) car.reverse = true;
+  } else if (input.gaz > 0 && vLong0 >= -0.5) {
+    car.reverse = false;
+  }
+  const throttle = car.reverse ? -input.frein : input.gaz;
+  const brake = car.reverse ? input.gaz : input.frein;
+  car.throttle = throttle;
+  const tsRate = Math.abs(throttle) > Math.abs(car.throttleSmooth) ? p.throttleRise : p.throttleFall;
+  car.throttleSmooth += clamp(throttle - car.throttleSmooth, -tsRate * dt, tsRate * dt);
+  const drive = car.throttleSmooth;
+  const Fzf = Math.max(0.1 * m * G, m * G * b / L - m * car.ax * p.cgHeight / L);
+  const Fzr = Math.max(0.1 * m * G, m * G * a / L + m * car.ax * p.cgHeight / L);
+  const surface = (ctx.onRoad ? 1 : 0.7) * (ctx.adherence ?? 1);
+  const muF = p.muFront * surface;
+  let muR = p.muRear * surface;
+  const arcadeDrift = as.arcadeDrift && input.freinAMain && speed0 > 8.3;
+  const handbrake = input.freinAMain && !as.arcadeDrift;
+  if (arcadeDrift) muR *= as.arcadeRearGrip;
+  if (handbrake) muR *= 0.5;
+  let Fdrive = 0;
+  if (drive > 0) {
+    const r = clamp(vLong0 / p.maxSpeed, 0, 1);
+    Fdrive = drive * p.engineForce * (1 - r * r);
+  } else if (drive < 0 && vLong0 > -8) {
+    Fdrive = drive * p.engineForce * 0.4;
+  }
+  let FbrakeF = 0, FbrakeR = 0;
+  if (brake > 0 && Math.abs(vLong0) > 0.3) {
+    const dir = Math.sign(vLong0);
+    FbrakeF = -dir * brake * p.brakeForce * 0.6;
+    FbrakeR = -dir * brake * p.brakeForce * 0.4;
+  }
+  if (handbrake && Math.abs(vLong0) > 0.3) FbrakeR -= Math.sign(vLong0) * p.handbrakeForce;
+  const maxRx = muR * Fzr;
+  const rearUse = clamp(Math.abs(Fdrive + FbrakeR) / maxRx, 0, 1);
+  const Frx = clamp(Fdrive + FbrakeR, -maxRx, maxRx);
+  const maxFx = muF * Fzf;
+  const frontUse = clamp(Math.abs(FbrakeF) / maxFx, 0, 1);
+  const Ffx = clamp(FbrakeF, -maxFx, maxFx);
+  const rearLat = Math.max(REAR_LAT_MIN, Math.sqrt(1 - rearUse * rearUse));
+  const frontLat = Math.max(LAT_MIN, Math.sqrt(1 - frontUse * frontUse));
+  const vAbs = Math.max(Math.abs(vLong0), 0.5);
+  const dirSign = vLong0 >= 0 ? 1 : -1;
+  const alphaF = atan2(vLat0 + car.yawRate * a, vAbs) - steer * dirSign;
+  const alphaR = atan2(vLat0 - car.yawRate * b, vAbs);
+  let Fyf = tireForce(alphaF, Fzf, muF, p.tireB, p.tireC) * frontLat;
+  let Fyr = tireForce(alphaR, Fzr, muR, p.tireB, p.tireC) * rearLat;
+  const cosD = cos(steer), sinD = sin(steer);
+  const moto = p.genre === "moto";
+  if (moto) {
+    const maxLat = m * G * tan(p.leanMax ?? 0.8);
+    const lat = Math.abs(Fyr + Fyf * cosD + Ffx * sinD);
+    if (lat > maxLat) {
+      const k = maxLat / lat;
+      Fyf *= k;
+      Fyr *= k;
+    }
+  }
+  const rolling = p.rollResist * (ctx.onRoad ? 1 : 4);
+  const Fx = Frx + Ffx * cosD - Fyf * sinD - p.dragCoef * vLong0 * Math.abs(vLong0) - rolling * vLong0;
+  const Fy = Fyr + Fyf * cosD + Ffx * sinD;
+  const torque = a * (Fyf * cosD + Ffx * sinD) - b * Fyr;
+  const grad = ctx.ground.gradientAt(car.x, car.z);
+  car.vx += ((Fx * sinH + Fy * cosH) / m - G * grad.gx) * dt;
+  car.vz += ((Fx * cosH - Fy * sinH) / m - G * grad.gz) * dt;
+  car.yawRate += torque / (m * p.gyration * p.gyration) * dt;
+  const sp1 = hypot(car.vx, car.vz);
+  if (sp1 < 3) {
+    const t = smoothstep(0.5, 3, sp1);
+    const vl = car.vx * sinH + car.vz * cosH;
+    const vt = car.vx * cosH - car.vz * sinH;
+    car.yawRate = lerp(vl * tan(steer) / L, car.yawRate, t);
+    const damp = (1 - t) * Math.min(1, 10 * dt);
+    car.vx -= cosH * vt * damp;
+    car.vz += sinH * vt * damp;
+    const flatGround = hypot(grad.gx, grad.gz) < 0.03;
+    if (flatGround && sp1 < 0.3 && input.gaz === 0 && input.frein === 0) {
+      car.vx *= 0.9;
+      car.vz *= 0.9;
+    }
+  }
+  const vl2 = car.vx * sinH + car.vz * cosH;
+  const vt2 = car.vx * cosH - car.vz * sinH;
+  const sp2 = hypot(car.vx, car.vz);
+  const beta2 = sp2 > 2 ? atan2(vt2, vl2) : 0;
+  car.yawRate -= car.yawRate * p.yawDamp * smoothstep(15 * DEG, 70 * DEG, Math.abs(beta2)) * dt;
+  const velAngle = sp2 > 0.5 ? atan2(car.vx, car.vz) : car.heading;
+  const pathRate = wrapAngle(velAngle - car.prevVelAngle) / dt;
+  car.prevVelAngle = velAngle;
+  if (arcadeDrift && vl2 > 5) {
+    const dirIn2 = clamp(input.direction, -1, 1);
+    const dir = dirIn2 !== 0 ? Math.sign(dirIn2) : beta2 !== 0 ? -Math.sign(beta2) : 0;
+    const amount = dirIn2 !== 0 ? Math.abs(dirIn2) : 0.6;
+    const betaTarget = -dir * Math.min(as.arcadeBeta, p.arcadeBetaMax ?? as.arcadeBeta) * amount;
+    const over = Math.max(0, Math.abs(beta2) - Math.abs(betaTarget)) * (Math.sign(beta2) === Math.sign(betaTarget) || betaTarget === 0 ? 1 : 0);
+    const authority = 1 - smoothstep(0, 25 * DEG, over);
+    const rDesired = pathRate + 3 * (beta2 - betaTarget);
+    const dYaw = clamp((rDesired - car.yawRate) * Math.min(1, 10 * dt) * authority, -as.arcadeYawAccel * dt, as.arcadeYawAccel * dt);
+    car.yawRate += dYaw;
+    const turn = dirIn2 * as.arcadePathRate * dt * authority;
+    const c = cos(turn), s = sin(turn);
+    const nvx = car.vx * c + car.vz * s;
+    const nvz = car.vz * c - car.vx * s;
+    car.vx = nvx;
+    car.vz = nvz;
+  }
+  if (as.speedRetention > 0 && Math.abs(beta2) > 15 * DEG && brake === 0) {
+    const ns = hypot(car.vx, car.vz);
+    if (ns < speed0 && ns > 0.1) {
+      const k = (ns + (speed0 - ns) * as.speedRetention) / ns;
+      car.vx *= k;
+      car.vz *= k;
+    }
+  }
+  car.yawRate = clamp(car.yawRate, -12, 12);
+  car.heading = wrapAngle(car.heading + car.yawRate * dt);
+  car.x += car.vx * dt;
+  car.z += car.vz * dt;
+  car.y = ctx.ground.heightAt(car.x, car.z);
+  const s2 = sin(car.heading), c2 = cos(car.heading);
+  car.vLong = car.vx * s2 + car.vz * c2;
+  car.vLat = car.vx * c2 - car.vz * s2;
+  car.speed = hypot(car.vx, car.vz);
+  car.beta = car.speed > 1 ? atan2(car.vLat, car.vLong) : 0;
+  if (moto) {
+    const leanMax = p.leanMax ?? 0.8;
+    const cible = clamp(atan(Fy / m / G), -leanMax, leanMax) * smoothstep(1, 4, car.speed);
+    const r = (p.leanRate ?? 3.5) * dt;
+    car.lean = clamp(car.lean + clamp(cible - car.lean, -r, r), -leanMax, leanMax);
+  }
+  const axNow = clamp(Fx / m, -15, 15);
+  car.ax += (axNow - car.ax) * Math.min(1, 8 * dt);
+  const slide = clamp((Math.abs(alphaR) - 0.12) / 0.35, 0, 1) * smoothstep(3, 8, car.speed);
+  const spin = rearUse > 0.98 && throttle > 0 && car.speed < 15 ? 0.6 : 0;
+  car.rearSlip = clamp(Math.max(slide, spin, handbrake && car.speed > 3 ? 0.8 : 0), 0, 1);
+  car.wheelSpin = (car.wheelSpin + car.vLong / 0.34 * dt) % (Math.PI * 2);
+  const f = Math.abs(car.vLong) / p.maxSpeed;
+  let gear = 1;
+  for (let g = 1; g < GEAR_STEPS.length; g++) if (f >= GEAR_STEPS[g]) gear = g + 1;
+  car.gear = car.reverse ? -1 : gear;
+  const lo = GEAR_STEPS[gear - 1];
+  const hi = gear < GEAR_STEPS.length ? GEAR_STEPS[gear] : 1;
+  const inGear = clamp((f - lo) / Math.max(1e-6, hi - lo), 0, 1);
+  const targetRpm = car.speed < 0.5 && throttle <= 0 ? 900 : 1500 + inGear * (p.rpmMax - 2e3) + (spin > 0 ? 1200 : 0);
+  car.rpm += (clamp(targetRpm, 900, p.rpmMax) - car.rpm) * Math.min(1, 12 * dt);
 }
 
 // src/core/scoring/score.ts
@@ -11445,8 +11509,10 @@ var RaceSim = class {
     this.ctx.onRoad = this.onRoad;
     stepCar(this.car, input, this.ctx, SIM_DT);
     const impact = resolveCollisions(this.car, this.config.car, this.world);
-    const crash = impact > CRASH_IMPACT;
-    if (crash) ev.push({ type: "choc", impact });
+    const tombe = chute(this.config.car, this.car, impact);
+    const crash = impact > CRASH_IMPACT || tombe;
+    if (tombe) ev.push({ type: "chute" });
+    else if (impact > CRASH_IMPACT) ev.push({ type: "choc", impact });
     const proj = projectOnTrack(track, this.car.x, this.car.z, this.progressIndex);
     const sp = track.samples[proj.index];
     const lat = Math.abs(proj.lateral);
@@ -11473,6 +11539,7 @@ var RaceSim = class {
     }
     if (!auto && this.config.terrain.distanceEau(this.car.x, this.car.z) > 0.5) auto = true;
     let reset = false;
+    if (tombe) auto = true;
     if (replacer || auto) {
       this.respawn();
       reset = true;
@@ -11991,10 +12058,11 @@ var Regions = class {
 };
 
 // src/core/niveauGenere.ts
+var VEHICULES_DEFI = ["equilibree", "legere", "turbo", "kei", "muscle", "rotative", "break"];
 var PAS_POINTS = 16;
 function niveauGenere(graine, nom, pas = PAS_POINTS) {
   const rng = mulberry32(graine ^ 24301);
-  const voiture = CAR_IDS[Math.floor(rng() * CAR_IDS.length)];
+  const voiture = VEHICULES_DEFI[Math.floor(rng() * VEHICULES_DEFI.length)];
   const t = rng();
   const ambiance = t < 0.45 ? "jour" : t < 0.75 ? "coucher" : "nuit";
   const meteo = rng() < 0.25 ? "pluie" : void 0;
@@ -12122,4 +12190,4 @@ async function traiterCourse(corps, empreinteServeur, maintenant = /* @__PURE__ 
 export {
   traiterCourse
 };
-export const EMPREINTE = 'de1e6d1dc2d9f07a';
+export const EMPREINTE = 'e17391c7c78d9be6';
