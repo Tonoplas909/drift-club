@@ -9,8 +9,8 @@ import * as dm from '../math/dmath';
  * hauteur : refusé par l'éditeur (voir checkGeometry). Pur et déterministe (rejoué par le serveur).
  */
 
-/** Écart de hauteur minimal (m) entre deux routes qui se croisent : de quoi passer dessous. */
-export const HAUTEUR_PONT = 6;
+/** Écart de hauteur minimal (m) entre deux routes qui se croisent : de quoi passer dessous, caméra éloignée comprise. */
+export const HAUTEUR_PONT = 7;
 /** Le tablier déborde de cette longueur (m) de part et d'autre de la zone de croisement (culées). */
 const DEBORD = 10;
 
@@ -110,8 +110,10 @@ export class SolPiste implements Ground {
     if (best < 0 || !pont[best]) return null;
     const sp = S[best];
     const dx = x - sp.x, dz = z - sp.z;
-    if (Math.abs(dx * sp.nx + dz * sp.nz) > sp.w + 1.5) return null;
-    return sp.y + sp.grade * (dx * sp.tx + dz * sp.tz);
+    const along = dx * sp.tx + dz * sp.tz;
+    // au-delà du bout du tablier (pont au départ ou à l'arrivée) ou à côté : pas de tablier
+    if (Math.abs(along) > 1 || Math.abs(dx * sp.nx + dz * sp.nz) > sp.w + 1.5) return null;
+    return sp.y + sp.grade * along;
   }
 
   heightAt(x: number, z: number): number {

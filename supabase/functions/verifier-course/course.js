@@ -4151,7 +4151,7 @@ var SampleGrid = class {
 };
 
 // src/core/track/ponts.ts
-var HAUTEUR_PONT = 6;
+var HAUTEUR_PONT = 7;
 var DEBORD = 10;
 function parcourir(track, f) {
   const S = track.samples, scratch3 = [];
@@ -4229,8 +4229,9 @@ var SolPiste = class {
     if (best < 0 || !pont[best]) return null;
     const sp = S[best];
     const dx = x - sp.x, dz = z - sp.z;
-    if (Math.abs(dx * sp.nx + dz * sp.nz) > sp.w + 1.5) return null;
-    return sp.y + sp.grade * (dx * sp.tx + dz * sp.tz);
+    const along = dx * sp.tx + dz * sp.tz;
+    if (Math.abs(along) > 1 || Math.abs(dx * sp.nx + dz * sp.nz) > sp.w + 1.5) return null;
+    return sp.y + sp.grade * along;
   }
   heightAt(x, z) {
     if (!this.track.pont) return this.terrain.heightAt(x, z);
@@ -5477,16 +5478,17 @@ function* decorEnEtapes(level, track, terrain, opts = {}) {
       posés.push({ x: item.x, z: item.z, r: box ? hypot(box[0], box[1]) / 2 * item.scale : COLLIDER_RADIUS[item.kind] * item.scale });
     }
     if (!item.solid || SANS_COLLISION.has(item.kind)) return;
+    const h = hauteur(item.y);
     const multi = CERCLES_MULTIPLES[item.kind];
     if (multi) {
       for (const c of multi) {
-        env.circles.push({ x: item.x + cos(item.rot) * c.dx * item.scale, z: item.z - sin(item.rot) * c.dx * item.scale, r: c.r * item.scale });
+        env.circles.push({ x: item.x + cos(item.rot) * c.dx * item.scale, z: item.z - sin(item.rot) * c.dx * item.scale, r: c.r * item.scale, ...h });
       }
     } else if (box) {
       const v = sommets(empriseDe(item.x, item.z, item.rot, box[0] * item.scale, box[1] * item.scale));
-      for (let k = 0; k < 4; k++) env.segments.push({ ax: v[k][0], az: v[k][1], bx: v[(k + 1) % 4][0], bz: v[(k + 1) % 4][1] });
+      for (let k = 0; k < 4; k++) env.segments.push({ ax: v[k][0], az: v[k][1], bx: v[(k + 1) % 4][0], bz: v[(k + 1) % 4][1], ...h });
     } else {
-      env.circles.push({ x: item.x, z: item.z, r: COLLIDER_RADIUS[item.kind] * item.scale });
+      env.circles.push({ x: item.x, z: item.z, r: COLLIDER_RADIUS[item.kind] * item.scale, ...h });
     }
   };
   const leftCovered = new Uint8Array(S.length);
@@ -6759,7 +6761,8 @@ var RaceSim = class {
     this.ctx = { params: cfg.car, assists: cfg.assists, ground: this.sol, onRoad: true, adherence: adherenceDe(cfg.level) };
     const idx = Math.min(6, cfg.track.samples.length - 1);
     const s0 = cfg.track.samples[idx];
-    this.car = createCarState(s0.x, s0.z, atan2(s0.tx, s0.tz), cfg.terrain.heightAt(s0.x, s0.z));
+    this.sol.indice = idx;
+    this.car = createCarState(s0.x, s0.z, atan2(s0.tx, s0.tz), this.sol.heightAt(s0.x, s0.z));
     this.prevCar = copyCarState(this.car);
     this.progressIndex = idx;
     this.progressS = s0.s;
@@ -7464,4 +7467,4 @@ async function traiterCourse(corps, empreinteServeur, maintenant = /* @__PURE__ 
 export {
   traiterCourse
 };
-export const EMPREINTE = '02d349708045b4e9';
+export const EMPREINTE = '6c9dfa64b0f40f2c';

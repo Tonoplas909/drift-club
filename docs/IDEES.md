@@ -221,4 +221,4 @@ serveur à mettre à jour.
 | 0.5.18 | **Votes dans l'Atelier** : j'aime / j'aime pas sur les propositions en attente, modération triée par popularité, livrée de la semaine sur l'écran des caisses (migration 0012) |
 | 0.5.19 | **Statistiques du pilote rattachées au compte** : envoi des ajouts, total additionné par le serveur, plusieurs appareils (migration 0013) |
 | 0.5.20 | Correctif : le mode Zen restait bloqué sur « Préparation de la route » depuis la 0.5.12 (caméra choisie avant que la route existe) |
-| 0.5.21 | **Ponts dans l'éditeur** : la route peut se croiser avec au moins 6 m de différence de hauteur, la portion du dessus devient un pont (tablier, garde-corps, piliers), le croisement à la même hauteur reste refusé |
+| 0.5.21 | **Ponts dans l'éditeur** : la route peut se croiser avec au moins 7 m de différence de hauteur, la portion du dessus devient un pont (tablier, garde-corps, piliers), le croisement à la même hauteur reste refusé |

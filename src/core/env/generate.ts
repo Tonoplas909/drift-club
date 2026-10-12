@@ -172,18 +172,20 @@ export function* decorEnEtapes(level: Level, track: TrackData, terrain: SolDecor
       posés.push({ x: item.x, z: item.z, r: box ? (dm.hypot(box[0], box[1]) / 2) * item.scale : COLLIDER_RADIUS[item.kind] * item.scale });
     }
     if (!item.solid || SANS_COLLISION.has(item.kind)) return;
+    // avec un pont, un obstacle n'arrête que la voiture qui roule à sa hauteur (dessous ou sur le tablier)
+    const h = hauteur(item.y);
     const multi = CERCLES_MULTIPLES[item.kind];
     if (multi) {
       // plusieurs piliers (torii) : un cercle par pilier, décalé selon l'axe x local
       for (const c of multi) {
-        env.circles.push({ x: item.x + dm.cos(item.rot) * c.dx * item.scale, z: item.z - dm.sin(item.rot) * c.dx * item.scale, r: c.r * item.scale });
+        env.circles.push({ x: item.x + dm.cos(item.rot) * c.dx * item.scale, z: item.z - dm.sin(item.rot) * c.dx * item.scale, r: c.r * item.scale, ...h });
       }
     } else if (box) {
       // emprise rectangulaire : 4 segments (bâtiments, voitures garées, abribus…)
       const v = sommets(empriseDe(item.x, item.z, item.rot, box[0] * item.scale, box[1] * item.scale));
-      for (let k = 0; k < 4; k++) env.segments.push({ ax: v[k][0], az: v[k][1], bx: v[(k + 1) % 4][0], bz: v[(k + 1) % 4][1] });
+      for (let k = 0; k < 4; k++) env.segments.push({ ax: v[k][0], az: v[k][1], bx: v[(k + 1) % 4][0], bz: v[(k + 1) % 4][1], ...h });
     } else {
-      env.circles.push({ x: item.x, z: item.z, r: COLLIDER_RADIUS[item.kind] * item.scale });
+      env.circles.push({ x: item.x, z: item.z, r: COLLIDER_RADIUS[item.kind] * item.scale, ...h });
     }
   };
 

@@ -9,6 +9,7 @@ import {
   nearestPoint, nearestObjet, addLac, deleteLac, setNiveauLac, erreurContourLac, type CoteEdit,
 } from '../core/editor/ops';
 import type { TrackData } from '../core/track/buildTrack';
+import { HAUTEUR_PONT } from '../core/track/ponts';
 import type { Store } from '../storage/store';
 import { h } from '../ui/screens';
 import { icone } from './icones';
@@ -755,7 +756,7 @@ export class Editeur {
         return [
           titre('Route'),
           aide('Clique dans le vide pour ajouter un point à la fin. Clique sur la route pour insérer un point. Glisse un point pour le déplacer. Glisse dans le vide (ou clic droit) pour déplacer la vue, molette ou pincement pour zoomer.'),
-          aide('Croisement : la route peut passer au-dessus d\'elle-même si les deux portions ont au moins 6 m de différence de hauteur (règle la hauteur des points) ; celle du dessus devient un pont. À la même hauteur, le croisement est refusé.'),
+          aide(`Croisement : la route peut passer au-dessus d'elle-même si les deux portions ont au moins ${HAUTEUR_PONT} m de différence de hauteur (règle la hauteur des points) ; celle du dessus devient un pont. À la même hauteur, le croisement est refusé.`),
         ];
       }
       case 'barrieres':

@@ -20,7 +20,7 @@ export class SolAffiche implements Ground {
     if (!pont) return null;
     const S = this.track.samples;
     let best: number | null = null, bestD = Infinity;
-    for (const i of this.track.grid.query(x, z, 9, this.scratch)) {
+    for (const i of this.track.grid.query(x, z, 13, this.scratch)) {
       if (!pont[i]) continue;
       const sp = S[i], dx = x - sp.x, dz = z - sp.z;
       const along = dx * sp.tx + dz * sp.tz;

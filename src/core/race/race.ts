@@ -115,7 +115,8 @@ export class RaceSim {
     this.ctx = { params: cfg.car, assists: cfg.assists, ground: this.sol, onRoad: true, adherence: adherenceDe(cfg.level) };
     const idx = Math.min(6, cfg.track.samples.length - 1);
     const s0 = cfg.track.samples[idx];
-    this.car = createCarState(s0.x, s0.z, dm.atan2(s0.tx, s0.tz), cfg.terrain.heightAt(s0.x, s0.z));
+    this.sol.indice = idx;
+    this.car = createCarState(s0.x, s0.z, dm.atan2(s0.tx, s0.tz), this.sol.heightAt(s0.x, s0.z));
     this.prevCar = copyCarState(this.car);
     this.progressIndex = idx;
     this.progressS = s0.s;
