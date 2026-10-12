@@ -59,13 +59,15 @@ describe('croisements et ponts', () => {
       expect(pb[0].message).toContain(`au moins ${HAUTEUR_PONT} m`);
     }
   });
-  it('sans croisement, pas de pont (niveaux officiels compris)', () => {
+  it('sans croisement, pas de pont (niveaux officiels compris, sauf ceux qui ont un pont)', () => {
     expect(buildTrack(straightLevel(300)).pont).toBeNull();
     expect(buildTrack(hairpinLevel()).pont).toBeNull();
+    const AVEC_PONT = ['anneaux-de-saturne', 'echangeur-holographique', 'echangeur-du-periph', 'viaduc-des-chamois'];
     for (const n of NIVEAUX_OFFICIELS) {
       const r = prepareLevel(`off:${n.id}`, n.data);
       if (!r.ok) throw new Error(r.erreurs.join());
-      expect(r.prepared.track.pont ?? null, n.id).toBeNull();
+      if (AVEC_PONT.includes(n.id)) expect(plagesPonts(r.prepared.track.pont ?? null), n.id).toHaveLength(1);
+      else expect(r.prepared.track.pont ?? null, n.id).toBeNull();
     }
   });
   it('sol : le tablier sur la portion du dessus, la route du dessous sous le pont', () => {

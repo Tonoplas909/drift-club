@@ -12,7 +12,7 @@ const IDS = [
   'grande-descente', 'virages-en-cascade', 'route-des-vignes', 'touge-de-minuit', 'tire-bouchon',
   'sentier-des-cerisiers', 'col-du-torii', 'dragon-de-jade', 'baie-des-naufrages', 'crique-du-perroquet',
   'recif-du-kraken', 'orbite-basse', 'cratere-rouge', 'couloirs-jaunes', 'labyrinthe-de-neons',
-  'neo-shinjuku',
+  'neo-shinjuku', 'mirage-de-midi', 'boulevard-ecarlate', 'nuit-polaire', 'col-sous-l-averse', 'fort-des-corsaires', 'vendanges-tardives', 'sous-bois-mouille', 'echangeur-du-periph', 'echangeur-holographique', 'viaduc-des-chamois', 'canyon-du-scorpion', 'belvedere-orageux', 'anneaux-de-saturne', 'station-des-cimes', 'sous-sol-sans-fin', 'ile-de-la-tortue', 'pluie-sous-les-neons', 'col-de-la-bonette', 'irohazaka',
 ];
 
 function charge(id: string) {
@@ -73,9 +73,9 @@ function pointNormalise(t: TrackData, u: number): { x: number; z: number } {
 }
 
 describe('niveaux officiels', () => {
-  it('trente et un niveaux dans le bon ordre, identifiants uniques', () => {
+  it('cinquante niveaux dans le bon ordre, identifiants uniques', () => {
     expect(NIVEAUX_OFFICIELS.map((n) => n.id)).toEqual(IDS);
-    expect(new Set(NIVEAUX_OFFICIELS.map((n) => n.id)).size).toBe(31);
+    expect(new Set(NIVEAUX_OFFICIELS.map((n) => n.id)).size).toBe(50);
     expect(cleNiveauOfficiel('col-du-loup')).toBe('off:col-du-loup');
   });
   const AVEC_BARRIERES = ['col-du-loup', 'lacets-du-belvedere', 'vallee-des-cretes', 'epingles-du-diable', 'cretes-nord', 'descente-du-moulin',
@@ -283,5 +283,27 @@ describe('niveaux officiels', () => {
     // ensuite, le premier virage suivant tourne dans l'autre sens
     const suivant = groupes(t, 130, 20).filter((x) => x.de > vis.a)[0];
     expect(Math.sign(suivant.angle)).toBe(-Math.sign(vis.angle));
+  });
+
+  it('nouveaux niveaux (0.5.23) : ponts, pluie, nuit et caractères annoncés', () => {
+    const PLUIE = ['pluie-sous-les-neons', 'col-sous-l-averse', 'sous-bois-mouille', 'belvedere-orageux'];
+    for (const id of PLUIE) expect(charge(id).level.meteo, id).toBe('pluie');
+    for (const id of ['pluie-sous-les-neons', 'echangeur-holographique', 'ile-de-la-tortue', 'echangeur-du-periph', 'nuit-polaire', 'belvedere-orageux']) {
+      expect(charge(id).level.ambiance, id).toBe('nuit');
+    }
+    // grosses montées et descentes
+    const DENIVELES: [string, number][] = [['col-de-la-bonette', 110], ['irohazaka', 70], ['station-des-cimes', 60], ['belvedere-orageux', 50], ['col-sous-l-averse', 40]];
+    for (const [id, d] of DENIVELES) expect(denivele(charge(id).track), id).toBeGreaterThanOrEqual(d);
+    // irohazaka : au moins dix épingles
+    expect(groupes(charge('irohazaka').track, 25).filter((g) => Math.abs(g.angle) > 150).length).toBeGreaterThanOrEqual(10);
+    // mirage-de-midi : très rapide, plat ; ile-de-la-tortue et sous-sol-sans-fin : plats et techniques
+    const mirage = charge('mirage-de-midi').track;
+    expect(minRayon(mirage)).toBeGreaterThanOrEqual(40);
+    expect(denivele(mirage)).toBeLessThan(2);
+    for (const id of ['ile-de-la-tortue', 'sous-sol-sans-fin']) {
+      const t = charge(id).track;
+      expect(denivele(t), id).toBeLessThan(3);
+      expect(virages(t, 20), id).toBeGreaterThanOrEqual(15);
+    }
   });
 });

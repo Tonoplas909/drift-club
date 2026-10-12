@@ -29,6 +29,25 @@ import cratereRouge from '../levels/cratere-rouge.json';
 import couloirsJaunes from '../levels/couloirs-jaunes.json';
 import labyrintheDeNeons from '../levels/labyrinthe-de-neons.json';
 import neoShinjuku from '../levels/neo-shinjuku.json';
+import mirageDeMidi from '../levels/mirage-de-midi.json';
+import boulevardEcarlate from '../levels/boulevard-ecarlate.json';
+import nuitPolaire from '../levels/nuit-polaire.json';
+import colSousLAverse from '../levels/col-sous-l-averse.json';
+import fortDesCorsaires from '../levels/fort-des-corsaires.json';
+import vendangesTardives from '../levels/vendanges-tardives.json';
+import sousBoisMouille from '../levels/sous-bois-mouille.json';
+import echangeurDuPeriph from '../levels/echangeur-du-periph.json';
+import echangeurHolographique from '../levels/echangeur-holographique.json';
+import viaducDesChamois from '../levels/viaduc-des-chamois.json';
+import canyonDuScorpion from '../levels/canyon-du-scorpion.json';
+import belvedereOrageux from '../levels/belvedere-orageux.json';
+import anneauxDeSaturne from '../levels/anneaux-de-saturne.json';
+import stationDesCimes from '../levels/station-des-cimes.json';
+import sousSolSansFin from '../levels/sous-sol-sans-fin.json';
+import ileDeLaTortue from '../levels/ile-de-la-tortue.json';
+import pluieSousLesNeons from '../levels/pluie-sous-les-neons.json';
+import colDeLaBonette from '../levels/col-de-la-bonette.json';
+import irohazaka from '../levels/irohazaka.json';
 
 export interface NiveauOfficiel {
   id: string;
@@ -67,6 +86,25 @@ export const NIVEAUX_OFFICIELS: NiveauOfficiel[] = [
   { id: 'couloirs-jaunes', data: couloirsJaunes },
   { id: 'labyrinthe-de-neons', data: labyrintheDeNeons },
   { id: 'neo-shinjuku', data: neoShinjuku },
+  { id: 'mirage-de-midi', data: mirageDeMidi },
+  { id: 'boulevard-ecarlate', data: boulevardEcarlate },
+  { id: 'nuit-polaire', data: nuitPolaire },
+  { id: 'col-sous-l-averse', data: colSousLAverse },
+  { id: 'fort-des-corsaires', data: fortDesCorsaires },
+  { id: 'vendanges-tardives', data: vendangesTardives },
+  { id: 'sous-bois-mouille', data: sousBoisMouille },
+  { id: 'echangeur-du-periph', data: echangeurDuPeriph },
+  { id: 'echangeur-holographique', data: echangeurHolographique },
+  { id: 'viaduc-des-chamois', data: viaducDesChamois },
+  { id: 'canyon-du-scorpion', data: canyonDuScorpion },
+  { id: 'belvedere-orageux', data: belvedereOrageux },
+  { id: 'anneaux-de-saturne', data: anneauxDeSaturne },
+  { id: 'station-des-cimes', data: stationDesCimes },
+  { id: 'sous-sol-sans-fin', data: sousSolSansFin },
+  { id: 'ile-de-la-tortue', data: ileDeLaTortue },
+  { id: 'pluie-sous-les-neons', data: pluieSousLesNeons },
+  { id: 'col-de-la-bonette', data: colDeLaBonette },
+  { id: 'irohazaka', data: irohazaka },
 ];
 
 export const cleNiveauOfficiel = (id: string): string => `off:${id}`;
