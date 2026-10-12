@@ -20,7 +20,7 @@ export const NOTES: NoteVersion[] = [
       '19 nouveaux niveaux officiels : il y en a maintenant 50 !',
       'Des ponts : Échangeur holographique, Échangeur du périph\', Viaduc des Chamois et Anneaux de Saturne repassent au-dessus d\'eux-mêmes.',
       'Sous la pluie (route glissante) : Pluie sous les néons, Col sous l\'averse, Sous-bois mouillé et Belvédère orageux.',
-      'Pour les grimpeurs : Irohazaka et ses 14 épingles, le Col de la Bonette (125 m de montée), la Station des Cimes en descente.',
+      'Pour les grimpeurs : Irohazaka et ses 14 épingles, le Col de la Bonette (près de 120 m de montée), la Station des Cimes en descente.',
       'Pour la vitesse : Mirage de midi, Boulevard écarlate et Nuit polaire ; pour la technique : Île de la Tortue, Sous-sol sans fin et Canyon du Scorpion.',
       'Chaque nouveau niveau a ses médailles bronze, argent et or, et ses zones de clipping.',
     ],

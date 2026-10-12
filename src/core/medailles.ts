@@ -60,7 +60,7 @@ export const SEUILS_MEDAILLES: Record<string, readonly [number, number, number]>
   'sous-sol-sans-fin': [61000, 114000, 175000],
   'ile-de-la-tortue': [63000, 117000, 180000],
   'pluie-sous-les-neons': [57000, 106000, 163000],
-  'col-de-la-bonette': [76000, 142000, 218000],
+  'col-de-la-bonette': [76000, 143000, 219000],
   'irohazaka': [91000, 171000, 262000],
 };
 
