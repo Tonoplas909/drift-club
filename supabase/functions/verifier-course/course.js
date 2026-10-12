@@ -7340,24 +7340,9 @@ var Regions = class {
   }
 };
 
-// src/core/defi.ts
-var estJourValide = (jour) => /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(jour);
-var MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
-function jourEnClair(jour) {
-  const [, m, d] = jour.split("-").map(Number);
-  return `${d === 1 ? "1er" : d} ${MOIS[m - 1] ?? ""}`.trim();
-}
-function graineDuJour(jour) {
-  let h = 2166136261;
-  for (let i = 0; i < jour.length; i++) {
-    h ^= jour.charCodeAt(i);
-    h = Math.imul(h, 16777619) >>> 0;
-  }
-  return h >>> 0;
-}
+// src/core/niveauGenere.ts
 var PAS_POINTS = 16;
-function defiDuJour(jour) {
-  const graine = graineDuJour(jour);
+function niveauGenere(graine, nom, pas = PAS_POINTS) {
   const rng = mulberry32(graine ^ 24301);
   const voiture = CAR_IDS[Math.floor(rng() * CAR_IDS.length)];
   const t = rng();
@@ -7370,14 +7355,14 @@ function defiDuJour(jour) {
   const dessin = new Dessinateur(graine, regions);
   dessin.genererJusqua(longueur + 1);
   const route = [];
-  for (let s = 0; s <= longueur; s += PAS_POINTS) {
+  for (let s = 0; s <= longueur; s += pas) {
     const sp = dessin.echantillon(Math.min(longueur, s));
     const l = Math.min(LIMITES.largeurMax, Math.max(LIMITES.largeurMin, Math.round(sp.w * 20) / 10));
     route.push({ x: Math.round(sp.x * 10) / 10, z: Math.round(sp.z * 10) / 10, y: Math.round(sp.y * 10) / 10, l });
   }
   const brouillon = {
     format: 1,
-    nom: `Défi du ${jourEnClair(jour)}`,
+    nom,
     auteur: "Drift Club",
     environnement,
     ambiance,
@@ -7400,8 +7385,28 @@ function defiDuJour(jour) {
   const clipping = zonesAutomatiques(brouillon, track, Math.max(2, Math.min(4, Math.round(track.length / 400))));
   const level = { ...brouillon, barrieres, ...clipping.length > 0 ? { clipping } : {} };
   const v = validateLevel(level);
-  if (!v.ok) throw new Error(`Défi du ${jour} invalide : ${v.erreurs.join(" ")}`);
-  return { jour, level: v.level, voiture };
+  if (!v.ok) throw new Error(`Niveau généré (graine ${graine}) invalide : ${v.erreurs.join(" ")}`);
+  return { level: v.level, voiture };
+}
+
+// src/core/defi.ts
+var estJourValide = (jour) => /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(jour);
+var MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+function jourEnClair(jour) {
+  const [, m, d] = jour.split("-").map(Number);
+  return `${d === 1 ? "1er" : d} ${MOIS[m - 1] ?? ""}`.trim();
+}
+function graineDuJour(jour) {
+  let h = 2166136261;
+  for (let i = 0; i < jour.length; i++) {
+    h ^= jour.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h >>> 0;
+}
+function defiDuJour(jour) {
+  const { level, voiture } = niveauGenere(graineDuJour(jour), `Défi du ${jourEnClair(jour)}`);
+  return { jour, level, voiture };
 }
 
 // src/jour.ts
@@ -7467,4 +7472,4 @@ async function traiterCourse(corps, empreinteServeur, maintenant = /* @__PURE__ 
 export {
   traiterCourse
 };
-export const EMPREINTE = '6c9dfa64b0f40f2c';
+export const EMPREINTE = '5e6e106ab65338d1';
