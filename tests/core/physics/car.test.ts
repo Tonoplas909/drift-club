@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createCarState, stepCar, copyCarState } from '../../../src/core/physics/car';
-import { CARS, CAR_IDS } from '../../../src/core/physics/cars';
+import { CARS, CAR_IDS, VOITURE_IDS } from '../../../src/core/physics/cars';
 import { MODES, MODE_IDS } from '../../../src/core/physics/assists';
 import type { CarId, ModeId, StepContext, CarState } from '../../../src/core/physics/types';
 import type { Ground } from '../../../src/core/track/terrain';
@@ -221,7 +221,8 @@ describe('voiture : tête-à-queue et drift au clavier', () => {
         ? inp({ gaz: 1, direction: t < 0.6 ? -1 : 1, freinAMain: true })
         : inp({ gaz: 1, direction: 1, freinAMain: t >= 0.25 && t < 0.7 });
       const { pic } = simule(id, mode, 8, seq);
-      expect(pic).toBeGreaterThan(100 * DEG);
+      // une moto ne finit pas son tête-à-queue : elle dépasse son angle de chute et tombe (voir moto.ts)
+      expect(pic).toBeGreaterThan(CARS[id].genre === 'moto' ? CARS[id].betaChute! : 100 * DEG);
     }
   });
   it('en Exigeant, direction tenue sans contre-braquage : le cap tourne de plus de 180° par rapport à la trajectoire', () => {
@@ -310,6 +311,8 @@ describe('vitesse pratique (échelle de la jauge)', () => {
 });
 
 describe('nouvelles voitures : Kei, Muscle, Rotative, Break', () => {
+  // comparaisons entre voitures (les motos ont leurs propres tests : moto.test.ts)
+  const CAR_IDS = VOITURE_IDS;
   const tempsZeroCent = (id: CarId): number => {
     const c = createCarState(0, 0, 0);
     const ctx = ctxOf(id, 'semi');

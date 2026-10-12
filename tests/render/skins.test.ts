@@ -4,7 +4,7 @@ import { buildSkinGeometry, rectsChiffre } from '../../src/render/skins';
 import { buildJdmCar, CAR_SHAPES } from '../../src/render/jdmCars';
 import { SKINS } from '../../src/core/skins';
 import { COULEURS } from '../../src/ui/couleurs';
-import { CAR_IDS } from '../../src/core/physics/cars';
+import { VOITURE_IDS as CAR_IDS } from '../../src/core/physics/cars';
 import { CarView } from '../../src/render/carView';
 
 const MARGE = 0.05;

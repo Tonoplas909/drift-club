@@ -1,6 +1,7 @@
-import type { CarId, CarParams } from './types';
+import type { CarId, CarParams, MotoId, VoitureId } from './types';
+import { DEG } from '../math/vec';
 
-export const CAR_IDS: CarId[] = ['equilibree', 'legere', 'turbo', 'kei', 'muscle', 'rotative', 'break'];
+export const CAR_IDS: CarId[] = ['equilibree', 'legere', 'turbo', 'kei', 'muscle', 'rotative', 'break', 'supermotard'];
 
 /** Valeurs de départ, à régler avec le panneau ?debug. */
 export const CARS: Record<CarId, CarParams> = {
@@ -60,4 +61,19 @@ export const CARS: Record<CarId, CarParams> = {
     maxSteer: 0.58, steerLock: 0.84, steerSpeed: 2.1, steerReturn: 5.5, steerCounter: 2.1, steerSpeedReduction: 0.05,
     length: 4.7, width: 1.78, yawDamp: 1, throttleRise: 4, throttleFall: 8, rpmMax: 6800,
   },
+  supermotard: {
+    id: 'supermotard', nom: 'La Supermotard', genre: 'moto',
+    mass: 200, wheelbase: 1.45, cgToFront: 0.72, cgHeight: 0.62, gyration: 1.0,
+    engineForce: 1300, maxSpeed: 47, brakeForce: 2400, handbrakeForce: 900,
+    dragCoef: 0.3, rollResist: 3, muFront: 1.05, muRear: 1.0, tireB: 9, tireC: 1.4,
+    maxSteer: 0.45, steerLock: 0.55, steerSpeed: 2.6, steerReturn: 7, steerCounter: 2.2, steerSpeedReduction: 0.09,
+    length: 2.1, width: 0.8, yawDamp: 1.2, throttleRise: 6, throttleFall: 10, rpmMax: 11000,
+    leanMax: 48 * DEG, leanRate: 3.5, betaChute: 70 * DEG, arcadeBetaMax: 30 * DEG,
+  },
 };
+
+/** Véhicule de genre moto ? */
+export const estMoto = (p: CarParams): boolean => p.genre === 'moto';
+export const estMotoId = (id: CarId): id is MotoId => estMoto(CARS[id]);
+/** Voitures seules (les livrées dessinées et l'Atelier ne concernent qu'elles). */
+export const VOITURE_IDS = CAR_IDS.filter((id): id is VoitureId => !estMotoId(id));

@@ -65,7 +65,7 @@ export class Showroom {
     this.view = new CarView(model, color, false, def);
     this.scene.add(this.view.root);
     // cadrage : la caméra recule pour les grandes voitures et s'approche des petites (4,4 m = cadrage de référence)
-    this.cadrage = ((model.shape?.length ?? 4.4) + 1.6) / 6;
+    this.cadrage = ((model.shape?.length ?? model.longueur ?? 4.4) + 1.6) / 6;
   }
 
   /** Fumée des pneus montrée en continu (roues arrière qui patinent) ; null : pas de fumée. */

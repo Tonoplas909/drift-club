@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import type { CarId } from '../core/physics/types';
+import type { VoitureId } from '../core/physics/types';
 import { colorize, coloredBox, wheelGeometry } from './procedural';
 import type { CarModel, WheelModel } from './assets';
 
@@ -41,7 +41,7 @@ export interface CarShape {
 }
 
 /** Longueurs et essieux alignés sur la physique (CARS : length, cgToFront, cgToFront − wheelbase). */
-export const CAR_SHAPES: Record<CarId, CarShape> = {
+export const CAR_SHAPES: Record<VoitureId, CarShape> = {
   legere: {
     length: 4.1, width: 1.68, groundClear: 0.24, wheelR: 0.31, frontAxle: 1.15, rearAxle: -1.3,
     noseY: 0.4, hoodFrontY: 0.58, cowlZ: 0.62, cowlY: 0.76, deckZ: -1.85, deckY: 0.8, tailY: 0.78,

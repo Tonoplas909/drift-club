@@ -3,7 +3,7 @@ import { mulberry32 } from '../../src/core/math/rng';
 import { RARETES, RARETE_IDS, formatPoids } from '../../src/core/raretes';
 import { SKINS, SKIN_DEFAUT } from '../../src/core/skins';
 import { FUMEES } from '../../src/core/fumees';
-import { CAR_IDS } from '../../src/core/physics/cars';
+import { CARS, CAR_IDS } from '../../src/core/physics/cars';
 import { catalogue, contenuCaisses, construireBande, objetsDeRarete, tirer, tirerObjet, tirerRarete, INDEX_GAGNANT, TAILLE_BANDE, estDebloque } from '../../src/core/caisses';
 
 describe('raretés', () => {
@@ -33,7 +33,7 @@ describe('catalogue', () => {
   it('chaque voiture a au moins 12 livrées, ids et raretés valides', () => {
     for (const car of CAR_IDS) {
       const l = SKINS[car];
-      expect(l.length).toBeGreaterThanOrEqual(12);
+      expect(l.length).toBeGreaterThanOrEqual(CARS[car].genre === 'moto' ? 8 : 12);
       expect(new Set(l.map((s) => s.id)).size).toBe(l.length);
       for (const s of l) expect(RARETE_IDS).toContain(s.rarete);
     }

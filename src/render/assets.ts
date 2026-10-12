@@ -3,12 +3,24 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { CarId } from '../core/physics/types';
 import type { DecorKind } from '../core/env/types';
-import { CAR_IDS } from '../core/physics/cars';
+import { CAR_IDS, estMotoId } from '../core/physics/cars';
 import { borneGeometry, chevronGeometry, barrierGeometry, tireStack, wheelGeometry } from './procedural';
 import { buildJdmCar, CAR_SHAPES, type CarShape } from './jdmCars';
+import { buildMoto, MOTO_SHAPES } from './motos';
+import type { VueEmbarquee } from './vuesEmbarquees';
 
 export interface WheelModel { geometry: THREE.BufferGeometry; position: THREE.Vector3; front: boolean; left: boolean }
-export interface CarModel { body: THREE.BufferGeometry; wheels: WheelModel[]; paint: THREE.Color; /** silhouette, pour poser les livrées (absente : pas de livrée) */ shape?: CarShape }
+export interface CarModel {
+  body: THREE.BufferGeometry; wheels: WheelModel[]; paint: THREE.Color;
+  /** silhouette, pour poser les livrées (absente : pas de livrée) */
+  shape?: CarShape;
+  /** moto : tout le modèle penche au sol, une seule roue arrière */
+  moto?: boolean;
+  /** vues embarquées propres au modèle (motos), à la place de celles calculées sur la silhouette */
+  vues?: Partial<Record<VueEmbarquee, { oeil: [number, number, number]; vise: [number, number, number]; fov: number }>>;
+  /** longueur hors tout (m) quand il n'y a pas de silhouette */
+  longueur?: number;
+}
 export interface Assets { cars: Record<CarId, CarModel>; decor: Record<string, THREE.BufferGeometry> }
 
 export const decorKey = (kind: DecorKind, variant: number): string => `${kind}${variant}`;
@@ -99,6 +111,6 @@ export async function loadAssets(baseUrl: string, onProgress?: (p: number) => vo
   decor.borne0 = borneGeometry();
   decor.barriere = barrierGeometry();
   for (const g of Object.values(decor)) g.computeBoundingSphere();
-  const cars = Object.fromEntries(CAR_IDS.map((id) => [id, buildJdmCar(CAR_SHAPES[id])])) as Record<CarId, CarModel>;
+  const cars = Object.fromEntries(CAR_IDS.map((id) => [id, estMotoId(id) ? buildMoto(MOTO_SHAPES[id]) : buildJdmCar(CAR_SHAPES[id])])) as Record<CarId, CarModel>;
   return { cars, decor };
 }

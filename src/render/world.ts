@@ -67,6 +67,8 @@ export class World {
   private skids: SkidMarks;
   private quality: QualityLevel;
   private readonly rear = [new THREE.Vector3(), new THREE.Vector3()];
+  /** moto : une seule roue arrière (fumée émise une fois, pas deux) */
+  private readonly rearSeule = [this.rear[0]];
   private readonly target: CameraTarget = { x: 0, y: 0, z: 0, heading: 0, vx: 0, vz: 0, speed: 0 };
   private readonly owned: { dispose(): void }[] = [];
   private eau: Eau | null = null;
@@ -220,7 +222,7 @@ export class World {
     this.carView.update(pose);
     this.carView.rearWheels(this.rear);
     const sliding = car.rearSlip > 0.05 && car.speed > 1;
-    if (sliding) this.smoke.emit(this.rear, car.rearSlip * 35, dt, car.vx, car.vz);
+    if (sliding) this.smoke.emit(CARS[this.init.carId].genre === 'moto' ? this.rearSeule : this.rear, car.rearSlip * 35, dt, car.vx, car.vz);
     this.smoke.update(dt);
     const marking = car.rearSlip > 0.35 && car.speed > 3;
     this.skids.add(0, this.rear[0], marking);

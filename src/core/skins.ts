@@ -415,6 +415,18 @@ const BASE: Record<CarId, SkinDef[]> = {
       { type: 'basDeCaisse', teinte: 'sombre', hauteur: 0.09 },
     ], '#e3b02b'),
   ],
+  // moto : pas de silhouette de voiture pour poser des motifs, les livrées sont des teintes d'usine imposées
+  supermotard: [
+    UNIE,
+    sk('blanc-enduro', 'Blanc enduro', 'commune', 'Blanc de piste : propre au départ, beaucoup moins à l\'arrivée.', [], '#f2f2ee'),
+    sk('orange-cross', 'Orange cross', 'commune', 'L\'orange des pistes de terre, pour être vu de loin.', [], '#ff6a13'),
+    sk('vert-pomme', 'Vert pomme', 'commune', 'Un vert qui pique les yeux et réveille les virages.', [], '#5fd02b'),
+    sk('bleu-usine', 'Bleu usine', 'rare', 'La teinte des pilotes officiels (le contrat n\'est pas fourni).', [], '#1f4fd8'),
+    sk('jaune-champion', 'Jaune champion', 'rare', 'Le jaune du numéro 1 : il faut l\'assumer.', [], '#ffd21a'),
+    sk('noir-mat', 'Noir mat', 'epique', 'Discrète comme une ombre, bruyante comme un monocylindre.', [], '#1d1d24'),
+    sk('rose-bonbon', 'Rose bonbon', 'epique', 'Sucrée en apparence, féroce en travers.', [], '#ff5fa2'),
+    sk('or-massif', 'Or massif', 'legendaire', 'Toute la moto en or : réservé à ceux qui ne tombent jamais.', [], OR),
+  ],
 };
 
 const BLEU = '#1f4fb5';
@@ -682,6 +694,7 @@ const NOUVELLES: Record<CarId, string[]> = {
   break: ['riviera', 'polka', 'peinture', 'zebre', 'n1', 'sakura',
     'mystere', 'fantomes', 'tofu', 'urgences', 'n42',
     'rouille', 'toutvabien', 'eurobeat', 'codevert', 'delorean', 'voielactee', 'famille'],
+  supermotard: [],
 };
 
 const RANG = (r: Rarete): number => RARETE_IDS.indexOf(r);

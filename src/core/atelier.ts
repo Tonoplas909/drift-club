@@ -5,7 +5,7 @@
  * (éditeur, serveur) : seuls les réglages connus, dans leurs bornes, sont gardés.
  */
 import type { CarId } from './physics/types';
-import { CAR_IDS } from './physics/cars';
+import { VOITURE_IDS } from './physics/cars';
 import { RARETE_IDS, type Rarete } from './raretes';
 import type { SkinDef, SkinElement, Teinte } from './skins';
 
@@ -182,7 +182,8 @@ export function validerLivree(raw: unknown): { ok: true; livree: LivreeAtelier }
   const o = raw as Record<string, unknown>;
   const erreurs: string[] = [];
   const voiture = o.voiture as CarId;
-  if (!CAR_IDS.includes(voiture)) erreurs.push('Voiture inconnue.');
+  // l'Atelier dessine des motifs sur une silhouette de voiture : pas de livrée de moto
+  if (!(VOITURE_IDS as CarId[]).includes(voiture)) erreurs.push('Voiture inconnue.');
   const nom = nettoyerTexte(o.nom, LIMITES_ATELIER.nomMax);
   if (!nom) erreurs.push(`Nom : 1 à ${LIMITES_ATELIER.nomMax} caractères (lettres, chiffres, ponctuation simple).`);
   const description = nettoyerTexte(o.description, LIMITES_ATELIER.descriptionMax);

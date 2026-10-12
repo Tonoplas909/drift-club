@@ -2,6 +2,7 @@ import { SIM_DT } from '../constants';
 import type { InputState } from '../input';
 import type { Environnement } from '../level/types';
 import type { AssistParams, CarParams, CarState, StepContext } from '../physics/types';
+import { chute } from '../physics/moto';
 import { createCarState, copyCarState, stepCar } from '../physics/car';
 import { resolveCollisions, CRASH_IMPACT } from '../physics/collision';
 import { DEG } from '../math/vec';
@@ -21,6 +22,7 @@ export interface HudZen {
 
 export type EvenementZen =
   | { type: 'choc'; impact: number }
+  | { type: 'chute' }
   | { type: 'replace'; auto: boolean }
   | { type: 'region'; theme: Environnement };
 
@@ -71,6 +73,8 @@ export class ZenSim {
       for (const m of t.mondes) impact = Math.max(impact, resolveCollisions(this.car, this.ctx.params, m));
     }
     if (impact > CRASH_IMPACT) ev.push({ type: 'choc', impact });
+    const tombe = chute(this.ctx.params, this.car, impact);
+    if (tombe) ev.push({ type: 'chute' });
 
     // progression : projection dans une fenêtre autour de la dernière position (anti-raccourci)
     let best = this.progressIndex, bestD2 = Infinity;
@@ -106,6 +110,7 @@ export class ZenSim {
       const near = route.sol.plusProche(this.car.x, this.car.z, 64);
       if (!near || near.dist > LIMITE_ZONE) auto = true;
     }
+    if (tombe) auto = true;
     if (replacer || auto) {
       this.respawn();
       ev.push({ type: 'replace', auto: !replacer });

@@ -20,6 +20,8 @@ export interface CarPose {
   pitch: number;
   /** roulis de la caisse en virage */
   roll: number;
+  /** inclinaison d'une moto (rad, + à gauche), autour du point de contact au sol ; 0 ou absent pour une voiture */
+  lean?: number;
 }
 
 /** Voiture affichée : root (cap) → ground (pente) → [roues, lean (caisse)]. */
@@ -113,8 +115,14 @@ export class CarView {
   update(p: CarPose): void {
     this.root.position.set(p.x, p.y, p.z);
     this.root.rotation.set(0, p.heading, 0);
-    this.ground.rotation.set(-p.groundPitch, 0, p.groundRoll);
-    this.lean.rotation.set(-p.pitch, 0, p.roll);
+    if (this.model.moto) {
+      // la moto penche d'un bloc vers l'intérieur du virage (+ à gauche = rotation négative autour de z), sans roulis de caisse
+      this.ground.rotation.set(-p.groundPitch, 0, p.groundRoll - (p.lean ?? 0));
+      this.lean.rotation.set(-p.pitch, 0, 0);
+    } else {
+      this.ground.rotation.set(-p.groundPitch, 0, p.groundRoll);
+      this.lean.rotation.set(-p.pitch, 0, p.roll);
+    }
     for (const w of this.wheels) {
       w.pivot.rotation.y = w.front ? p.steer : 0;
       w.spin.rotation.x = p.wheelSpin;
@@ -145,6 +153,13 @@ export class CarView {
    * apparaît et le contour de la carrosserie (dessiné par l'intérieur de sa coque) disparaît.
    */
   poserCamera(cam: THREE.PerspectiveCamera, vue: VueEmbarquee | null): void {
+    // vues propres au modèle (motos) : pas d'habitacle, le contour reste
+    const propre = vue ? this.model.vues?.[vue] : undefined;
+    if (this.model.vues) {
+      if (!vue || !propre) return;
+      this.poserOeil(cam, propre.oeil, propre.vise, propre.fov);
+      return;
+    }
     const conducteur = vue === 'conducteur';
     this.contour.visible = !conducteur;
     if (conducteur && !this.habitacle) {
@@ -157,6 +172,11 @@ export class CarView {
     }
     if (!vue) return;
     const { oeil, vise, fov } = pointsVue(vue, this.model.shape ?? CAR_SHAPES.equilibree);
+    this.poserOeil(cam, oeil, vise, fov);
+  }
+
+  /** Caméra embarquée : œil et point visé dans le repère de la caisse (elle suit pente, roulis et inclinaison). */
+  private poserOeil(cam: THREE.PerspectiveCamera, oeil: [number, number, number], vise: [number, number, number], fov: number): void {
     this.root.updateMatrixWorld(true);
     const m = this.lean.matrixWorld;
     cam.position.set(...oeil).applyMatrix4(m);
@@ -166,7 +186,7 @@ export class CarView {
     if (Math.abs(cam.fov - fov) > 0.01) { cam.fov = fov; cam.updateProjectionMatrix(); }
   }
 
-  /** Positions monde des roues arrière (gauche, droite) au niveau du sol. */
+  /** Positions monde des roues arrière (gauche, droite) au niveau du sol ; une moto n'en a qu'une, recopiée. */
   rearWheels(out: THREE.Vector3[]): void {
     this.root.updateMatrixWorld(true);
     let k = 0;
@@ -176,6 +196,7 @@ export class CarView {
       out[k].y -= w.pivot.position.y;
       k++;
     }
+    for (let i = k; i > 0 && i < out.length; i++) out[i].copy(out[0]);
   }
 
   dispose(): void {

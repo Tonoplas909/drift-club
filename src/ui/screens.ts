@@ -48,6 +48,7 @@ const DESCRIPTIONS_VOITURES: Record<CarId, string> = {
   muscle: 'Gros coupé à moteur avant, un couple monstre : grosses glissades, direction paresseuse.',
   break: 'Long break familial : stable et prévisible, mais un drift en break, ça n\'a pas de prix.',
   rotative: 'Coupé rotatif, phares escamotables : équilibrée et vive, le rêve du puriste du drift.',
+  supermotard: 'Moto de supermotard, très légère : elle penche dans les virages et glisse de l\'arrière au frein. Trop en travers, elle tombe.',
 };
 
 const DESCRIPTIONS_MODES: Record<ModeId, string> = {
