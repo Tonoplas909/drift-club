@@ -21,7 +21,7 @@ import { ChaseCamera, type ChaseConfig, type CameraTarget } from './camera';
 import { estEmbarquee, type VueCamera } from './vuesEmbarquees';
 import { construireZonesClipping } from './clipping';
 import { zonesPiste } from '../core/track/clipping';
-import { SpeedGauge, gaugeRatio } from './speedGauge';
+import { SpeedGauge, gaugeRatio, repereDrift } from './speedGauge';
 import { CARS } from '../core/physics/cars';
 import { skinDef, type SkinId } from '../core/skins';
 import { fumeeDef, type FumeeId } from '../core/fumees';
@@ -157,6 +157,8 @@ export class World {
     this.carView = new CarView(assets.cars[init.carId], init.color, q.shadows, skinDef(init.carId, init.skin));
     this.scene.add(this.carView.root, this.gauge.root);
     this.gaugeMax = vitessePratique(CARS[init.carId]);
+    // repère des 30 km/h : en dessous, un drift ne rapporte pas de points
+    this.gauge.setRepere(repereDrift(this.gaugeMax));
     this.smoke = new SmokeSystem(q.smokeMax, p.fumee, fumeeDef(init.fumee).style, q.sparkMax);
     this.skids = new SkidMarks(q.skidMax);
     this.scene.add(this.smoke.mesh, this.smoke.sparks, this.skids.mesh);
