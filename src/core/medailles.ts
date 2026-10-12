@@ -51,7 +51,7 @@ export const SEUILS_MEDAILLES: Record<string, readonly [number, number, number]>
   'vendanges-tardives': [60000, 113000, 173000],
   'sous-bois-mouille': [59000, 111000, 170000],
   'echangeur-du-periph': [56000, 104000, 160000],
-  'echangeur-holographique': [68000, 128000, 196000],
+  'echangeur-holographique': [69000, 130000, 199000],
   'viaduc-des-chamois': [64000, 119000, 183000],
   'canyon-du-scorpion': [65000, 123000, 188000],
   'belvedere-orageux': [66000, 125000, 191000],
