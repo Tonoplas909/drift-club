@@ -34,6 +34,8 @@ la fonction `verifier-course` (`npx vite-node tools/gen-fonction.ts`).
 | [Clubs](#clubs) | gros | oui (migration) | à faire |
 | [Saison](#saison) | gros | oui (migration) | à faire |
 | [Réglages de voiture](#réglages-de-voiture) | gros | oui (simulation) | à discuter |
+| [Figures](#figures) | moyen | oui (simulation) | à faire |
+| [Wheelie à moto](#wheelie-à-moto) | gros | oui (simulation) | à faire |
 
 Recommandation actuelle : toutes les petites et moyennes idées sont faites (0.5.6 à 0.5.18). Pour la suite, **fantômes
 et tandem** : les replays, le film (« Revoir ») et le fantôme local existent déjà, il reste à stocker les replays sur le
@@ -169,6 +171,17 @@ voiture doit savoir sur quelle portion elle roule (le sol n'a plus une seule hau
 Partir d'une base tirée au sort plutôt que d'une page blanche : la route du dessinateur du mode Zen (celle du défi du
 jour), dans le décor choisi ou au hasard, avec ses barrières et ses zones de clipping, puis la retoucher.
 
+### Figures
+
+Des points pour des figures en glisse, comme en compétition : un tour complet (360°), un demi-tour (180°), un tête-
+queue, et ainsi de suite. La voiture garde son lacet cumulé (l'angle total tourné depuis le début de la figure), ce qui
+permet de compter les rotations sans se tromper quand on repart en arrière. Chaque figure rapporte des points fixes,
+avec un bonus pour un enchaînement propre (deux figures sans toucher un mur ni perdre l'adhérence) et une figure annulée
+en cas de choc. Affichage dans le HUD (« 360° ! ») et, pour la carte de score, la meilleure figure de la course.
+C'est une règle de score : elle vit dans `src/core` (déterministe), le serveur doit la rejouer, donc fonction à
+régénérer ; les records des niveaux existants restent comparables tant que les figures ne rapportent rien de plus que le
+drift (ou nouveaux classements, comme pour les zones de clipping).
+
 ## Grosses
 
 ### Motos
@@ -208,6 +221,17 @@ Régler sa voiture : angle de braquage, répartition des freins, adhérence avan
 puristes, mais délicat pour la justice des classements : classements séparés « réglage libre », ou réglages bornés et
 enregistrés avec le replay (le serveur rejoue avec les mêmes réglages). Touche la physique : simulation et fonction
 serveur à mettre à jour.
+
+### Wheelie à moto
+
+Ajouter des motos. Sur une moto, un wheelie (roue avant en l'air) rapporte des points, d'autant plus qu'il dure. Il se
+tient à l'accélérateur et au frein : trop de gaz et la moto se cabre et tombe en arrière, trop de frein et elle
+retombe sur la roue avant ; il faut doser les deux pour garder l'équilibre. Le frein avant et le frein arrière
+doivent être deux commandes distinctes (aujourd'hui il n'y a qu'un frein), et la manette doit pouvoir doser les
+gâchettes finement. Il faut un modèle de moto dans `src/core/physics` (tangage, roue avant et arrière, centre de masse
+haut) : rien de tel n'existe encore, d'où l'effort. Le score du wheelie (points par seconde, bonus au-delà d'un seuil)
+vit dans `src/core` ; la chute est une fin de figure, comme la sortie de piste. Serveur : la simulation et la fonction
+sont à régénérer ; une moto a son propre classement, ou ses niveaux à elle (les voitures n'ont pas de wheelie).
 
 ## Fait (pour mémoire)
 
