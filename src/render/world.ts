@@ -12,7 +12,7 @@ import { Scintillement } from './scintillement';
 import { QUALITY, type QualityLevel } from './quality';
 import { createSky } from './sky';
 import { Eau } from './eau';
-import { buildRoad, createRoadTextures } from './road';
+import { buildRoad, buildPonts, createRoadTextures } from './road';
 import { buildTerrain, buildMountains, buildPlafond } from './terrainMesh';
 import { buildDecor, DecorVisible } from './decor';
 import { CarView, type CarPose } from './carView';
@@ -112,6 +112,8 @@ export class World {
     const tex = createRoadTextures(p, renderer.capabilities.getMaxAnisotropy());
     this.owned.push(tex.road, tex.curb, tex.checker);
     this.scene.add(buildRoad(track, p, tex));
+    const ponts = buildPonts(track, env.piliers);
+    if (ponts) this.scene.add(ponts);
     const clipping = construireZonesClipping(track, zonesPiste(level, track));
     this.scene.add(clipping.groupe);
     this.owned.push(clipping);

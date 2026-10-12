@@ -102,11 +102,15 @@ function* remplir(g: Grid, track: TrackData, every: number, radius: number): Gen
   const bas = new Float32Array(n).fill(-Infinity);
   const haut = new Float32Array(n).fill(Infinity);
   const sw = new Float32Array(n), swy = new Float32Array(n);
+  // un pont ne porte pas le terrain : sous lui, le sol suit la route du dessous (il compte pour la distance à la route)
+  const pont = track.pont;
   for (let k = 0; k < idx.length; k++) {
     const sp = track.samples[idx[k]];
     const epaule = sp.w + 1.5;
+    const surPont = pont ? pont[idx[k]] === 1 : false;
     surCases(g, sp, radius, (c, dd) => {
       if (dd < g.d[c]) g.d[c] = dd;
+      if (surPont) return;
       const e = Math.max(0, dd - epaule);
       if (e < ecart[c]) ecart[c] = e;
       const dev = PENTE_TALUS * e;
@@ -116,6 +120,7 @@ function* remplir(g: Grid, track: TrackData, every: number, radius: number): Gen
     if (k % PAS_ETAPE === PAS_ETAPE - 1) yield;
   }
   for (let k = 0; k < idx.length; k++) {
+    if (pont && pont[idx[k]] === 1) continue;
     const sp = track.samples[idx[k]];
     const epaule = sp.w + 1.5;
     surCases(g, sp, radius, (c, dd) => {
@@ -129,6 +134,8 @@ function* remplir(g: Grid, track: TrackData, every: number, radius: number): Gen
   for (let i = 0; i < n; i++) {
     if (i % (PAS_ETAPE * 200) === 0) yield;
     if (g.d[i] === Infinity) continue;
+    // case seulement sous un pont (aucun autre tronçon ne compte) : hauteur la plus proche connue, ou le bas du pont
+    if (!(sw[i] > 0)) { g.h[i] = bas[i] > -Infinity ? bas[i] : haut[i] < Infinity ? haut[i] : Infinity; if (g.h[i] === Infinity) g.d[i] = Infinity; continue; }
     const nat = swy[i] / sw[i] + rise(ecart[i], bruitCase(g, i));
     g.h[i] = bas[i] <= haut[i] ? Math.min(haut[i], Math.max(bas[i], nat)) : (bas[i] + haut[i]) / 2;
   }
@@ -283,13 +290,16 @@ export class Terrain implements Ground {
 
   /** Hauteur du terrain : versant + lacs, puis les talus des tronçons voisins (la chaussée impose sa hauteur, le terrain la quitte en pente bornée). */
   heightAt(x: number, z: number): number {
-    const S = this.track.samples;
+    const S = this.track.samples, pont = this.track.pont;
     this.track.grid.query(x, z, RAYON_CHAUSSEE, scratchTerrain);
-    const n = scratchTerrain.length;
-    for (let k = 0; k < n; k++) {
+    let n = 0;
+    for (let k = 0; k < scratchTerrain.length; k++) {
+      // le tablier d'un pont ne borne pas le terrain
+      if (pont && pont[scratchTerrain[k]] === 1) continue;
       const sp = S[scratchTerrain[k]];
-      candTalus[k] = sp;
-      sCandTalus[k] = sp.s;
+      candTalus[n] = sp;
+      sCandTalus[n] = sp.s;
+      n++;
     }
     return appliquerTalus(this.hauteurGrille(x, z), x, z, candTalus, sCandTalus, n);
   }

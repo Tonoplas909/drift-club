@@ -1,5 +1,5 @@
 import type { TrackData } from './buildTrack';
-import * as dm from '../math/dmath';
+import { croisementsBas, HAUTEUR_PONT } from './ponts';
 
 const MAX_PAR_TYPE = 5;
 
@@ -14,41 +14,18 @@ export interface ProblemeGeometrie {
   message: string;
 }
 
-/** Détecte les problèmes de géométrie : croisements, virages serrés. */
+/** Détecte les problèmes de géométrie : croisements à la même hauteur, virages serrés. */
 export function geometryProblems(track: TrackData): ProblemeGeometrie[] {
   const problems: ProblemeGeometrie[] = [];
   const S = track.samples;
-  const scratch: number[] = [];
 
-  let crossings = 0;
-  let lastFlag = -Infinity;
-  for (let i = 0; i < S.length && crossings < MAX_PAR_TYPE; i += 2) {
-    const a = S[i];
-    track.grid.query(a.x, a.z, a.w + 14, scratch);
-    for (const j of scratch) {
-      if (j <= i) continue;
-      const b = S[j];
-      const thr = a.w + b.w + 4;
-      if (b.s - a.s <= 2 * thr) continue;
-      if (dm.hypot(a.x - b.x, a.z - b.z) < thr) {
-        if (a.s - lastFlag > 30) {
-          const msg = `La route se croise ou passe trop près d'elle-même (vers ${Math.round(a.s)} m et ${Math.round(b.s)} m).`;
-          problems.push({
-            type: 'croisement',
-            s: a.s,
-            x: a.x,
-            z: a.z,
-            s2: b.s,
-            x2: b.x,
-            z2: b.z,
-            message: msg,
-          });
-          crossings++;
-          lastFlag = a.s;
-        }
-        break;
-      }
-    }
+  // croisements : permis à HAUTEUR_PONT d'écart ou plus (la route du dessus devient un pont), refusés en dessous
+  for (const c of croisementsBas(track).slice(0, MAX_PAR_TYPE)) {
+    const b = S[Math.min(S.length - 1, Math.round(c.s2))];
+    problems.push({
+      type: 'croisement', s: c.s, x: c.x, z: c.z, s2: c.s2, x2: b.x, z2: b.z,
+      message: `La route se croise à la même hauteur vers ${Math.round(c.s)} m et ${Math.round(c.s2)} m (${(Math.floor(c.ecart * 10) / 10).toFixed(1).replace('.', ',')} m d'écart de hauteur) : écarte-les ou mets au moins ${HAUTEUR_PONT} m de différence pour faire un pont.`,
+    });
   }
 
   let inTight = false;
@@ -75,7 +52,7 @@ export function geometryProblems(track: TrackData): ProblemeGeometrie[] {
   return problems;
 }
 
-/** Erreurs de géométrie : croisements / passages trop proches, virages de rayon < 8 m. */
+/** Erreurs de géométrie : croisements ou passages trop proches à la même hauteur, virages de rayon < 8 m. */
 export function checkGeometry(track: TrackData): string[] {
   return geometryProblems(track).map((p) => p.message);
 }

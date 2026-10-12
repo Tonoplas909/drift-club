@@ -15,6 +15,7 @@ import {
 import { clamp, DEG } from '../math/vec';
 import { zonesPiste, proximiteClipping, type ZonePiste } from '../track/clipping';
 import { adherenceDe } from '../physics/meteo';
+import { SolPiste } from '../track/ponts';
 import * as dm from '../math/dmath';
 
 export type RacePhase = 'compte' | 'course' | 'arrivee';
@@ -99,6 +100,8 @@ export class RaceSim {
   private readonly sp: ScoreParams;
   private pending: RaceEvent[] = [];
   private readonly zones: ZonePiste[];
+  /** sol de la voiture : le terrain, ou le tablier d'un pont sur la portion de route où elle roule */
+  readonly sol: SolPiste;
   /** proximité du bord dans une zone de clipping, au dernier pas */
   clipping = 0;
 
@@ -108,10 +111,12 @@ export class RaceSim {
     this.countdown = cfg.countdown ?? 3;
     this.world = buildCollisionWorld(cfg.env);
     this.zones = zonesPiste(cfg.level, cfg.track);
-    this.ctx = { params: cfg.car, assists: cfg.assists, ground: cfg.terrain, onRoad: true, adherence: adherenceDe(cfg.level) };
+    this.sol = new SolPiste(cfg.terrain, cfg.track);
+    this.ctx = { params: cfg.car, assists: cfg.assists, ground: this.sol, onRoad: true, adherence: adherenceDe(cfg.level) };
     const idx = Math.min(6, cfg.track.samples.length - 1);
     const s0 = cfg.track.samples[idx];
-    this.car = createCarState(s0.x, s0.z, dm.atan2(s0.tx, s0.tz), cfg.terrain.heightAt(s0.x, s0.z));
+    this.sol.indice = idx;
+    this.car = createCarState(s0.x, s0.z, dm.atan2(s0.tx, s0.tz), this.sol.heightAt(s0.x, s0.z));
     this.prevCar = copyCarState(this.car);
     this.progressIndex = idx;
     this.progressS = s0.s;
@@ -135,6 +140,7 @@ export class RaceSim {
       return ev;
     }
 
+    this.sol.indice = this.progressIndex;
     if (this.phase === 'arrivee') {
       this.ctx.onRoad = this.onRoad;
       stepCar(this.car, COAST, this.ctx, SIM_DT);
@@ -229,7 +235,8 @@ export class RaceSim {
     const s = Math.max(0, this.maxProgressS - 5);
     const idx = Math.min(track.samples.length - 1, Math.round(s));
     const sp = track.samples[idx];
-    const fresh = createCarState(sp.x, sp.z, dm.atan2(sp.tx, sp.tz), this.config.terrain.heightAt(sp.x, sp.z));
+    this.sol.indice = idx;
+    const fresh = createCarState(sp.x, sp.z, dm.atan2(sp.tx, sp.tz), this.sol.heightAt(sp.x, sp.z));
     fresh.wheelSpin = this.car.wheelSpin;
     Object.assign(this.car, fresh);
     copyCarState(this.car, this.prevCar);

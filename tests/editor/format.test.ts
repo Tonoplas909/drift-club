@@ -22,9 +22,9 @@ describe('barre de validation', () => {
     expect(r.texte).toContain('distance au point précédent');
     expect(r.messages.length).toBeGreaterThan(0);
   });
-  it('problèmes de géométrie : croisement listé', () => {
+  it('problèmes de géométrie : croisement à la même hauteur listé', () => {
     const l = newLevel();
-    l.route.push({ x: 40, z: 250, y: 0, l: 10 }, { x: 40, z: 100, y: 0, l: 10 });
+    l.route.push({ x: 40, z: 250, y: 20, l: 10 }, { x: 40, z: 110, y: 28, l: 10 });
     const r = resumeValidation(l, analyseLevel(l));
     expect(r.ok).toBe(false);
     expect(r.messages.join(' ')).toMatch(/croise|serré/);

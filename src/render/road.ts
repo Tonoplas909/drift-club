@@ -3,6 +3,7 @@ import type { TrackData, TrackSample } from '../core/track/buildTrack';
 import { mulberry32 } from '../core/math/rng';
 import { toonMaterial } from './materials';
 import { coloredBox } from './procedural';
+import { plagesPonts } from '../core/track/ponts';
 import { epauleDe, type Palette } from './palettes';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
@@ -175,4 +176,52 @@ export function buildRoad(track: TrackData, p: Palette, tex: RoadTextures, opts:
   arch.castShadow = true;
   group.add(arch);
   return group;
+}
+
+/** Béton des ponts (tablier et piliers). */
+const BETON = 0xa7a39b;
+/** Épaisseur du tablier (m) et largeur qui dépasse de la chaussée de chaque côté. */
+const EPAISSEUR_TABLIER = 0.9, BORD_TABLIER = 1.1;
+
+/**
+ * Ponts : sous la chaussée de chaque plage `pont`, un tablier en béton (bords, dessous, extrémités) et les piliers
+ * de `piliers`. null s'il n'y a aucun pont. Les garde-corps sont des barrières du décor.
+ */
+export function buildPonts(track: TrackData, piliers: readonly { x: number; z: number; bas: number; haut: number }[] = []): THREE.Mesh | null {
+  const S = track.samples;
+  const parts: THREE.BufferGeometry[] = [];
+  const c = new THREE.Color(BETON), dessous = new THREE.Color(BETON).multiplyScalar(0.72);
+  for (const p of plagesPonts(track.pont ?? null)) {
+    const seg = S.slice(p.de, p.a + 1);
+    if (seg.length < 2) continue;
+    const W = (s: TrackSample) => s.w + BORD_TABLIER;
+    // trottoirs (au ras de la chaussée), côtés et dessous
+    parts.push(strip(seg.map((s) => off(s, W(s), 0.03)), seg.map((s) => off(s, s.w, 0.03)), undefined, undefined, c));
+    parts.push(strip(seg.map((s) => off(s, -s.w, 0.03)), seg.map((s) => off(s, -W(s), 0.03)), undefined, undefined, c));
+    parts.push(strip(seg.map((s) => off(s, W(s), -EPAISSEUR_TABLIER)), seg.map((s) => off(s, W(s), 0.03)), undefined, undefined, c));
+    parts.push(strip(seg.map((s) => off(s, -W(s), 0.03)), seg.map((s) => off(s, -W(s), -EPAISSEUR_TABLIER)), undefined, undefined, c));
+    parts.push(strip(seg.map((s) => off(s, -W(s), -EPAISSEUR_TABLIER)), seg.map((s) => off(s, W(s), -EPAISSEUR_TABLIER)), undefined, undefined, dessous));
+    // extrémités
+    for (const s of [seg[0], seg[seg.length - 1]]) {
+      parts.push(strip([off(s, -W(s), 0.03), off(s, W(s), 0.03)], [off(s, -W(s), -EPAISSEUR_TABLIER), off(s, W(s), -EPAISSEUR_TABLIER)], undefined, undefined, c));
+    }
+  }
+  for (const pl of piliers) {
+    const h = pl.haut - pl.bas + 1;
+    parts.push(coloredBox(1.4, h, 1.4, pl.x, pl.bas - 1 + h / 2, pl.z, BETON));
+  }
+  if (!parts.length) return null;
+  // toutes les géométries doivent avoir les mêmes attributs pour être fusionnées
+  const geos = parts.map((g) => {
+    const n = g.index ? g.toNonIndexed() : g;
+    for (const a of Object.keys(n.attributes)) if (a !== 'position' && a !== 'normal' && a !== 'color') n.deleteAttribute(a);
+    return n;
+  });
+  const mat = toonMaterial({ vertexColors: true });
+  mat.side = THREE.DoubleSide;
+  const m = new THREE.Mesh(mergeGeometries(geos)!, mat);
+  m.name = 'ponts';
+  m.castShadow = true;
+  m.receiveShadow = true;
+  return m;
 }

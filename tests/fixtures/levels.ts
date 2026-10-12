@@ -48,3 +48,22 @@ export function hairpinLevel(): Level {
     [40, 0, 0, 10],
   ]);
 }
+
+/**
+ * Boucle qui repasse au-dessus de son départ : la route part vers +z, tourne à droite et revient vers -x en
+ * croisant la ligne droite du départ en (0, 0), `dy` m plus haut (dy ≥ 6 : un pont).
+ */
+export function pontLevel(dy = 12): Level {
+  const k = dy / 12;
+  return makeLevel([
+    [0, -100, 0, 10],
+    [0, 0, 0, 10],
+    [0, 100, 2 * k, 10],
+    [60, 150, 5 * k, 10],
+    [120, 100, 8 * k, 10],
+    [110, 20, 11 * k, 10],
+    [50, 0, 12 * k, 10],
+    [-50, 0, 12 * k, 10],
+    [-130, 0, 12 * k, 10],
+  ]);
+}

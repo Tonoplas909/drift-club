@@ -2,6 +2,7 @@ import type { Level, TypeObjet } from '../core/level/types';
 import { THEMES } from '../core/env/themes';
 import type { AnalyseNiveau } from '../core/editor/analyse';
 import type { TrackData } from '../core/track/buildTrack';
+import { plagesPonts } from '../core/track/ponts';
 import { mondeVersEcran, pasGrille, pasEchantillons, echelleGraphique, troncons, directionRot, type Vue2D } from './geom';
 import type { Outil, Selection } from './types';
 
@@ -49,6 +50,7 @@ export function dessiner(ctx: CanvasRenderingContext2D, e: EtatDessin): void {
   const track = e.analyse.track;
   if (track) {
     ruban(ctx, track, e, 1);
+    ponts(ctx, track, e);
     if (e.outil === 'barrieres' || e.outil === 'clipping') separateurs(ctx, track, e);
     zonesClipping(ctx, track, e);
     barrieres(ctx, track, e);
@@ -166,6 +168,50 @@ function ruban(ctx: CanvasRenderingContext2D, track: TrackData, e: EtatDessin, a
   ctx.beginPath();
   bord(ctx, track, e, 0, 0, step, false, true);
   ctx.stroke();
+  ctx.restore();
+}
+
+/** Ponts : la portion du dessus redessinée par-dessus l'autre, sur un tablier gris bordé d'un trait sombre. */
+function ponts(ctx: CanvasRenderingContext2D, track: TrackData, e: EtatDessin): void {
+  const S = track.samples;
+  const step = pasEchantillons(e.vue.scale);
+  const cote = (de: number, a: number, side: number, off: number, first: boolean): void => {
+    const idx: number[] = [];
+    for (let i = de; i < a; i += step) idx.push(i);
+    idx.push(a);
+    if (side < 0) idx.reverse();
+    idx.forEach((i, k) => {
+      const sp = S[i];
+      const p = mondeVersEcran(e.vue, e.w, e.h, sp.x + sp.nx * side * (sp.w + off), sp.z + sp.nz * side * (sp.w + off));
+      if (k === 0 && first) ctx.moveTo(p.sx, p.sy); else ctx.lineTo(p.sx, p.sy);
+    });
+  };
+  ctx.save();
+  ctx.lineJoin = 'round';
+  for (const p of plagesPonts(track.pont ?? null)) {
+    ctx.beginPath();
+    cote(p.de, p.a, 1, 1.1, true);
+    cote(p.de, p.a, -1, 1.1, false);
+    ctx.closePath();
+    ctx.fillStyle = '#a7a39b';
+    ctx.fill();
+    ctx.strokeStyle = '#15131c';
+    ctx.lineWidth = Math.max(1.5, 0.25 * e.vue.scale);
+    ctx.stroke();
+    ctx.beginPath();
+    cote(p.de, p.a, 1, 0, true);
+    cote(p.de, p.a, -1, 0, false);
+    ctx.closePath();
+    ctx.fillStyle = '#4a4d57';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = Math.max(1.5, 0.3 * e.vue.scale);
+    for (const side of [1, -1]) {
+      ctx.beginPath();
+      cote(p.de, p.a, side, 0, true);
+      ctx.stroke();
+    }
+  }
   ctx.restore();
 }
 

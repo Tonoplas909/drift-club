@@ -80,6 +80,8 @@ export function resolveCollisions(car: CarState, params: CarParams, world: Colli
       if (circVisited[i] === visitStamp) continue;
       circVisited[i] = visitStamp;
       const c = world.circles[i];
+      // pilier sous un pont, ou obstacle à une autre hauteur : la voiture passe au-dessus ou en dessous
+      if (c.hauteur && (car.y < c.hauteur[0] || car.y > c.hauteur[1])) continue;
       const dx = cx - c.x, dz = cz - c.z;
       const d = dm.hypot(dx, dz);
       const pen = rc + c.r - d;
@@ -97,6 +99,7 @@ export function resolveCollisions(car: CarState, params: CarParams, world: Colli
       if (segVisited[i] === visitStamp) continue;
       segVisited[i] = visitStamp;
       const s = world.segments[i];
+      if (s.hauteur && (car.y < s.hauteur[0] || car.y > s.hauteur[1])) continue;
       const ex = s.bx - s.ax, ez = s.bz - s.az;
       const len2 = ex * ex + ez * ez;
       const t = len2 > 1e-9 ? clamp(((cx - s.ax) * ex + (cz - s.az) * ez) / len2, 0, 1) : 0;
