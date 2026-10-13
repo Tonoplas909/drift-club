@@ -1,6 +1,6 @@
 # Idées pour la suite de Drift Club
 
-Carnet d'idées : ce qui pourrait venir après la v0.5.18. Rien ici n'est promis ni planifié ; on pioche dedans, et on met
+Carnet d'idées : ce qui pourrait venir après la v0.5.30. Rien ici n'est promis ni planifié ; on pioche dedans, et on met
 à jour la colonne **État** (et la section « Fait » en bas) au fil des versions.
 
 Repères d'effort : **petit** = une session, **moyen** = une ou deux sessions, **gros** = une vraie mise à jour (v0.x.0).
@@ -29,17 +29,21 @@ la fonction `verifier-course` (`npx vite-node tools/gen-fonction.ts`).
 | [Pluie et nuit](#pluie-et-nuit) | moyen | oui (simulation) | fait (0.5.16) |
 | [Ponts dans l'éditeur](#ponts-dans-léditeur) | moyen | oui (simulation) | fait (0.5.21) |
 | [Niveau aléatoire dans l'éditeur](#niveau-aléatoire-dans-léditeur) | petit | non | fait (0.5.22) |
-| [Motos](#motos) | gros | oui (simulation + migration) | en cours (0.5.25 : La Supermotard) |
+| [Motos](#motos) | gros | oui (simulation + migration) | en cours (0.5.25 → 0.5.30 : La Supermotard, wheelie, classement) |
 | [Fantômes et tandem](#fantômes-et-tandem) | gros | oui (migration + stockage) | à faire |
 | [Clubs](#clubs) | gros | oui (migration) | à faire |
 | [Saison](#saison) | gros | oui (migration) | à faire |
 | [Réglages de voiture](#réglages-de-voiture) | gros | oui (simulation) | à discuter |
 | [Figures](#figures) | moyen | oui (simulation) | à faire |
-| [Wheelie à moto](#wheelie-à-moto) | gros | oui (simulation) | fait (0.5.27) |
+| [Wheelie à moto](#wheelie-à-moto) | gros | oui (simulation) | fait (0.5.27 → 0.5.30) |
+| [Deuxième moto](#deuxième-moto) | moyen | oui (simulation) | à faire |
+| [Défi du jour à moto](#défi-du-jour-à-moto) | petit | oui (simulation) | à faire |
+| [Deux freins et stoppie](#deux-freins-et-stoppie) | moyen | oui (simulation) | à faire |
 
-Recommandation actuelle : toutes les petites et moyennes idées sont faites (0.5.6 à 0.5.18). Pour la suite, **fantômes
-et tandem** : les replays, le film (« Revoir ») et le fantôme local existent déjà, il reste à stocker les replays sur le
-serveur pour courir contre le premier du classement.
+Recommandation actuelle : les motos ont pris le relais depuis la 0.5.25 (La Supermotard, wheelie, classement à part,
+jauges). Pour les compléter : une [deuxième moto](#deuxième-moto) et le [défi du jour à moto](#défi-du-jour-à-moto),
+petits et sans migration. Ensuite, **fantômes et tandem** : les replays, le film (« Revoir ») et le fantôme local
+existent déjà, il reste à stocker les replays sur le serveur pour courir contre le premier du classement.
 
 ## Petites
 
@@ -98,6 +102,13 @@ nom du niveau, score, meilleur drift, voiture et livrée, avec le lien du jeu. L
 Une page dans le Compte (ou les Réglages hors ligne) : kilomètres parcourus, temps passé en glisse, plus long drift,
 courses finies, voiture la plus jouée, kilomètres en mode Zen. Tout est compté sur l'appareil ; plus tard, les mêmes
 chiffres pourraient nourrir les succès ou la saison.
+
+### Défi du jour à moto
+
+Le défi du jour tire sa voiture dans une liste figée de sept voitures (`VEHICULES_DEFI`, pour ne pas changer les défis
+passés). Ajouter un défi moto à côté : même niveau du jour, classement « moto:jour:… » (aujourd'hui refusé par la
+fonction), ou un jour sur sept réservé aux motos. Petite migration possible si le classement du jour doit connaître la
+clé moto.
 
 ## Moyennes
 
@@ -182,6 +193,20 @@ C'est une règle de score : elle vit dans `src/core` (déterministe), le serveur
 régénérer ; les records des niveaux existants restent comparables tant que les figures ne rapportent rien de plus que le
 drift (ou nouveaux classements, comme pour les zones de clipping).
 
+### Deuxième moto
+
+Une moto de caractère différent de La Supermotard, par exemple une sportive (plus rapide, plus lourde, couchée plus
+loin, wheelie difficile) ou une petite 125 (légère, joueuse, peu de puissance). Le modèle de moto
+(`src/render/motos.ts`, `MOTO_SHAPES`) et les paramètres (`src/core/physics/cars.ts`) sont prêts à en accueillir
+d'autres ; l'onglet Motos du Garage aussi. Le jeu de paramètres change la simulation : fonction serveur à régénérer.
+
+### Deux freins et stoppie
+
+Aujourd'hui la moto n'a qu'un frein (plus le frein à main qui sert de frein arrière). Séparer frein avant et frein
+arrière (gâchettes de la manette, deux touches au clavier), avec le transfert de masse vers l'avant au freinage : trop
+de frein avant lève la roue arrière (**stoppie**), qui rapporterait des points comme le wheelie. Même mécanique de
+tangage que le cabrage, mais autour du contact de la roue avant. Touche la simulation : fonction serveur à régénérer.
+
 ## Grosses
 
 ### Motos
@@ -189,8 +214,11 @@ drift (ou nouveaux classements, comme pour les zones de clipping).
 Des deux-roues jouables partout : la moto penche dans les virages, glisse de l'arrière au frein et tombe si elle part
 trop en travers. Plan détaillé dans la doc « Ajouter des motos à Drift Club ». Fait en 0.5.25 : fondations (genre de
 véhicule, inclinaison, chute, liste du défi figée), La Supermotard (physique, modèle et pilote, son, livrées en
-teintes, vues embarquées), migration 0014. Reste : d'autres motos, des livrées dessinées pour les motos, les motos
-dans le défi du jour.
+teintes, vues embarquées), migration 0014. Puis : roulis en ressort amorti et adhérence liée à l'inclinaison (0.5.26),
+pneus arrondis et [wheelie](#wheelie-à-moto) (0.5.27 → 0.5.30), classement séparé et Garage en onglets Voitures / Motos
+(0.5.28, migration 0015). Reste : une [deuxième moto](#deuxième-moto), le [défi du jour à moto](#défi-du-jour-à-moto),
+[deux freins et le stoppie](#deux-freins-et-stoppie), des livrées dessinées pour les motos (l'Atelier ne connaît que les
+voitures).
 
 ### Fantômes et tandem
 
@@ -224,21 +252,24 @@ serveur à mettre à jour.
 
 ### Wheelie à moto
 
-Suite des [Motos](#motos). Sur une moto, un wheelie (roue avant en l'air) rapporte des points, d'autant plus qu'il dure. Il se
-tient à l'accélérateur et au frein : trop de gaz et la moto se cabre et tombe en arrière, trop de frein et elle
-retombe sur la roue avant ; il faut doser les deux pour garder l'équilibre. Le frein avant et le frein arrière
-doivent être deux commandes distinctes (aujourd'hui il n'y a qu'un frein), et la manette doit pouvoir doser les
-gâchettes finement. La Supermotard (0.5.25) a déjà un modèle deux-roues dans `src/core/physics` (inclinaison, chute) ;
-il lui manque le tangage (roue avant qui décolle, centre de masse haut) et les deux freins, d'où l'effort. Le score du wheelie (points par seconde, bonus au-delà d'un seuil)
-vit dans `src/core` ; la chute est une fin de figure, comme la sortie de piste. Serveur : la simulation et la fonction
-sont à régénérer ; une moto a son propre classement, ou ses niveaux à elle (les voitures n'ont pas de wheelie).
-Fait en 0.5.27 : cabrage physique autour de la roue arrière, coup d'embrayage (frein + gaz, puis relâcher le frein),
-frein arrière (frein à main) pour rabattre, aide anti-cabrage en Arcade et Semi, chute en arrière en Exigeant, points
-comme un drift. Depuis 0.5.28, les motos ont leur propre classement (clé « moto:… »).
-En 0.5.29 : lever l'avant en sortie de virage par pompage de fourche (deux ou trois coups de guidon rapides, puis
-gaz ouverts en se redressant), et diriger un peu au corps pendant le wheelie.
-En 0.5.30 : jauges « Embrayage » (charge, « Lâche ! » quand elle est pleine) et « Fourche » (« Gaz ! » quand un coup
-de gaz lève l'avant) dans le HUD des motos.
+Suite des [Motos](#motos). Sur une moto, un wheelie (roue avant en l'air) rapporte des points comme un drift, d'autant
+plus qu'il dure. Ce qui existe :
+
+- **cabrage physique** autour de la roue arrière (centre de masse haut, amortissement du tangage), dans
+  `src/core/physics/car.ts` ; la simulation et la fonction serveur le rejouent (0.5.27) ;
+- **coup d'embrayage** : gaz + frein tenus pour charger, puis lâcher le frein ; seulement moto droite et sous ~50 km/h,
+  jamais par accident au simple coup de gaz (0.5.27) ;
+- **pompage de fourche** en sortie de virage : deux ou trois coups de guidon gauche-droite rapides, sans glisser, puis
+  les gaz en se redressant, jusqu'à ~90 km/h ; un virage normal ou une chicane ne lèvent rien (0.5.29) ;
+- **direction au corps** pendant le wheelie : la moto penche et tourne un peu, en courbe large (0.5.29) ;
+- **dosage** : frein arrière (frein à main) pour rabattre l'avant, aide anti-cabrage en Arcade (30°) et Semi (35°),
+  chute en arrière en Exigeant au-delà de 65° (0.5.27) ;
+- **jauges** dans le HUD : « Embrayage » (« Lâche ! », « Trop vite », « Redresse ») et « Fourche » (« Gaz ! ») (0.5.30) ;
+- classement des motos à part (clé « moto:… », 0.5.28), puisque les voitures n'ont pas de wheelie.
+
+Reste, en pistes : un bonus propre au wheelie (points par seconde, palier au-delà de quelques secondes) au lieu du
+barème du drift ; le pompage plus facile à doser au clavier si la fenêtre (~0,25 s) se révèle trop courte ; les
+[deux freins et le stoppie](#deux-freins-et-stoppie).
 
 ## Fait (pour mémoire)
 
