@@ -1,6 +1,6 @@
 import type { CarId, ModeId } from '../core/physics/types';
 import { THEMES } from '../core/env/themes';
-import { CARS, CAR_IDS } from '../core/physics/cars';
+import { CARS, VOITURE_IDS, MOTO_IDS, estMotoId } from '../core/physics/cars';
 import { MODE_IDS, MODE_NOMS } from '../core/physics/assists';
 import type { RaceResult } from '../core/race/race';
 import { validateLevel } from '../core/level/validate';
@@ -222,6 +222,7 @@ export class Screens {
     let fumee = o.fumee;
     /** fumée regardée (choisie, ou verrouillée en aperçu) ; null = on parle de la livrée */
     let fumeeVue: FumeeId | null = null;
+    let genre: 'voiture' | 'moto' = estMotoId(voiture) ? 'moto' : 'voiture';
     const change = () => {
       if (fumeeVue !== null) o.onApercuFumee(null);
       apercu = null; fumeeVue = null; o.onChange(voiture, couleur, skins); render();
@@ -233,9 +234,14 @@ export class Screens {
       const forcee = def.couleurForcee !== undefined;
       const defilement = this.root.querySelector('.garage-corps')?.scrollTop ?? 0; // la liste garde sa place au re-rendu
       const corps = h('div', { class: 'garage-corps' },
-        h('div', { class: 'choices voitures' }, ...CAR_IDS.map((id) =>
+        // voitures et motos à part : un onglet chacun (l'onglet ouvert au départ est celui du véhicule choisi)
+        h('div', { class: 'tabs garage-genres' },
+          h('button', { class: 'tab' + (genre === 'voiture' ? ' on' : ''), onclick: () => { genre = 'voiture'; render(); } }, 'Voitures'),
+          h('button', { class: 'tab' + (genre === 'moto' ? ' on' : ''), onclick: () => { genre = 'moto'; render(); } }, 'Motos')),
+        h('div', { class: 'choices voitures' }, ...(genre === 'moto' ? MOTO_IDS : VOITURE_IDS).map((id) =>
           h('button', { class: 'choice' + (id === voiture ? ' on' : ''), title: DESCRIPTIONS_VOITURES[id], onclick: () => { voiture = id; change(); } },
             h('b', {}, CARS[id].nom)))),
+        genre !== (estMotoId(voiture) ? 'moto' : 'voiture') && h('p', { class: 'petit' }, `Véhicule choisi : ${CARS[voiture].nom}. Choisis-en un ci-dessus pour en changer.`),
         h('p', { class: 'petit voiture-desc' }, DESCRIPTIONS_VOITURES[voiture]),
         h('div', { class: 'swatches' + (forcee ? ' figees' : '') }, ...COULEURS.map((c) =>
           h('button', { class: 'swatch' + (c.hex === couleur ? ' on' : ''), style: `background:${c.hex}`, title: forcee ? 'Couleur imposée par la livrée' : c.nom, 'aria-label': c.nom, disabled: forcee, onclick: () => { couleur = c.hex; change(); } }))),
@@ -292,7 +298,7 @@ export class Screens {
           h('button', { class: 'btn sec', onclick: o.onAtelier, title: 'Crée ta livrée et propose-la pour les caisses' }, 'Atelier'),
           h('button', { class: 'btn', onclick: o.onRetour }, 'Retour'),
         ),
-      ), h('p', { class: 'astuce-vue' }, 'Fais glisser pour tourner la voiture · molette ou pincement pour zoomer')));
+      ), h('p', { class: 'astuce-vue' }, 'Fais glisser pour tourner le véhicule · molette ou pincement pour zoomer')));
       corps.scrollTop = defilement;
       // rangée de voitures défilante (téléphone en paysage) : la voiture choisie reste visible
       // (horizontalement seulement : un scrollIntoView ramenait toute la liste en haut à chaque choix)

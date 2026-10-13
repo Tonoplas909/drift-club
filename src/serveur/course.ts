@@ -10,6 +10,8 @@ import {
   defiDuJour, estJourValide,
 } from './simulation';
 import { jourParis, decalerJour } from '../jour';
+import { FORMAT_CLE_EN_LIGNE, cleDuNiveau, estCleMoto } from '../core/cles';
+import { estMotoId } from '../core/physics/cars';
 import type { CarId, ModeId } from '../core/physics/types';
 import type { Verdict } from '../core/replay/verifier';
 
@@ -58,34 +60,39 @@ export async function traiterCourse(corps: unknown, empreinteServeur: string, ma
   if (d.version !== empreinteServeur) {
     return refus('version', "Le jeu vient d'être mis à jour : il se recharge tout seul au retour au menu. Ce score reste enregistré sur l'appareil.");
   }
-  if (typeof d.niveau !== 'string' || !/^((off|perso):[A-Za-z0-9_-]{1,80}|jour:\d{4}-\d{2}-\d{2})$/.test(d.niveau)) return refus('demande', 'Niveau invalide.');
+  if (typeof d.niveau !== 'string' || !FORMAT_CLE_EN_LIGNE.test(d.niveau)) return refus('demande', 'Niveau invalide.');
   if (typeof d.mode !== 'string' || !(MODE_IDS as string[]).includes(d.mode)) return refus('demande', 'Mode invalide.');
   if (typeof d.voiture !== 'string' || !(CAR_IDS as string[]).includes(d.voiture)) return refus('demande', 'Voiture invalide.');
+  // motos et voitures ont des classements séparés : la clé doit correspondre au véhicule
+  if (estCleMoto(d.niveau) !== estMotoId(d.voiture as CarId) && !d.niveau.startsWith('jour:')) {
+    return refus('refuse', estCleMoto(d.niveau) ? 'Ce classement est réservé aux motos.' : 'Les motos ont leur propre classement.');
+  }
   if (!nombreFini(d.score) || !nombreFini(d.temps) || !nombreFini(d.meilleurDrift)) return refus('demande', 'Score invalide.');
   if (typeof d.replay !== 'string' || d.replay.length > MAX_BASE64) return refus('demande', 'Replay invalide.');
 
   // Le niveau : officiel (embarqué dans la fonction), défi du jour (reconstruit depuis la date) ou perso (envoyé, et
   // contrôlé par son empreinte).
   let brut: unknown;
-  if (d.niveau.startsWith('jour:')) {
-    const jour = d.niveau.slice(5);
+  const cle = cleDuNiveau(d.niveau);
+  if (cle.startsWith('jour:')) {
+    const jour = cle.slice(5);
     // le défi du jour, ou celui de la veille (course commencée avant minuit)
     const aujourdhui = jourParis(maintenant);
     if (!estJourValide(jour) || (jour !== aujourdhui && jour !== decalerJour(aujourdhui, -1))) return refus('refuse', 'Ce défi est terminé : essaie celui du jour !');
     const defi = defiDuJour(jour);
     if (d.voiture !== defi.voiture) return refus('refuse', 'Le défi du jour se court avec la voiture imposée.');
     brut = defi.level;
-  } else if (d.niveau.startsWith('off:')) {
-    const id = d.niveau.slice(4);
+  } else if (cle.startsWith('off:')) {
+    const id = cle.slice(4);
     brut = NIVEAUX_OFFICIELS.find((n) => n.id === id)?.data;
     if (brut === undefined) return refus('demande', 'Niveau officiel inconnu.');
   } else {
     if (d.level === undefined) return refus('demande', 'Contenu du niveau manquant.');
     brut = d.level;
   }
-  const prep = prepareLevel(d.niveau, brut);
+  const prep = prepareLevel(cle, brut);
   if (!prep.ok) return refus('refuse', 'Niveau invalide.');
-  if (d.niveau.startsWith('perso:') && `perso:${await empreinteNiveau(prep.prepared.level)}` !== d.niveau) {
+  if (cle.startsWith('perso:') && `perso:${await empreinteNiveau(prep.prepared.level)}` !== cle) {
     return refus('refuse', 'Le niveau envoyé ne correspond pas à son empreinte.');
   }
 

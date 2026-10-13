@@ -234,7 +234,7 @@ vit dans `src/core` ; la chute est une fin de figure, comme la sortie de piste. 
 sont à régénérer ; une moto a son propre classement, ou ses niveaux à elle (les voitures n'ont pas de wheelie).
 Fait en 0.5.27 : cabrage physique autour de la roue arrière, coup d'embrayage (frein + gaz, puis relâcher le frein),
 frein arrière (frein à main) pour rabattre, aide anti-cabrage en Arcade et Semi, chute en arrière en Exigeant, points
-comme un drift. Le classement reste commun aux voitures et aux motos ; à revoir si les motos y prennent l'avantage.
+comme un drift. Depuis 0.5.28, les motos ont leur propre classement (clé « moto:… »).
 
 ## Fait (pour mémoire)
 
@@ -270,3 +270,4 @@ comme un drift. Le classement reste commun aux voitures et aux motos ; à revoir
 | 0.5.25 | **Première moto, La Supermotard** : elle penche dans les virages, glisse de l'arrière au frein, tombe trop en travers ; modèle et pilote, son de monocylindre, livrées en teintes, vues embarquées (migration 0014) |
 | 0.5.26 | Moto : roulis en ressort amorti (plus d'à-coups) et adhérence liée à l'inclinaison (il faut pencher pour tourner fort) |
 | 0.5.27 | **Wheelie à moto** : coup d'embrayage (frein + gaz, puis relâcher le frein), cabrage physique autour de la roue arrière, aide anti-cabrage en Arcade et Semi, chute en arrière en Exigeant, points comme un drift ; pneus de moto arrondis |
+| 0.5.28 | **Classement séparé des motos** (clés « moto:… », migration 0015) et Garage en deux onglets, Voitures et Motos |
