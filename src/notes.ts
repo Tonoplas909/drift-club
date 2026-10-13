@@ -13,6 +13,16 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.30',
+    date: '13/10/2026',
+    titre: 'Moto : jauges de wheelie',
+    notes: [
+      'À moto, deux petites jauges apparaissent à gauche de l\'indicateur d\'angle quand on prépare un wheelie.',
+      'Embrayage : se remplit pendant que tu tiens gaz + frein ; « Lâche ! » quand elle est pleine. Elle prévient aussi quand ça ne lèvera rien (« Trop vite », « Redresse »).',
+      'Fourche : se remplit à chaque coup de guidon gauche-droite ; « Gaz ! » au moment où mettre les gaz lève l\'avant.',
+    ],
+  },
+  {
     version: '0.5.29',
     date: '13/10/2026',
     titre: 'Moto : pompage de fourche',

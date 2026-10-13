@@ -3,7 +3,7 @@ import type { InputState } from '../input';
 import type { Environnement } from '../level/types';
 import type { AssistParams, CarParams, CarState, StepContext } from '../physics/types';
 import { chute } from '../physics/moto';
-import { createCarState, copyCarState, stepCar } from '../physics/car';
+import { createCarState, copyCarState, stepCar, jaugesMoto, type JaugesMoto } from '../physics/car';
 import { resolveCollisions, CRASH_IMPACT } from '../physics/collision';
 import { DEG } from '../math/vec';
 import { RECUL_MAX, RouteZen, type Troncon } from './route';
@@ -18,6 +18,8 @@ export interface HudZen {
   /** distance parcourue le long de la route (m) */
   distance: number;
   region: Environnement;
+  /** jauges de wheelie : motos seulement */
+  moto: JaugesMoto | null;
 }
 
 export type EvenementZen =
@@ -128,6 +130,7 @@ export class ZenSim {
   hud(): HudZen {
     return {
       speedKmh: this.car.speed * 3.6,
+      moto: jaugesMoto(this.car, this.ctx),
       angle: this.car.speed > 1 ? this.car.beta / DEG : 0,
       wrongWay: this.wrongWay,
       distance: this.maxProgressS - S_DEPART,

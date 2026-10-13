@@ -24,6 +24,49 @@ export function copyCarState(src: CarState, dst?: CarState): CarState {
   return Object.assign(dst ?? ({} as CarState), src);
 }
 
+/** Coup d'embrayage : moto droite et pas trop vite (moins de ~50 km/h), sinon l'embrayage patine sans rien lever (0 à 1). */
+function efficaciteEmbrayage(lean: number, vLong: number): number {
+  const droite = 1 - smoothstep(8 * DEG, 18 * DEG, Math.abs(lean));
+  const lent = 1 - smoothstep(9, 15, vLong);
+  return droite * lent;
+}
+
+/** Pompage : la moto ne doit pas glisser. */
+const pompeNette = (beta: number): boolean => Math.abs(beta) < 12 * DEG;
+
+/** Pompage, en sortie de virage jusqu'à ~90 km/h : au-delà, le moteur ne tire plus assez pour lever l'avant (0 à 1). */
+const pompeLent = (vLong: number): number => 1 - smoothstep(18, 26, vLong);
+
+/** Fourche assez chargée, moto redressée, sans glisse : un coup de gaz lève l'avant. */
+function fourchePrete(car: CarState, beta: number): boolean {
+  return car.cabrage <= 0 && pompeNette(beta) && !car.reverse && car.fourche >= POMPE_SEUIL && Math.abs(car.lean) < 12 * DEG;
+}
+
+/** Jauges du HUD d'une moto (null pour une voiture). */
+export interface JaugesMoto {
+  /** charge de l'embrayage (frein + gaz tenus), 0 à 1 */
+  charge: number;
+  /** ce qui gâche le coup d'embrayage : la vitesse ou l'inclinaison (null : rien) */
+  chargeGenee: 'vitesse' | 'inclinaison' | null;
+  /** énergie de la fourche, 1 au seuil de décollage */
+  fourche: number;
+  /** fourche prête : mettre les gaz lève l'avant maintenant */
+  fourchePrete: boolean;
+}
+
+/** État des jauges de wheelie d'une moto, à partir de l'état après le pas (mêmes conditions que `stepCar`). */
+export function jaugesMoto(car: CarState, ctx: Pick<StepContext, 'params'>): JaugesMoto | null {
+  if (ctx.params.genre !== 'moto') return null;
+  const beta = car.speed > 1 ? car.beta : 0;
+  const efficacite = efficaciteEmbrayage(car.lean, car.vLong);
+  return {
+    charge: car.embrayage,
+    chargeGenee: efficacite >= 0.3 ? null : efficaciteEmbrayage(0, car.vLong) < 0.3 ? 'vitesse' : 'inclinaison',
+    fourche: Math.min(1, car.fourche / POMPE_SEUIL),
+    fourchePrete: fourchePrete(car, beta) && pompeLent(car.vLong) > 0.3,
+  };
+}
+
 function tireForce(alpha: number, load: number, mu: number, B: number, C: number): number {
   return -mu * load * dm.sin(C * dm.atan(B * alpha));
 }
@@ -260,24 +303,18 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
       car.embrayage = Math.min(1, car.embrayage + dt / 0.5);
     } else {
       if (car.embrayage > 0 && input.gaz > 0.5 && !car.reverse) {
-        // moto droite et pas trop vite (moins de ~50 km/h) : sinon l'embrayage patine sans rien lever
-        const droite = 1 - smoothstep(8 * DEG, 18 * DEG, Math.abs(car.lean));
-        const lent = 1 - smoothstep(9, 15, vLong0);
-        car.cabrageVel += ((p.wheeliePop ?? 0) * car.embrayage * droite * lent) / I;
+        car.cabrageVel += ((p.wheeliePop ?? 0) * car.embrayage * efficaciteEmbrayage(car.lean, vLong0)) / I;
       }
       car.embrayage = 0;
     }
     // Pompage de fourche : des coups de guidon rapides d'un côté puis de l'autre (moto qui ne glisse pas) écrasent la
     // fourche ; l'énergie s'accumule et se dissipe vite. Gaz ouverts, moto redressée, la détente lève l'avant.
-    const nette = Math.abs(beta0) < 12 * DEG;
     const cote = steer > 0.06 ? 1 : steer < -0.06 ? -1 : 0;
-    if (!enLAir && nette && cote !== 0 && cote === -car.coteBraquage) car.fourche = Math.min(1.5, car.fourche + POMPE_COUP);
+    if (!enLAir && pompeNette(beta0) && cote !== 0 && cote === -car.coteBraquage) car.fourche = Math.min(1.5, car.fourche + POMPE_COUP);
     if (cote !== 0) car.coteBraquage = cote;
     car.fourche *= dm.exp(-dt / POMPE_TAU);
-    if (!enLAir && nette && !car.reverse && car.fourche >= POMPE_SEUIL && input.gaz > 0.8 && Math.abs(car.lean) < 12 * DEG) {
-      // en sortie de virage, jusqu'à ~90 km/h : au-delà, le moteur ne tire plus assez pour lever l'avant
-      const lent = 1 - smoothstep(18, 26, vLong0);
-      car.cabrageVel += ((p.wheeliePop ?? 0) * Math.min(1, car.fourche / POMPE_PLEIN) * lent) / I;
+    if (fourchePrete(car, beta0) && input.gaz > 0.8) {
+      car.cabrageVel += ((p.wheeliePop ?? 0) * Math.min(1, car.fourche / POMPE_PLEIN) * pompeLent(vLong0)) / I;
       car.fourche = 0;
     }
     const couple = m * (Fx / m) * (b * sT + h * cT) - m * G * (b * cT - h * sT);

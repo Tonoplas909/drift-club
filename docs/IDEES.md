@@ -237,6 +237,8 @@ frein arrière (frein à main) pour rabattre, aide anti-cabrage en Arcade et Sem
 comme un drift. Depuis 0.5.28, les motos ont leur propre classement (clé « moto:… »).
 En 0.5.29 : lever l'avant en sortie de virage par pompage de fourche (deux ou trois coups de guidon rapides, puis
 gaz ouverts en se redressant), et diriger un peu au corps pendant le wheelie.
+En 0.5.30 : jauges « Embrayage » (charge, « Lâche ! » quand elle est pleine) et « Fourche » (« Gaz ! » quand un coup
+de gaz lève l'avant) dans le HUD des motos.
 
 ## Fait (pour mémoire)
 
@@ -274,3 +276,4 @@ gaz ouverts en se redressant), et diriger un peu au corps pendant le wheelie.
 | 0.5.27 | **Wheelie à moto** : coup d'embrayage (frein + gaz, puis relâcher le frein), cabrage physique autour de la roue arrière, aide anti-cabrage en Arcade et Semi, chute en arrière en Exigeant, points comme un drift ; pneus de moto arrondis |
 | 0.5.28 | **Classement séparé des motos** (clés « moto:… », migration 0015) et Garage en deux onglets, Voitures et Motos |
 | 0.5.29 | Moto : **pompage de fourche** (coups de guidon gauche-droite puis gaz pour lever l'avant en sortie de virage) et direction au corps pendant le wheelie |
+| 0.5.30 | Moto : jauges **Embrayage** et **Fourche** dans le HUD, pour savoir quand lâcher le frein ou mettre les gaz |

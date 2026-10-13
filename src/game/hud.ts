@@ -1,4 +1,5 @@
 import type { HudData } from '../core/race/race';
+import type { JaugesMoto } from '../core/physics/car';
 import type { HudZen } from '../core/zen/zenSim';
 import { THEMES } from '../core/env/themes';
 import { formatScore, formatTime } from '../ui/format';
@@ -23,6 +24,10 @@ export class Hud {
       <div class="hud-wrong" data-k="wrong">Mauvais sens !</div>
       <div class="hud-progress"><div class="hud-bar"><i data-k="bar"></i></div></div>
       <div class="hud-angle" data-k="angleBox">${svgJaugeAngle()}<b data-k="angleVal">0°</b></div>
+      <div class="hud-moto" data-k="moto">
+        <div class="jm" data-k="jmCharge"><small>Embrayage</small><span class="barre"><i data-k="jmChargeBar"></i></span><b data-k="jmChargeMot"></b></div>
+        <div class="jm" data-k="jmFourche"><small>Fourche</small><span class="barre"><i data-k="jmFourcheBar"></i></span><b data-k="jmFourcheMot"></b></div>
+      </div>
       <div class="hud-speed"><b data-k="speed">0</b> km/h</div>
       <div class="hud-zen"><b data-k="km">0,0</b> km<small data-k="region"></small></div>
       <div class="hud-annonce" data-k="annonce"></div>`;
@@ -55,6 +60,7 @@ export class Hud {
     const region = THEMES[h.region].nom;
     if (region !== this.zenRegion) { this.zenRegion = region; this.el.region.textContent = region; }
     this.majAngle(h.angle);
+    this.majMoto(h.moto);
     if (h.wrongWay !== this.last.wrong) {
       this.last.wrong = h.wrongWay;
       this.el.wrong.classList.toggle('on', h.wrongWay);
@@ -71,6 +77,8 @@ export class Hud {
   }
 
   reset(): void {
+    this.moto = '';
+    this.el.moto.classList.remove('on');
     this.last = { score: '', time: '', drift: '', mult: '', bar: -1, combo: -1, count: '', wrong: false, speed: '', facteurs: '', angle: '', clip: '' };
     this.el.facteurs.classList.remove('on');
     this.el.clip.classList.remove('on');
@@ -140,6 +148,7 @@ export class Hud {
       if (clip) this.el.clipVal.textContent = clip;
     }
     this.majAngle(h.angle);
+    this.majMoto(h.moto);
     let count = '';
     if (h.phase === 'compte') count = String(Math.max(1, Math.ceil(h.countdown - 1e-9)));
     else if (now < this.goUntil) count = 'Partez !';
@@ -153,6 +162,27 @@ export class Hud {
       this.last.bar = bar;
       this.el.bar.style.width = `${bar / 10}%`;
     }
+  }
+
+  private moto = '';
+
+  /**
+   * Jauges de wheelie d'une moto : charge de l'embrayage (frein + gaz tenus) et énergie de la fourche (coups de
+   * guidon). Elles passent au vert quand il est temps : lâcher le frein, ou mettre les gaz.
+   */
+  private majMoto(j: JaugesMoto | null | undefined): void {
+    const e = j ? etatJaugesMoto(j) : null;
+    const cle = e ? `${e.charge.toFixed(2)}|${e.chargeEtat}|${e.chargeMot}|${e.fourche.toFixed(2)}|${e.fourcheEtat}` : '';
+    if (cle === this.moto) return;
+    this.moto = cle;
+    this.el.moto.classList.toggle('on', !!e && (e.charge > 0 || e.fourche > 0));
+    if (!e) return;
+    this.el.jmChargeBar.style.transform = `scaleX(${e.charge})`;
+    this.el.jmCharge.className = `jm ${e.chargeEtat}`;
+    this.el.jmChargeMot.textContent = e.chargeMot;
+    this.el.jmFourcheBar.style.transform = `scaleX(${e.fourche})`;
+    this.el.jmFourche.className = `jm ${e.fourcheEtat}`;
+    this.el.jmFourcheMot.textContent = e.fourcheEtat === 'pret' ? 'Gaz !' : '';
   }
 
   /** Indicateur d'angle sous la voiture. */
@@ -191,4 +221,23 @@ export function libellesFacteurs(g: { base: number; kmh: number; secondes: numbe
   const fr = (v: number, d: number) => v.toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d });
   const clip = g.clipping ?? 1;
   return [String(g.base), `${fr(g.kmh, 0)} km/h`, `${fr(g.secondes, 2)} s`, fr(g.angle, 2), g.combo > 1 ? `x${g.combo}` : '', clip > 1.005 ? fr(clip, 2) : ''];
+}
+
+/**
+ * Affichage des jauges de wheelie : remplissage (0 à 1, arrondi pour ne pas retoucher le DOM à chaque image) et état.
+ * Embrayage : « pret » quand la charge est pleine et lèvera l'avant, « vain » si la moto va trop vite ou penche trop.
+ * Fourche : « pret » quand un coup de gaz lève l'avant maintenant.
+ */
+export function etatJaugesMoto(j: JaugesMoto): { charge: number; chargeEtat: '' | 'pret' | 'vain'; chargeMot: string; fourche: number; fourcheEtat: '' | 'pret' } {
+  const charge = Math.round(j.charge * 20) / 20;
+  const fourche = j.fourche < 0.05 ? 0 : Math.round(j.fourche * 20) / 20;
+  const vain = j.charge > 0.2 && j.chargeGenee !== null;
+  const chargeEtat = vain ? 'vain' : j.charge > 0.97 ? 'pret' : '';
+  return {
+    charge,
+    chargeEtat,
+    chargeMot: chargeEtat === 'pret' ? 'Lâche !' : vain ? (j.chargeGenee === 'inclinaison' ? 'Redresse' : 'Trop vite') : '',
+    fourche: j.fourchePrete ? 1 : fourche,
+    fourcheEtat: j.fourchePrete ? 'pret' : '',
+  };
 }

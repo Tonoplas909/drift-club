@@ -11121,6 +11121,27 @@ function createCarState(x, z, heading, y = 0) {
 function copyCarState(src, dst) {
   return Object.assign(dst ?? {}, src);
 }
+function efficaciteEmbrayage(lean, vLong) {
+  const droite = 1 - smoothstep(8 * DEG, 18 * DEG, Math.abs(lean));
+  const lent = 1 - smoothstep(9, 15, vLong);
+  return droite * lent;
+}
+var pompeNette = (beta) => Math.abs(beta) < 12 * DEG;
+var pompeLent = (vLong) => 1 - smoothstep(18, 26, vLong);
+function fourchePrete(car, beta) {
+  return car.cabrage <= 0 && pompeNette(beta) && !car.reverse && car.fourche >= POMPE_SEUIL && Math.abs(car.lean) < 12 * DEG;
+}
+function jaugesMoto(car, ctx) {
+  if (ctx.params.genre !== "moto") return null;
+  const beta = car.speed > 1 ? car.beta : 0;
+  const efficacite = efficaciteEmbrayage(car.lean, car.vLong);
+  return {
+    charge: car.embrayage,
+    chargeGenee: efficacite >= 0.3 ? null : efficaciteEmbrayage(0, car.vLong) < 0.3 ? "vitesse" : "inclinaison",
+    fourche: Math.min(1, car.fourche / POMPE_SEUIL),
+    fourchePrete: fourchePrete(car, beta) && pompeLent(car.vLong) > 0.3
+  };
+}
 function tireForce(alpha, load, mu, B, C) {
   return -mu * load * sin(C * atan(B * alpha));
 }
@@ -11305,20 +11326,16 @@ function stepCar(car, input, ctx, dt) {
       car.embrayage = Math.min(1, car.embrayage + dt / 0.5);
     } else {
       if (car.embrayage > 0 && input.gaz > 0.5 && !car.reverse) {
-        const droite = 1 - smoothstep(8 * DEG, 18 * DEG, Math.abs(car.lean));
-        const lent = 1 - smoothstep(9, 15, vLong0);
-        car.cabrageVel += (p.wheeliePop ?? 0) * car.embrayage * droite * lent / I;
+        car.cabrageVel += (p.wheeliePop ?? 0) * car.embrayage * efficaciteEmbrayage(car.lean, vLong0) / I;
       }
       car.embrayage = 0;
     }
-    const nette = Math.abs(beta0) < 12 * DEG;
     const cote = steer > 0.06 ? 1 : steer < -0.06 ? -1 : 0;
-    if (!enLAir && nette && cote !== 0 && cote === -car.coteBraquage) car.fourche = Math.min(1.5, car.fourche + POMPE_COUP);
+    if (!enLAir && pompeNette(beta0) && cote !== 0 && cote === -car.coteBraquage) car.fourche = Math.min(1.5, car.fourche + POMPE_COUP);
     if (cote !== 0) car.coteBraquage = cote;
     car.fourche *= exp(-dt / POMPE_TAU);
-    if (!enLAir && nette && !car.reverse && car.fourche >= POMPE_SEUIL && input.gaz > 0.8 && Math.abs(car.lean) < 12 * DEG) {
-      const lent = 1 - smoothstep(18, 26, vLong0);
-      car.cabrageVel += (p.wheeliePop ?? 0) * Math.min(1, car.fourche / POMPE_PLEIN) * lent / I;
+    if (fourchePrete(car, beta0) && input.gaz > 0.8) {
+      car.cabrageVel += (p.wheeliePop ?? 0) * Math.min(1, car.fourche / POMPE_PLEIN) * pompeLent(vLong0) / I;
       car.fourche = 0;
     }
     const couple = m * (Fx / m) * (b * sT + h * cT) - m * G * (b * cT - h * sT);
@@ -11645,7 +11662,8 @@ var RaceSim = class {
       clipping: this.clipping,
       progress: clamp(this.maxProgressS / this.config.track.length, 0, 1),
       wrongWay: this.wrongWay,
-      speedKmh: this.car.speed * 3.6
+      speedKmh: this.car.speed * 3.6,
+      moto: jaugesMoto(this.car, this.ctx)
     };
   }
   respawn() {
@@ -12275,4 +12293,4 @@ async function traiterCourse(corps, empreinteServeur, maintenant = /* @__PURE__ 
 export {
   traiterCourse
 };
-export const EMPREINTE = '2ba4dbb7528b3016';
+export const EMPREINTE = '47a7af4acd7f06e1';
