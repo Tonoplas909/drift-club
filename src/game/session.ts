@@ -25,7 +25,7 @@ import type { ScenePhoto } from './photo';
 import type { CompteurPilote } from './statistiques';
 import { tournerFilm, postesBordDeRoute, planBordDeRoute, planHelico, type CameraFilm, type Film } from './film';
 import { estEmbarquee } from '../render/vuesEmbarquees';
-import { wrapAngle } from '../core/math/vec';
+import { wrapAngle, DEG } from '../core/math/vec';
 import { SIM_DT } from '../core/constants';
 
 export interface DebugHook {
@@ -90,6 +90,8 @@ export class GameSession {
   private fantome: Film | null = null;
   /** pas de simulation joués depuis le départ */
   private pas = 0;
+  /** la moto est en wheelie (pour ne l'annoncer qu'une fois) */
+  private enWheelie = false;
   /** sol de l'affichage : le tablier des ponts ou le terrain, selon la hauteur de la voiture */
   private readonly solAffiche: SolAffiche;
 
@@ -196,6 +198,10 @@ export class GameSession {
     this.pendingReplace = false;
     if (this.race.phase === 'course') this.deps.stats?.pas(this.deps.reglages.voiture, this.race.car.speed, this.race.car.beta, false, SIM_DT);
     for (const e of events) this.handle(e);
+    // wheelie : annoncé quand la roue avant décolle franchement
+    const wheelie = this.race.car.cabrage > 12 * DEG;
+    if (wheelie && !this.enWheelie) this.deps.hud.annonce('Wheelie !');
+    this.enWheelie = wheelie;
   }
 
   private handle(e: RaceEvent): void {

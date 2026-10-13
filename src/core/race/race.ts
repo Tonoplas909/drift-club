@@ -205,7 +205,7 @@ export class RaceSim {
     // Score
     const se = stepScore(
       this.score,
-      { betaRad: this.car.beta, speed: this.car.speed, onRoad: this.onRoad, progressRate, crash, reset, dejaParcouru: this.progressS < this.maxProgressS - MARGE_REPARCOURS, clipping: this.clipping },
+      { betaRad: this.car.beta, speed: this.car.speed, onRoad: this.onRoad, progressRate, crash, reset, dejaParcouru: this.progressS < this.maxProgressS - MARGE_REPARCOURS, clipping: this.clipping, cabrage: this.car.cabrage },
       SIM_DT,
       this.sp,
     );

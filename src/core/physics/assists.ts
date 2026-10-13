@@ -10,13 +10,14 @@ export const MODES: Record<ModeId, AssistParams> = {
   arcade: {
     counterSteer: 1, counterSteerDeadzone: 3 * DEG, speedRetention: 0.7,
     arcadeDrift: true, arcadeBeta: 40 * DEG, arcadeRearGrip: 0.6, arcadePathRate: 0.9, arcadeYawAccel: 4,
+    antiCabrage: 30 * DEG,
   },
   semi: {
     counterSteer: 0.5, counterSteerDeadzone: 3 * DEG, speedRetention: 0.35,
-    arcadeDrift: false, arcadeBeta: 0, arcadeRearGrip: 1, arcadePathRate: 0, arcadeYawAccel: 0,
+    arcadeDrift: false, arcadeBeta: 0, arcadeRearGrip: 1, arcadePathRate: 0, arcadeYawAccel: 0, antiCabrage: 35 * DEG,
   },
   exigeant: {
     counterSteer: 0, counterSteerDeadzone: 0, speedRetention: 0,
-    arcadeDrift: false, arcadeBeta: 0, arcadeRearGrip: 1, arcadePathRate: 0, arcadeYawAccel: 0,
+    arcadeDrift: false, arcadeBeta: 0, arcadeRearGrip: 1, arcadePathRate: 0, arcadeYawAccel: 0, antiCabrage: 0,
   },
 };

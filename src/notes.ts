@@ -13,6 +13,19 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.27',
+    date: '13/10/2026',
+    titre: 'Wheelies et pneus arrondis',
+    notes: [
+      'Wheelies à moto ! Tiens le frein et l\'accélérateur ensemble (S + Z/W) pour charger l\'embrayage, puis relâche le frein : la roue avant se lève.',
+      'Plus tu charges longtemps (jusqu\'à une demi-seconde), plus elle monte. Ça marche moto bien droite et sous ~50 km/h.',
+      'Ensuite, c\'est un vrai équilibre : les gaz font monter l\'avant, le poids le fait redescendre, le frein arrière (espace) le rabat. Roue en l\'air, la direction ne répond plus.',
+      'En Arcade et Semi-arcade, une aide coupe les gaz pour que la moto ne passe pas par-dessus. En Exigeant, trop de gaz et elle bascule en arrière : chute !',
+      'Au-dessus de 30 km/h, un wheelie rapporte des points comme un drift, et il compte dans le combo.',
+      'Les pneus de la Supermotard sont maintenant arrondis, avec des jantes à rayons.',
+    ],
+  },
+  {
     version: '0.5.26',
     date: '13/10/2026',
     titre: 'Moto : inclinaison plus naturelle',

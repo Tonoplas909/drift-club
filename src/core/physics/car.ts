@@ -14,7 +14,7 @@ export function createCarState(x: number, z: number, heading: number, y = 0): Ca
   return {
     x, y, z, heading, vx: 0, vz: 0, yawRate: 0, steer: 0, steerInput: 0, ax: 0, beta: 0, speed: 0,
     vLong: 0, vLat: 0, rearSlip: 0, wheelSpin: 0, rpm: 900, gear: 1, reverse: false, throttle: 0, throttleSmooth: 0, prevVelAngle: heading,
-    lean: 0, leanVel: 0,
+    lean: 0, leanVel: 0, cabrage: 0, cabrageVel: 0, embrayage: 0,
   };
 }
 
@@ -67,16 +67,22 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
     car.reverse = false;
   }
   const throttle = car.reverse ? -input.frein : input.gaz;
-  const brake = car.reverse ? input.gaz : input.frein;
+  // moto : frein et gaz tenus ensemble = on charge l'embrayage (wheelie), le frein n'est qu'effleuré
+  const charge = p.genre === 'moto' && !car.reverse && input.frein > 0.5 && input.gaz > 0.5;
+  const brake = car.reverse ? input.gaz : charge ? input.frein * 0.15 : input.frein;
   car.throttle = throttle;
   // Accélérateur lissé (clavier 0/1) : monte doucement, retombe plus vite
   const tsRate = Math.abs(throttle) > Math.abs(car.throttleSmooth) ? p.throttleRise : p.throttleFall;
   car.throttleSmooth += clamp(throttle - car.throttleSmooth, -tsRate * dt, tsRate * dt);
   const drive = car.throttleSmooth;
 
+  // Moto en wheelie : la roue avant est en l'air, tout le poids sur l'arrière, l'avant ne porte plus rien
+  const moto = p.genre === 'moto';
+  const enLAir = moto && car.cabrage > 0;
+
   // Charges par essieu (transfert de masse longitudinal)
   const Fzf = Math.max(0.1 * m * G, (m * G * b) / L - (m * car.ax * p.cgHeight) / L);
-  const Fzr = Math.max(0.1 * m * G, (m * G * a) / L + (m * car.ax * p.cgHeight) / L);
+  const Fzr = enLAir ? m * G : Math.max(0.1 * m * G, (m * G * a) / L + (m * car.ax * p.cgHeight) / L);
 
   // Adhérence
   // × 1 par temps sec : exactement les mêmes forces qu'avant la pluie
@@ -93,6 +99,9 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
   if (drive > 0) {
     const r = clamp(vLong0 / p.maxSpeed, 0, 1);
     Fdrive = drive * p.engineForce * (1 - r * r);
+    // aide anti-cabrage (Arcade, Semi) : les gaz sont réduits d'après le cabrage prévu dans 0,3 s, la moto se stabilise
+    // vers l'angle de l'aide au lieu de passer par-dessus
+    if (enLAir && as.antiCabrage > 0) Fdrive *= clamp(1 - (car.cabrage + 0.3 * car.cabrageVel - as.antiCabrage + 8 * DEG) / (16 * DEG), 0, 1);
   } else if (drive < 0 && vLong0 > -8) {
     Fdrive = drive * p.engineForce * 0.4;
   }
@@ -110,7 +119,7 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
   const Frx = clamp(Fdrive + FbrakeR, -maxRx, maxRx);
   const maxFx = muF * Fzf;
   const frontUse = clamp(Math.abs(FbrakeF) / maxFx, 0, 1);
-  const Ffx = clamp(FbrakeF, -maxFx, maxFx);
+  const Ffx = enLAir ? 0 : clamp(FbrakeF, -maxFx, maxFx);
   const rearLat = Math.max(REAR_LAT_MIN, Math.sqrt(1 - rearUse * rearUse));
   const frontLat = Math.max(LAT_MIN, Math.sqrt(1 - frontUse * frontUse));
 
@@ -121,12 +130,12 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
   const alphaR = dm.atan2(vLat0 - car.yawRate * b, vAbs);
   let Fyf = tireForce(alphaF, Fzf, muF, p.tireB, p.tireC) * frontLat;
   let Fyr = tireForce(alphaR, Fzr, muR, p.tireB, p.tireC) * rearLat;
+  if (enLAir) Fyf = 0; // roue avant en l'air : la direction ne répond plus
   const cosD = dm.cos(steer), sinD = dm.sin(steer);
 
   // Moto : la force latérale que les pneus peuvent transmettre dépend de l'inclinaison. Penchée du côté du virage, la
   // moto tient g·tan(lean) (+ une petite marge) ; droite ou penchée de l'autre côté, la marge seulement. Pour tourner
   // fort, il faut d'abord se coucher : le virage se resserre à mesure que la moto penche. Plafond absolu : leanMax.
-  const moto = p.genre === 'moto';
   let demandeLat = 0;
   if (moto) {
     const leanMax = p.leanMax ?? 0.8;
@@ -233,6 +242,33 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
     car.leanVel += (w * w * (cible - car.lean) - 2 * z * w * car.leanVel) * dt;
     car.lean += car.leanVel * dt;
     if (Math.abs(car.lean) > leanMax) { car.lean = clamp(car.lean, -leanMax, leanMax); car.leanVel = 0; }
+  }
+  // Cabrage (wheelie) : rotation autour du point de contact arrière. L'accélération soulève l'avant (inertie de la
+  // moto appliquée au centre de gravité), le poids le rabat. Pour décoller, coup d'embrayage : frein et gaz tenus
+  // ensemble chargent l'embrayage (jusqu'à 0,5 s), relâcher le frein en gardant les gaz lance l'avant. Ensuite,
+  // équilibre instable : on le tient en dosant les gaz et le frein arrière.
+  if (moto) {
+    const h = p.cgHeight, sT = dm.sin(car.cabrage), cT = dm.cos(car.cabrage);
+    const k = p.gyrationTangage ?? 0.5;
+    const I = m * (k * k + b * b + h * h);
+    if (charge) {
+      car.embrayage = Math.min(1, car.embrayage + dt / 0.5);
+    } else {
+      if (car.embrayage > 0 && input.gaz > 0.5 && !car.reverse) {
+        // moto droite et pas trop vite (moins de ~50 km/h) : sinon l'embrayage patine sans rien lever
+        const droite = 1 - smoothstep(8 * DEG, 18 * DEG, Math.abs(car.lean));
+        const lent = 1 - smoothstep(9, 15, vLong0);
+        car.cabrageVel += ((p.wheeliePop ?? 0) * car.embrayage * droite * lent) / I;
+      }
+      car.embrayage = 0;
+    }
+    const couple = m * (Fx / m) * (b * sT + h * cT) - m * G * (b * cT - h * sT);
+    if (car.cabrage > 0 || car.cabrageVel > 0) {
+      // amortissement du tangage (pilote et suspensions)
+      car.cabrageVel += ((couple - I * (p.amortiTangage ?? 0) * car.cabrageVel) / I) * dt;
+      car.cabrage += car.cabrageVel * dt;
+      if (car.cabrage <= 0) { car.cabrage = 0; car.cabrageVel = 0; }
+    }
   }
   // accélération issue des forces (pas de la dérivée de vLong : la rotation du cap simulerait un freinage et fausserait le transfert de masse)
   const axNow = clamp(Fx / m, -15, 15);

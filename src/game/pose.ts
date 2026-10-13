@@ -69,5 +69,6 @@ export function interpolatePose(prev: CarState, cur: CarState, alpha: number, gr
     roll: clamp(cur.yawRate * cur.speed * 0.004, -0.08, 0.08),
     // inclinaison des motos (absente des images enregistrées avant elles : 0)
     lean: lerp(prev.lean ?? 0, cur.lean ?? 0, alpha),
+    cabrage: lerp(prev.cabrage ?? 0, cur.cabrage ?? 0, alpha),
   };
 }

@@ -123,4 +123,72 @@ describe('motos', () => {
   it('le défi du jour ne tire que parmi les sept voitures d\'origine (liste figée)', () => {
     expect([...VEHICULES_DEFI]).toEqual(['equilibree', 'legere', 'turbo', 'kei', 'muscle', 'rotative', 'break']);
   });
+
+  describe('wheelie', () => {
+    /** coup d'embrayage : frein et gaz tenus `charge` s, puis gaz seuls (ou la suite donnée) */
+    const rouler = (mode: ModeId, v0: number, T: number, f: (t: number) => InputState) => {
+      const c = createCarState(0, 0, 0);
+      c.vz = v0;
+      c.throttleSmooth = 1;
+      let max = 0, tombe = false;
+      for (let i = 0; i < T / SIM_DT; i++) {
+        stepCar(c, f(i * SIM_DT), ctxOf('supermotard', mode), SIM_DT);
+        max = Math.max(max, c.cabrage);
+        tombe ||= chute(CARS.supermotard, c, 0);
+      }
+      return { c, max, tombe };
+    };
+    const embrayage = (charge = 0.5) => (t: number) => inp({ gaz: 1, frein: t < charge ? 1 : 0 });
+    it('plein gaz ou coup de gaz seul : la roue avant ne se lève jamais', () => {
+      expect(rouler('semi', 11, 4, () => inp({ gaz: 1 })).max).toBe(0);
+      expect(rouler('semi', 7, 4, (t) => inp({ gaz: t < 0.3 ? 0 : 1 })).max).toBe(0);
+      expect(rouler('semi', 0, 4, () => inp({ gaz: 1 })).max).toBe(0);
+    });
+    it('coup d\'embrayage à 25 km/h : wheelie tenu par l\'aide, sans chute (Arcade, Semi)', () => {
+      for (const mode of ['arcade', 'semi'] as const) {
+        const { c, max, tombe } = rouler(mode, 7, 3, embrayage());
+        expect(c.cabrage, mode).toBeGreaterThan(15 * DEG);
+        expect(max, mode).toBeLessThan(MODES[mode].antiCabrage + 5 * DEG);
+        expect(tombe, mode).toBe(false);
+      }
+    });
+    it('trop vite (70 km/h) ou embrayage trop court : rien ne se lève franchement', () => {
+      expect(rouler('semi', 19, 3, embrayage()).max).toBe(0);
+      expect(rouler('semi', 7, 3, embrayage(0.15)).max).toBeLessThan(8 * DEG);
+    });
+    it('Exigeant : gaz tenus, la moto passe par-dessus et tombe ; gaz coupés et frein arrière, elle retombe sur ses roues', () => {
+      expect(rouler('exigeant', 7, 3, embrayage()).tombe).toBe(true);
+      const { c, max, tombe } = rouler('exigeant', 7, 3, (t) => inp({ gaz: t < 0.85 ? 1 : 0, frein: t < 0.5 ? 1 : 0, freinAMain: t >= 0.85 }));
+      expect(max).toBeGreaterThan(15 * DEG);
+      expect(tombe).toBe(false);
+      expect(c.cabrage).toBe(0);
+    });
+    it('roue avant en l\'air : la direction ne répond plus', () => {
+      const tout = rouler('semi', 7, 1.6, (t) => inp({ gaz: 1, frein: t < 0.5 ? 1 : 0, direction: t > 1 ? 1 : 0 }));
+      expect(tout.c.cabrage).toBeGreaterThan(10 * DEG);
+      expect(Math.abs(tout.c.heading)).toBeLessThan(3 * DEG);
+    });
+    it('une voiture ne se cabre jamais', () => {
+      const c = createCarState(0, 0, 0);
+      c.vz = 7;
+      for (let i = 0; i < 3 / SIM_DT; i++) stepCar(c, embrayage()(i * SIM_DT), ctxOf('equilibree', 'exigeant'), SIM_DT);
+      expect(c.cabrage).toBe(0);
+      expect(c.embrayage).toBe(0);
+    });
+    it('en course, un wheelie rapporte des points (comme un drift)', () => {
+      const level = straightLevel(500);
+      const track = buildTrack(level);
+      const terrain = new Terrain(track, level.decor.graine);
+      const sim = new RaceSim({ level, track, terrain, env: generateEnvironment(level, track, terrain), car: CARS.supermotard, assists: MODES.semi, countdown: 0 });
+      const ev = [];
+      for (let i = 0; i < 1.2 / SIM_DT; i++) ev.push(...sim.step(inp({ gaz: 1 })));
+      // vitesse : ~35 km/h ; on charge l'embrayage puis on tient le wheelie 2 s, on coupe les gaz pour retomber
+      for (let i = 0; i < 0.5 / SIM_DT; i++) ev.push(...sim.step(inp({ gaz: 1, frein: 1 })));
+      for (let i = 0; i < 2 / SIM_DT; i++) ev.push(...sim.step(inp({ gaz: 1 })));
+      for (let i = 0; i < 2 / SIM_DT; i++) ev.push(...sim.step(inp({ freinAMain: true })));
+      const banks = ev.filter((e) => e.type === 'bank');
+      expect(banks.length).toBe(1);
+      expect((banks[0] as { points: number }).points).toBeGreaterThan(0);
+    });
+  });
 });

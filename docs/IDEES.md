@@ -35,7 +35,7 @@ la fonction `verifier-course` (`npx vite-node tools/gen-fonction.ts`).
 | [Saison](#saison) | gros | oui (migration) | à faire |
 | [Réglages de voiture](#réglages-de-voiture) | gros | oui (simulation) | à discuter |
 | [Figures](#figures) | moyen | oui (simulation) | à faire |
-| [Wheelie à moto](#wheelie-à-moto) | gros | oui (simulation) | à faire |
+| [Wheelie à moto](#wheelie-à-moto) | gros | oui (simulation) | fait (0.5.27) |
 
 Recommandation actuelle : toutes les petites et moyennes idées sont faites (0.5.6 à 0.5.18). Pour la suite, **fantômes
 et tandem** : les replays, le film (« Revoir ») et le fantôme local existent déjà, il reste à stocker les replays sur le
@@ -232,6 +232,9 @@ gâchettes finement. La Supermotard (0.5.25) a déjà un modèle deux-roues dans
 il lui manque le tangage (roue avant qui décolle, centre de masse haut) et les deux freins, d'où l'effort. Le score du wheelie (points par seconde, bonus au-delà d'un seuil)
 vit dans `src/core` ; la chute est une fin de figure, comme la sortie de piste. Serveur : la simulation et la fonction
 sont à régénérer ; une moto a son propre classement, ou ses niveaux à elle (les voitures n'ont pas de wheelie).
+Fait en 0.5.27 : cabrage physique autour de la roue arrière, coup d'embrayage (frein + gaz, puis relâcher le frein),
+frein arrière (frein à main) pour rabattre, aide anti-cabrage en Arcade et Semi, chute en arrière en Exigeant, points
+comme un drift. Le classement reste commun aux voitures et aux motos ; à revoir si les motos y prennent l'avantage.
 
 ## Fait (pour mémoire)
 
@@ -266,3 +269,4 @@ sont à régénérer ; une moto a son propre classement, ou ses niveaux à elle 
 | 0.5.24 | Repère sur la jauge de vitesse : la vitesse (30 km/h) à partir de laquelle un drift rapporte des points |
 | 0.5.25 | **Première moto, La Supermotard** : elle penche dans les virages, glisse de l'arrière au frein, tombe trop en travers ; modèle et pilote, son de monocylindre, livrées en teintes, vues embarquées (migration 0014) |
 | 0.5.26 | Moto : roulis en ressort amorti (plus d'à-coups) et adhérence liée à l'inclinaison (il faut pencher pour tourner fort) |
+| 0.5.27 | **Wheelie à moto** : coup d'embrayage (frein + gaz, puis relâcher le frein), cabrage physique autour de la roue arrière, aide anti-cabrage en Arcade et Semi, chute en arrière en Exigeant, points comme un drift ; pneus de moto arrondis |

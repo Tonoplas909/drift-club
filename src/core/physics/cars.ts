@@ -69,6 +69,7 @@ export const CARS: Record<CarId, CarParams> = {
     maxSteer: 0.45, steerLock: 0.55, steerSpeed: 2.6, steerReturn: 7, steerCounter: 2.2, steerSpeedReduction: 0.09,
     length: 2.1, width: 0.8, yawDamp: 1.2, throttleRise: 6, throttleFall: 10, rpmMax: 11000,
     leanMax: 48 * DEG, leanFreq: 6, leanAmort: 0.9, leanMarge: 0.3, betaChute: 70 * DEG, arcadeBetaMax: 30 * DEG,
+    wheeliePop: 450, gyrationTangage: 0.5, amortiTangage: 1.5, cabrageChute: 65 * DEG,
   },
 };
 

@@ -22,6 +22,8 @@ export interface CarPose {
   roll: number;
   /** inclinaison d'une moto (rad, + à gauche), autour du point de contact au sol ; 0 ou absent pour une voiture */
   lean?: number;
+  /** cabrage d'une moto en wheelie (rad, avant levé = +), autour du point de contact de la roue arrière */
+  cabrage?: number;
 }
 
 /** Voiture affichée : root (cap) → ground (pente) → [roues, lean (caisse)]. */
@@ -43,10 +45,13 @@ export class CarView {
   /** intérieur (vue conducteur), créé à la première utilisation */
   private habitacle: Habitacle | null = null;
   private braquage = 0;
+  /** position (z) de la roue arrière : pivot du wheelie d'une moto */
+  private readonly zArriere: number;
 
   constructor(private readonly model: CarModel, color: string, shadows: boolean, skin: SkinDef | null = null) {
     this.color = color;
     this.skin = skin;
+    this.zArriere = model.wheels.find((w) => !w.front)?.position.z ?? 0;
     this.decalMat.polygonOffset = true;
     this.decalMat.polygonOffsetFactor = -2;
     this.decalMat.polygonOffsetUnits = -2;
@@ -117,7 +122,10 @@ export class CarView {
     this.root.rotation.set(0, p.heading, 0);
     if (this.model.moto) {
       // la moto penche d'un bloc vers l'intérieur du virage (+ à gauche = rotation négative autour de z), sans roulis de caisse
-      this.ground.rotation.set(-p.groundPitch, 0, p.groundRoll - (p.lean ?? 0));
+      // wheelie : la moto pivote autour du contact de la roue arrière (qui reste au sol)
+      const c = p.cabrage ?? 0, zr = this.zArriere;
+      this.ground.rotation.set(-p.groundPitch - c, 0, p.groundRoll - (p.lean ?? 0));
+      this.ground.position.set(0, -zr * Math.sin(c), zr * (1 - Math.cos(c)));
       this.lean.rotation.set(-p.pitch, 0, 0);
     } else {
       this.ground.rotation.set(-p.groundPitch, 0, p.groundRoll);

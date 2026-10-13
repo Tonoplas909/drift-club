@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { MotoId } from '../core/physics/types';
 import type { CarModel, WheelModel } from './assets';
-import { colorize, coloredBox, wheelGeometry } from './procedural';
+import { colorize, coloredBox } from './procedural';
 import { PAINT } from './jdmCars';
 
 /**
@@ -36,6 +36,24 @@ const FEU = 0xd11f1f;
 /** Pavé tourné autour de x (inclinaison avant/arrière), centré en (x, y, z). */
 function pave(w: number, h: number, d: number, x: number, y: number, z: number, rx: number, color: THREE.ColorRepresentation): THREE.BufferGeometry {
   return colorize(new THREE.BoxGeometry(w, h, d).rotateX(rx).translate(x, y, z), color);
+}
+
+/**
+ * Roue de moto, axe selon x : pneu arrondi (tore : une moto roule sur la tranche du pneu en virage), jante fine à
+ * rayons et moyeu.
+ */
+export function roueMoto(r: number, largeur: number): THREE.BufferGeometry {
+  const tube = largeur / 2;
+  const parts: THREE.BufferGeometry[] = [
+    colorize(new THREE.TorusGeometry(r - tube, tube, 8, 24).rotateY(Math.PI / 2), 0x1d1d24),
+    colorize(new THREE.TorusGeometry(r - largeur, 0.018, 4, 24).rotateY(Math.PI / 2), 0xb9bec8),
+    colorize(new THREE.CylinderGeometry(r * 0.16, r * 0.16, largeur + 0.04, 8, 1).rotateZ(Math.PI / 2), 0x6b6f7a),
+  ];
+  // rayons : fines barres en étoile, visibles quand la roue tourne
+  for (let k = 0; k < 6; k++) parts.push(coloredBox(0.02, (r - largeur) * 2, 0.02, 0, 0, 0, 0x8a8f99).rotateX((k * Math.PI) / 6));
+  const g = mergeGeometries(parts);
+  if (!g) throw new Error('roue de moto impossible à assembler');
+  return g;
 }
 
 /** Moto et pilote assis, prêts à être inclinés d'un bloc (CarView fait pivoter tout le groupe au sol). */
@@ -72,7 +90,7 @@ export function buildMoto(s: MotoShape): CarModel {
   const body = mergeGeometries(parts);
   if (!body) throw new Error('moto impossible à assembler');
   body.computeBoundingSphere();
-  const roue = wheelGeometry(r, s.roueL);
+  const roue = roueMoto(r, s.roueL);
   const wheels: WheelModel[] = [
     { geometry: roue, position: new THREE.Vector3(0, r, za), front: true, left: false },
     { geometry: roue, position: new THREE.Vector3(0, r, zr), front: false, left: false },
