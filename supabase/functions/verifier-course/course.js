@@ -10834,7 +10834,11 @@ var CARS = {
     leanAmort: 0.9,
     leanMarge: 0.3,
     betaChute: 70 * DEG,
-    arcadeBetaMax: 30 * DEG
+    arcadeBetaMax: 30 * DEG,
+    wheeliePop: 450,
+    gyrationTangage: 0.5,
+    amortiTangage: 1.5,
+    cabrageChute: 65 * DEG
   }
 };
 var estMoto = (p) => p.genre === "moto";
@@ -10852,7 +10856,8 @@ var MODES = {
     arcadeBeta: 40 * DEG,
     arcadeRearGrip: 0.6,
     arcadePathRate: 0.9,
-    arcadeYawAccel: 4
+    arcadeYawAccel: 4,
+    antiCabrage: 30 * DEG
   },
   semi: {
     counterSteer: 0.5,
@@ -10862,7 +10867,8 @@ var MODES = {
     arcadeBeta: 0,
     arcadeRearGrip: 1,
     arcadePathRate: 0,
-    arcadeYawAccel: 0
+    arcadeYawAccel: 0,
+    antiCabrage: 35 * DEG
   },
   exigeant: {
     counterSteer: 0,
@@ -10872,7 +10878,8 @@ var MODES = {
     arcadeBeta: 0,
     arcadeRearGrip: 1,
     arcadePathRate: 0,
-    arcadeYawAccel: 0
+    arcadeYawAccel: 0,
+    antiCabrage: 0
   }
 };
 
@@ -11064,6 +11071,7 @@ var VITESSE_CHUTE = 20 / 3.6;
 function chute(p, car, impact) {
   if (p.genre !== "moto") return false;
   if (impact > 2 * CRASH_IMPACT) return true;
+  if (car.cabrage > (p.cabrageChute ?? Infinity)) return true;
   return !car.reverse && car.speed > VITESSE_CHUTE && Math.abs(car.beta) > (p.betaChute ?? Infinity);
 }
 
@@ -11097,7 +11105,10 @@ function createCarState(x, z, heading, y = 0) {
     throttleSmooth: 0,
     prevVelAngle: heading,
     lean: 0,
-    leanVel: 0
+    leanVel: 0,
+    cabrage: 0,
+    cabrageVel: 0,
+    embrayage: 0
   };
 }
 function copyCarState(src, dst) {
@@ -11140,13 +11151,16 @@ function stepCar(car, input, ctx, dt) {
     car.reverse = false;
   }
   const throttle = car.reverse ? -input.frein : input.gaz;
-  const brake = car.reverse ? input.gaz : input.frein;
+  const charge = p.genre === "moto" && !car.reverse && input.frein > 0.5 && input.gaz > 0.5;
+  const brake = car.reverse ? input.gaz : charge ? input.frein * 0.15 : input.frein;
   car.throttle = throttle;
   const tsRate = Math.abs(throttle) > Math.abs(car.throttleSmooth) ? p.throttleRise : p.throttleFall;
   car.throttleSmooth += clamp(throttle - car.throttleSmooth, -tsRate * dt, tsRate * dt);
   const drive = car.throttleSmooth;
+  const moto = p.genre === "moto";
+  const enLAir = moto && car.cabrage > 0;
   const Fzf = Math.max(0.1 * m * G, m * G * b / L - m * car.ax * p.cgHeight / L);
-  const Fzr = Math.max(0.1 * m * G, m * G * a / L + m * car.ax * p.cgHeight / L);
+  const Fzr = enLAir ? m * G : Math.max(0.1 * m * G, m * G * a / L + m * car.ax * p.cgHeight / L);
   const surface = (ctx.onRoad ? 1 : 0.7) * (ctx.adherence ?? 1);
   const muF = p.muFront * surface;
   let muR = p.muRear * surface;
@@ -11158,6 +11172,7 @@ function stepCar(car, input, ctx, dt) {
   if (drive > 0) {
     const r = clamp(vLong0 / p.maxSpeed, 0, 1);
     Fdrive = drive * p.engineForce * (1 - r * r);
+    if (enLAir && as.antiCabrage > 0) Fdrive *= clamp(1 - (car.cabrage + 0.3 * car.cabrageVel - as.antiCabrage + 8 * DEG) / (16 * DEG), 0, 1);
   } else if (drive < 0 && vLong0 > -8) {
     Fdrive = drive * p.engineForce * 0.4;
   }
@@ -11173,7 +11188,7 @@ function stepCar(car, input, ctx, dt) {
   const Frx = clamp(Fdrive + FbrakeR, -maxRx, maxRx);
   const maxFx = muF * Fzf;
   const frontUse = clamp(Math.abs(FbrakeF) / maxFx, 0, 1);
-  const Ffx = clamp(FbrakeF, -maxFx, maxFx);
+  const Ffx = enLAir ? 0 : clamp(FbrakeF, -maxFx, maxFx);
   const rearLat = Math.max(REAR_LAT_MIN, Math.sqrt(1 - rearUse * rearUse));
   const frontLat = Math.max(LAT_MIN, Math.sqrt(1 - frontUse * frontUse));
   const vAbs = Math.max(Math.abs(vLong0), 0.5);
@@ -11182,8 +11197,8 @@ function stepCar(car, input, ctx, dt) {
   const alphaR = atan2(vLat0 - car.yawRate * b, vAbs);
   let Fyf = tireForce(alphaF, Fzf, muF, p.tireB, p.tireC) * frontLat;
   let Fyr = tireForce(alphaR, Fzr, muR, p.tireB, p.tireC) * rearLat;
+  if (enLAir) Fyf = 0;
   const cosD = cos(steer), sinD = sin(steer);
-  const moto = p.genre === "moto";
   let demandeLat = 0;
   if (moto) {
     const leanMax = p.leanMax ?? 0.8;
@@ -11274,6 +11289,30 @@ function stepCar(car, input, ctx, dt) {
       car.leanVel = 0;
     }
   }
+  if (moto) {
+    const h = p.cgHeight, sT = sin(car.cabrage), cT = cos(car.cabrage);
+    const k = p.gyrationTangage ?? 0.5;
+    const I = m * (k * k + b * b + h * h);
+    if (charge) {
+      car.embrayage = Math.min(1, car.embrayage + dt / 0.5);
+    } else {
+      if (car.embrayage > 0 && input.gaz > 0.5 && !car.reverse) {
+        const droite = 1 - smoothstep(8 * DEG, 18 * DEG, Math.abs(car.lean));
+        const lent = 1 - smoothstep(9, 15, vLong0);
+        car.cabrageVel += (p.wheeliePop ?? 0) * car.embrayage * droite * lent / I;
+      }
+      car.embrayage = 0;
+    }
+    const couple = m * (Fx / m) * (b * sT + h * cT) - m * G * (b * cT - h * sT);
+    if (car.cabrage > 0 || car.cabrageVel > 0) {
+      car.cabrageVel += (couple - I * (p.amortiTangage ?? 0) * car.cabrageVel) / I * dt;
+      car.cabrage += car.cabrageVel * dt;
+      if (car.cabrage <= 0) {
+        car.cabrage = 0;
+        car.cabrageVel = 0;
+      }
+    }
+  }
   const axNow = clamp(Fx / m, -15, 15);
   car.ax += (axNow - car.ax) * Math.min(1, 8 * dt);
   const slide = clamp((Math.abs(alphaR) - 0.12) / 0.35, 0, 1) * smoothstep(3, 8, car.speed);
@@ -11316,6 +11355,11 @@ function angleFactor(betaDeg) {
   if (b <= 150) return 1 - 0.9 * (b - 60) / 90;
   return Math.max(0, 0.1 * (180 - b) / 30);
 }
+var WHEELIE_MIN_DEG = 8;
+function wheelieFactor(cabrageDeg) {
+  if (cabrageDeg < WHEELIE_MIN_DEG) return 0;
+  return Math.min(1, 0.5 + 0.5 * (cabrageDeg - WHEELIE_MIN_DEG) / 12);
+}
 function bank(st, p) {
   const raw = st.drift;
   const mult = st.multiplier;
@@ -11348,14 +11392,15 @@ function stepScore(st, f, dt, p = DEFAULT_SCORE_PARAMS) {
   const betaDeg = Math.abs(f.betaRad) / DEG;
   const kmh = f.speed * 3.6;
   if (f.crash || f.reset) return lose(st);
-  const active = betaDeg > p.betaMinDeg && kmh > p.speedMinKmh;
+  const cabrageDeg = f.cabrage ? f.cabrage / DEG : 0;
+  const active = (betaDeg > p.betaMinDeg || cabrageDeg > WHEELIE_MIN_DEG) && kmh > p.speedMinKmh;
   st.active = active;
   if (active) {
     st.pending = true;
     st.inactiveTime = 0;
     st.sinceBank = 0;
     if (f.onRoad && !f.dejaParcouru && f.progressRate >= p.progressMin) {
-      const fa = angleFactor(betaDeg);
+      const fa = cabrageDeg > 0 ? Math.max(angleFactor(betaDeg), wheelieFactor(cabrageDeg)) : angleFactor(betaDeg);
       const clip = 1 + p.bonusClipping * (f.clipping ?? 0);
       st.drift += p.gainPerKmh * fa * kmh * dt * clip;
       st.driftTime += dt;
@@ -11559,7 +11604,7 @@ var RaceSim = class {
     }
     const se = stepScore(
       this.score,
-      { betaRad: this.car.beta, speed: this.car.speed, onRoad: this.onRoad, progressRate, crash, reset, dejaParcouru: this.progressS < this.maxProgressS - MARGE_REPARCOURS, clipping: this.clipping },
+      { betaRad: this.car.beta, speed: this.car.speed, onRoad: this.onRoad, progressRate, crash, reset, dejaParcouru: this.progressS < this.maxProgressS - MARGE_REPARCOURS, clipping: this.clipping, cabrage: this.car.cabrage },
       SIM_DT,
       this.sp
     );
@@ -12202,4 +12247,4 @@ async function traiterCourse(corps, empreinteServeur, maintenant = /* @__PURE__ 
 export {
   traiterCourse
 };
-export const EMPREINTE = 'b114feb65f4fd2ec';
+export const EMPREINTE = '2c3ea0ffb160db9e';

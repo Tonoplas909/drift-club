@@ -48,6 +48,14 @@ export interface CarParams {
   leanAmort?: number;
   /** moto : accélération latérale (en g) que les pneus tiennent sans que la moto soit penchée ; au-delà, il faut pencher */
   leanMarge?: number;
+  /** moto : élan de cabrage (N·m·s) d'un coup d'embrayage pleinement chargé : c'est lui qui lève l'avant */
+  wheeliePop?: number;
+  /** moto : rayon de giration en tangage (m), autour du centre de gravité */
+  gyrationTangage?: number;
+  /** moto : amortissement du tangage (1/s), le pilote et les suspensions absorbent le mouvement */
+  amortiTangage?: number;
+  /** moto : cabrage (rad) au-delà duquel elle bascule en arrière et tombe */
+  cabrageChute?: number;
   /** moto : dérive (rad) au-delà de laquelle elle chute */
   betaChute?: number;
   /** moto : angle de dérive maximal visé par l'aide Drift du mode Arcade (rad) */
@@ -63,6 +71,7 @@ export interface AssistParams {
   arcadeRearGrip: number;        // multiplicateur de μ arrière
   arcadePathRate: number;        // rad/s à direction pleine
   arcadeYawAccel: number;        // rad/s², autorité max de l'aide Drift sur le lacet
+  antiCabrage: number;           // rad, moto : cabrage au-delà duquel l'aide coupe les gaz (0 : pas d'aide)
 }
 
 export interface CarState {
@@ -93,6 +102,12 @@ export interface CarState {
   lean: number;
   /** vitesse de roulis (rad/s) */
   leanVel: number;
+  /** cabrage d'une moto en wheelie (rad, avant levé = +, 0 : les deux roues au sol) */
+  cabrage: number;
+  /** vitesse de cabrage (rad/s) */
+  cabrageVel: number;
+  /** charge du coup d'embrayage (0 à 1) : frein et gaz tenus ensemble sur une moto */
+  embrayage: number;
 }
 
 export interface StepContext {

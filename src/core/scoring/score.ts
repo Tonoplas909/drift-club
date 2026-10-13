@@ -69,6 +69,8 @@ export interface ScoreFrame {
   dejaParcouru?: boolean;
   /** proximité du bord dans une zone de clipping (0 : hors zone, 1 : au ras du bord) */
   clipping?: number;
+  /** cabrage d'une moto en wheelie (rad) : un wheelie rapporte comme un drift (absent ou 0 : aucun) */
+  cabrage?: number;
 }
 
 export function createScore(): ScoreState {
@@ -83,6 +85,15 @@ export function angleFactor(betaDeg: number): number {
   if (b <= 60) return 1;
   if (b <= 150) return 1 - (0.9 * (b - 60)) / 90;
   return Math.max(0, 0.1 * (180 - b) / 30);
+}
+
+/** Cabrage minimal (°) d'un wheelie qui rapporte. */
+export const WHEELIE_MIN_DEG = 8;
+
+/** Facteur d'un wheelie : 0,5 à 8° de cabrage, 1 à partir de 20° (la moto tombe en arrière bien avant de le dépasser). */
+export function wheelieFactor(cabrageDeg: number): number {
+  if (cabrageDeg < WHEELIE_MIN_DEG) return 0;
+  return Math.min(1, 0.5 + (0.5 * (cabrageDeg - WHEELIE_MIN_DEG)) / 12);
 }
 
 function bank(st: ScoreState, p: ScoreParams): ScoreEvent | null {
@@ -121,14 +132,16 @@ export function stepScore(st: ScoreState, f: ScoreFrame, dt: number, p: ScorePar
   // seuls un choc ou un replacement font perdre (un tête-à-queue n'est plus sanctionné)
   if (f.crash || f.reset) return lose(st);
 
-  const active = betaDeg > p.betaMinDeg && kmh > p.speedMinKmh;
+  // un wheelie (moto) compte comme un drift ; sans cabrage, exactement le même calcul qu'avant
+  const cabrageDeg = f.cabrage ? f.cabrage / DEG : 0;
+  const active = (betaDeg > p.betaMinDeg || cabrageDeg > WHEELIE_MIN_DEG) && kmh > p.speedMinKmh;
   st.active = active;
   if (active) {
     st.pending = true;
     st.inactiveTime = 0;
     st.sinceBank = 0;
     if (f.onRoad && !f.dejaParcouru && f.progressRate >= p.progressMin) {
-      const fa = angleFactor(betaDeg);
+      const fa = cabrageDeg > 0 ? Math.max(angleFactor(betaDeg), wheelieFactor(cabrageDeg)) : angleFactor(betaDeg);
       // hors zone de clipping, × 1 : les courses sans zone donnent exactement les mêmes points qu'avant
       const clip = 1 + p.bonusClipping * (f.clipping ?? 0);
       st.drift += p.gainPerKmh * fa * kmh * dt * clip;
