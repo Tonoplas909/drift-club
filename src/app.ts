@@ -706,7 +706,7 @@ export class App {
   }
 
   /** Défi du jour : niveau tiré de la date (heure de Paris), véhicule imposé, classement, podium récompensé. En voiture ou à moto (même niveau, classements à part). */
-  private defiEcran(retour: () => void, moto = this.defiMoto): void {
+  private defiEcran(retour: () => void, moto = this.defiMoto, reclamer = true): void {
     this.showroom?.stop();
     this.defiMoto = moto;
     this.screens.loading('Préparation du défi du jour…');
@@ -718,20 +718,21 @@ export class App {
       const records = MODE_IDS.map((m) => this.store.getRecord(cle, m)).filter((r) => r !== null);
       const record = records.length ? records.reduce((a, b) => (b!.score > a!.score ? b : a))! : null;
       const e = this.compte.etat;
-      const montrer = (): void => this.defiEcran(retour, moto);
+      const montrer = (): void => this.defiEcran(retour, moto, false);
       this.screens.monter(ecranDefi({
         defi, moto, longueur: prep.ok ? prep.prepared.track.length : 0,
         record: record && { score: record.score, temps: record.temps },
         moi: e.statut === 'connecte' ? e.id : null,
         classement: () => this.classement.chargerClassement(cle, 10),
         passes: () => this.defis.passes(7, moto),
-        onGenre: (m) => this.defiEcran(retour, m),
+        onGenre: (m) => this.defiEcran(retour, m, false),
         onJouer: () => void this.demarrer(cle, defi.level, { index: -1, retour: montrer, menuLabel: 'Défi du jour', voiture: defi.voiture }),
         onClassement: () => this.ecranClassement(cle, defi.level.nom, montrer),
         onRetour: retour,
       }));
       // podium des défis passés : clés créditées par le serveur, une fois par défi (voiture et moto)
-      if (e.statut === 'connecte' && e.pseudo) {
+      // (à l'ouverture de l'écran seulement : pas en changeant d'onglet)
+      if (reclamer && e.statut === 'connecte' && e.pseudo) {
         void this.defis.reclamer().then((r) => {
           if (!r.ok || r.valeur.length === 0) return;
           const total = r.valeur.reduce((n, x) => n + x.cles, 0);

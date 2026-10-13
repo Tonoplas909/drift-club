@@ -1,4 +1,6 @@
 import { FORMAT_CLE_EN_LIGNE, cleDuNiveau, estCleMoto } from '../core/cles';
+import { CAR_IDS, estMotoId } from '../core/physics/cars';
+import type { CarId } from '../core/physics/types';
 
 /** Score de moto refusé parce que le classement des motos n'est pas encore en place sur le serveur. */
 export const MSG_MOTOS_PAS_PRET = "Le classement des motos arrive bientôt en ligne : ton score reste enregistré sur l'appareil.";
@@ -104,6 +106,8 @@ export class ClassementService {
     if (!r.ok && cleDuNiveau(s.niveau).startsWith('jour:') && r.message === 'Niveau invalide.') return { ok: false, message: estCleMoto(s.niveau) ? MSG_DEFI_MOTO_PAS_PRET : MSG_DEFI_PAS_PRET };
     // classement des motos : tant que la migration 0015 n'est pas passée, le serveur ne connaît pas ces clés
     if (!r.ok && estCleMoto(s.niveau) && r.message === 'Niveau invalide.') return { ok: false, message: MSG_MOTOS_PAS_PRET };
+    // nouvelle moto (La Sportive) : tant que la migration 0016 n'est pas passée, le serveur ne la connaît pas
+    if (!r.ok && (CAR_IDS as string[]).includes(s.voiture) && estMotoId(s.voiture as CarId) && r.message === 'Voiture invalide.') return { ok: false, message: MSG_MOTOS_PAS_PRET };
     return r;
   }
 

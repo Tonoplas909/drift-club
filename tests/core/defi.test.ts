@@ -78,6 +78,13 @@ describe('défi du jour', () => {
     expect(cleDefi('2026-10-07', true)).toBe('moto:jour:2026-10-07');
     expect(cleEnLigne('moto:jour:2026-10-07')).toBe(true);
   });
+  it('défis déjà joués : véhicules figés (ajouter une moto ne change pas le défi des voitures)', () => {
+    const figes: [string, string, string][] = [['2026-10-01', 'turbo', 'sportive'], ['2026-10-07', 'muscle', 'supermotard'], ['2026-10-12', 'kei', 'supermotard'], ['2026-10-13', 'rotative', 'supermotard']];
+    for (const [jour, voiture, moto] of figes) {
+      expect(defiDuJour(jour).voiture, jour).toBe(voiture);
+      expect(motoDuJour(jour), jour).toBe(moto);
+    }
+  });
   it('le serveur vérifie la course du défi à moto : moto imposée, clé des motos', async () => {
     const jour = '2026-10-07';
     const d = defiDuJour(jour, true);

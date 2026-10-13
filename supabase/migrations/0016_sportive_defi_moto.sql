@@ -5,6 +5,8 @@
 -- Tant que ce script n'est pas passé, le jeu reste utilisable : La Sportive et le défi à moto se jouent et leurs
 -- records restent sur l'appareil ; l'envoi du score affiche un message clair. Rien ne change pour les voitures ni pour
 -- La Supermotard. L'Edge Function verifier-course (redéployée automatiquement) sait déjà rejouer ces courses.
+-- Seule perte : la distance roulée en Sportive avant ce script n'entre pas dans les statistiques du compte.
+-- Une fois ce script passé, ne relance plus 0011 (il échouerait) : relance 0016 à la place.
 --   * scores_voiture_valide / scores_niveau_format : « sportive » et les clés « moto:jour:AAAA-MM-JJ » acceptées ;
 --   * enregistrer_score_verifie()  : comme 0015, avec La Sportive et les clés du défi à moto ;
 --   * ajouter_statistiques()       : comme 0014, distance en Sportive comptée ;

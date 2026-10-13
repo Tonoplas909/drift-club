@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { ClassementService, cleEnLigne } from '../../src/online/classement';
+import { ClassementService, cleEnLigne, MSG_MOTOS_PAS_PRET } from '../../src/online/classement';
+import { MSG_DEFI_MOTO_PAS_PRET } from '../../src/online/defi';
 import { MSG_INDISPONIBLE } from '../../src/online/erreurs';
 import { faussClient } from './mock';
 import { EMPREINTE_SIMULATION } from '../../src/online/empreinteSimulation';
@@ -140,5 +141,17 @@ describe('ClassementService.mesPlaces', () => {
     expect((await new ClassementService(m.fournisseur).mesPlaces([])).ok).toBe(true);
     expect(m.appels).toHaveLength(0);
     expect((await new ClassementService(m.fournisseur).mesPlaces(['off:a'])).ok).toBe(false);
+  });
+});
+
+describe('ClassementService.soumettreScore : serveur sans la migration 0016', () => {
+  const refus = (message: string) => faussClient({ 'functions.verifier-course': { data: { ok: false, code: 'refuse', message }, error: null } });
+  it('La Sportive pas encore acceptée : message clair au lieu de « Voiture invalide. »', async () => {
+    const r = await new ClassementService(refus('Voiture invalide.').fournisseur).soumettreScore({ ...score, niveau: 'moto:off:premiers-virages', voiture: 'sportive', course: { replay: new Uint8Array([1, 2, 3]) } });
+    expect(r).toEqual({ ok: false, message: MSG_MOTOS_PAS_PRET });
+  });
+  it('défi à moto pas encore ouvert : message propre au défi à moto', async () => {
+    const r = await new ClassementService(refus('Niveau invalide.').fournisseur).soumettreScore({ ...score, niveau: 'moto:jour:2026-10-13', voiture: 'supermotard', course: { replay: new Uint8Array([1, 2, 3]) } });
+    expect(r).toEqual({ ok: false, message: MSG_DEFI_MOTO_PAS_PRET });
   });
 });
