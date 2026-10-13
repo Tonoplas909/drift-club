@@ -13,6 +13,16 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.32',
+    date: '13/10/2026',
+    titre: 'Affichage et performances',
+    notes: [
+      'Les barrières et le décor sur les côtés de l\'écran ne disparaissent plus : ils étaient écartés à tort de l\'affichage (surtout en grand écran ou à pleine vitesse) et ne revenaient qu\'à quelques mètres.',
+      'Fini l\'écran blanc après de nombreuses courses : la mémoire de la carte graphique n\'était pas entièrement libérée entre deux courses. Si la carte graphique décroche malgré tout, le jeu reprend tout seul ou propose de se recharger.',
+      'Un peu plus fluide : les contours noirs des objets lointains (plus fins qu\'un pixel) ne sont plus dessinés, soit 15 à 20 % de triangles en moins.',
+    ],
+  },
+  {
     version: '0.5.31',
     date: '13/10/2026',
     titre: 'La Sportive et le défi du jour à moto',

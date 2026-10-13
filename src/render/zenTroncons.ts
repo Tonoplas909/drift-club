@@ -10,7 +10,7 @@ import { ambianceA } from '../core/zen/regions';
 import type { RouteZen, Troncon, EvenementRoute } from '../core/zen/route';
 import type { Assets } from './assets';
 import { decorDuTheme } from './themes';
-import { buildDecor, DecorVisible, materiauxDecor, type MateriauxDecor } from './decor';
+import { buildDecor, DecorVisible, materiauxDecor, profondeur, type MateriauxDecor } from './decor';
 import { buildRoad, type RoadTextures } from './road';
 import { chunkStep, geometriePlafond, geometrieMorceau, materiauPlafond, materiauTerrain } from './terrainMesh';
 import { THEMES_VISUELS } from './themes';
@@ -254,11 +254,13 @@ export class TronconsZen {
   }
 
   /** Masque les morceaux de terrain au-delà de `dMax` m de la caméra (tout est visible en caméra libre). */
-  visibilite(cx: number, cz: number, dMax: number, tout: boolean): void {
+  /** Morceaux de terrain écartés au-delà de `dMax`, en profondeur devant la caméra (comme le brouillard). */
+  visibilite(camera: THREE.Camera, dMax: number, tout: boolean): void {
+    const lim = dMax + TUILE * 0.71 + 20, y = camera.position.y;
     for (const tu of this.tuiles.values()) {
       if (!tu.mesh) continue;
       const c = tu.mesh.userData.center as THREE.Vector3;
-      tu.mesh.visible = tout || (c.x - cx) ** 2 + (c.z - cz) ** 2 < dMax * dMax;
+      tu.mesh.visible = tout || profondeur(camera, c.x, y, c.z) < lim;
     }
   }
 

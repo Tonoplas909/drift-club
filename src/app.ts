@@ -144,6 +144,7 @@ export class App {
       return;
     }
     this.renderer.setSize(window.innerWidth, window.innerHeight, false);
+    this.surveillerContexte(this.renderer.domElement);
     const s = safeStorage();
     this.store = new Store(s.kv);
     this.persistent = s.persistent;
@@ -703,6 +704,26 @@ export class App {
       onTouches: () => this.touchesEcran(() => this.reglagesEcran(retour)),
       onRetour: retour,
     });
+  }
+
+  /**
+   * Contexte WebGL perdu (carte graphique saturée ou réinitialisée par le système) : three.js attend qu'il revienne et
+   * reprend tout seul. S'il ne revient pas, l'écran resterait blanc : on propose de recharger le jeu (records,
+   * réglages et progression sont gardés sur l'appareil).
+   */
+  private surveillerContexte(canvas: HTMLCanvasElement): void {
+    let attente = 0;
+    canvas.addEventListener('webglcontextlost', () => {
+      window.clearTimeout(attente);
+      attente = window.setTimeout(() => {
+        this.session?.dispose();
+        this.session = null;
+        this.screens.error('Affichage interrompu', "La carte graphique a cessé de répondre (mémoire saturée ou pilote réinitialisé). Recharge le jeu pour reprendre : tes records, réglages et livrées sont gardés.", [
+          { label: 'Recharger le jeu', onClick: () => location.reload() },
+        ]);
+      }, 3000);
+    });
+    canvas.addEventListener('webglcontextrestored', () => window.clearTimeout(attente));
   }
 
   /** Défi du jour : niveau tiré de la date (heure de Paris), véhicule imposé, classement, podium récompensé. En voiture ou à moto (même niveau, classements à part). */

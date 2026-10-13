@@ -29,10 +29,26 @@ export function contourDe(geo: THREE.BufferGeometry): THREE.BufferGeometry {
  * Un modèle du décor : ses InstancedMesh (le modèle et son contour partagent le même tampon de matrices), toutes
  * ses matrices, et la sphère englobante de chaque objet (x, y, z, rayon).
  */
-interface LotDecor { meshes: THREE.InstancedMesh[]; attr: THREE.InstancedBufferAttribute; matrices: Float32Array; spheres: Float32Array; visibles: number }
+interface LotDecor { meshes: THREE.InstancedMesh[]; attr: THREE.InstancedBufferAttribute; matrices: Float32Array; spheres: Float32Array; visibles: number; /** dont avec contour */ contours: number }
+
+/**
+ * Profondeur d'un point devant la caméra (m, le long de son axe de visée), comme celle qu'utilise le brouillard de
+ * three.js : sur les bords de l'écran, elle est bien plus courte que la distance (moitié à 60° de l'axe).
+ * `camera.matrixWorld` doit être à jour.
+ */
+export function profondeur(camera: THREE.Camera, x: number, y: number, z: number): number {
+  const e = camera.matrixWorld.elements;
+  return (x - e[12]) * -e[8] + (y - e[13]) * -e[9] + (z - e[14]) * -e[10];
+}
 
 /** Les objets proches de la voiture restent toujours dessinés : leurs ombres tombent dans le champ même s'ils sont hors cadre. */
 export const RAYON_TOUJOURS_VISIBLE = 40;
+
+/**
+ * Au-delà de cette profondeur (m), le contour noir d'un objet (une coque de 5 à 13 cm) fait moins d'un pixel : on ne
+ * le dessine plus. Le contour d'un modèle ne prend que les premiers objets du tampon, ceux en deçà.
+ */
+export const PROFONDEUR_CONTOUR = 110;
 
 /**
  * Objets du décor réellement dessinés. Chaque modèle est un seul InstancedMesh pour tout le niveau : sans tri, tout
@@ -42,6 +58,8 @@ export const RAYON_TOUJOURS_VISIBLE = 40;
  */
 export class DecorVisible {
   private readonly lots: LotDecor[] = [];
+  /** objets gardés trop loin pour leur contour (indices), le temps d'un tri */
+  private loin = new Int32Array(64);
   private readonly frustum = new THREE.Frustum();
   private readonly pm = new THREE.Matrix4();
 
@@ -53,40 +71,57 @@ export class DecorVisible {
     }
   }
 
-  /** Nombre d'objets dessinés / total (mesure). */
-  compte(): { visibles: number; total: number } {
-    let v = 0, t = 0;
-    for (const l of this.lots) { v += l.visibles; t += l.spheres.length / 4; }
-    return { visibles: v, total: t };
+  /** Nombre d'objets dessinés / total (mesure) ; `contours` : objets dessinés avec leur contour. */
+  compte(): { visibles: number; total: number; contours: number } {
+    let v = 0, t = 0, c = 0;
+    for (const l of this.lots) { v += l.visibles; t += l.spheres.length / 4; c += l.contours; }
+    return { visibles: v, total: t, contours: c };
   }
 
-  /** `brume` : distance au-delà de laquelle tout est fondu dans le brouillard ; `tout` : caméra libre, rien n'est écarté. */
+  /**
+   * `brume` : profondeur au-delà de laquelle tout est fondu dans le brouillard ; `tout` : caméra libre, rien n'est écarté.
+   * Le brouillard de three.js se mesure en profondeur (le long de l'axe de la caméra), pas en distance : sur les bords
+   * de l'écran, un objet plus loin que `brume` reste visible. On compare donc la profondeur, comme lui.
+   */
   mettreAJour(camera: THREE.Camera, brume: number, voitureX: number, voitureZ: number, tout = false): void {
     camera.updateMatrixWorld();
     this.pm.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
     this.frustum.setFromProjectionMatrix(this.pm);
     const plans = this.frustum.planes;
-    const cx = camera.position.x, cz = camera.position.z, proche2 = RAYON_TOUJOURS_VISIBLE * RAYON_TOUJOURS_VISIBLE;
+    const e = camera.matrixWorld.elements;
+    // position et axe de visée de la caméra (elle regarde vers −z de son repère) : voir `profondeur`
+    const cx = e[12], cy = e[13], cz = e[14], fx = -e[8], fy = -e[9], fz = -e[10];
+    const proche2 = RAYON_TOUJOURS_VISIBLE * RAYON_TOUJOURS_VISIBLE;
     for (const lot of this.lots) {
       const sp = lot.spheres, n = sp.length / 4, src = lot.matrices, dst = lot.attr.array as Float32Array;
-      let k = 0;
+      if (this.loin.length < n) this.loin = new Int32Array(n);
+      // les objets gardés assez proches pour leur contour d'abord, puis les autres (sans contour)
+      let k = 0, nLoin = 0;
       for (let i = 0; i < n; i++) {
         const x = sp[4 * i], y = sp[4 * i + 1], z = sp[4 * i + 2], r = sp[4 * i + 3];
+        const prof = (x - cx) * fx + (y - cy) * fy + (z - cz) * fz;
         let garde = tout || (x - voitureX) ** 2 + (z - voitureZ) ** 2 < proche2;
         if (!garde) {
-          const lim = brume + r;
-          garde = (x - cx) ** 2 + (z - cz) ** 2 < lim * lim;
+          garde = prof < brume + r;
           for (let j = 0; garde && j < 6; j++) {
             const pl = plans[j];
             if (pl.normal.x * x + pl.normal.y * y + pl.normal.z * z + pl.constant < -r) garde = false;
           }
         }
         if (!garde) continue;
+        if (!tout && prof - r > PROFONDEUR_CONTOUR) { this.loin[nLoin++] = i; continue; }
         if (k !== i) for (let c = 0; c < 16; c++) dst[16 * k + c] = src[16 * i + c];
         k++;
       }
+      lot.contours = k;
+      for (let j = 0; j < nLoin; j++, k++) {
+        const i = this.loin[j];
+        for (let c = 0; c < 16; c++) dst[16 * k + c] = src[16 * i + c];
+      }
       lot.visibles = k;
-      for (const m of lot.meshes) m.count = k;
+      // meshes[0] : le modèle ; meshes[1] : son contour, s'il en a un
+      lot.meshes[0].count = k;
+      for (let m = 1; m < lot.meshes.length; m++) lot.meshes[m].count = lot.contours;
       if (k > 0) {
         lot.attr.clearUpdateRanges();
         lot.attr.addUpdateRange(0, 16 * k);
@@ -111,7 +146,7 @@ export function buildDecor(env: Environment, assets: Assets, q: QualityLevel, sh
       c.copy(bs.center).applyMatrix4(mm);
       spheres.set([c.x, c.y, c.z, bs.radius * echelles[i]], 4 * i);
     }
-    lots.push({ meshes, attr, matrices: (attr.array as Float32Array).slice(), spheres, visibles: n });
+    lots.push({ meshes, attr, matrices: (attr.array as Float32Array).slice(), spheres, visibles: n, contours: n });
   };
   // bâtiments : grandes façades, trait plus épais (outlineGros)
   const { mat, outline, outlineGros } = materiaux ?? materiauxDecor();

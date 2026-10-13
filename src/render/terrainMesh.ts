@@ -16,6 +16,8 @@ import type { QualityLevel } from './quality';
 import { buildFuji, buildIles, buildLune, buildMurs } from './fonds';
 
 const CHUNK = 128;
+/** Rayon (m) d'un morceau de terrain vu de dessus (demi-diagonale), plus de quoi couvrir son relief. */
+export const RAYON_MORCEAU = CHUNK * 0.71 + 20;
 const SKIRT = 4;
 
 /** Pas de maille (m) d'un morceau selon sa distance minimale à la route. */
