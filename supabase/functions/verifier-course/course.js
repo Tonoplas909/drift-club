@@ -10830,7 +10830,9 @@ var CARS = {
     throttleFall: 10,
     rpmMax: 11e3,
     leanMax: 48 * DEG,
-    leanRate: 3.5,
+    leanFreq: 6,
+    leanAmort: 0.9,
+    leanMarge: 0.3,
     betaChute: 70 * DEG,
     arcadeBetaMax: 30 * DEG
   }
@@ -11094,7 +11096,8 @@ function createCarState(x, z, heading, y = 0) {
     throttle: 0,
     throttleSmooth: 0,
     prevVelAngle: heading,
-    lean: 0
+    lean: 0,
+    leanVel: 0
   };
 }
 function copyCarState(src, dst) {
@@ -11181,11 +11184,15 @@ function stepCar(car, input, ctx, dt) {
   let Fyr = tireForce(alphaR, Fzr, muR, p.tireB, p.tireC) * rearLat;
   const cosD = cos(steer), sinD = sin(steer);
   const moto = p.genre === "moto";
+  let demandeLat = 0;
   if (moto) {
-    const maxLat = m * G * tan(p.leanMax ?? 0.8);
-    const lat = Math.abs(Fyr + Fyf * cosD + Ffx * sinD);
-    if (lat > maxLat) {
-      const k = maxLat / lat;
+    const leanMax = p.leanMax ?? 0.8;
+    const lat = Fyr + Fyf * cosD + Ffx * sinD;
+    demandeLat = lat;
+    const penche = lat * car.lean > 0 ? Math.abs(car.lean) : 0;
+    const maxLat = m * G * Math.min(tan(leanMax), tan(penche) + (p.leanMarge ?? 0.3));
+    if (Math.abs(lat) > maxLat) {
+      const k = maxLat / Math.abs(lat);
       Fyf *= k;
       Fyr *= k;
     }
@@ -11258,9 +11265,14 @@ function stepCar(car, input, ctx, dt) {
   car.beta = car.speed > 1 ? atan2(car.vLat, car.vLong) : 0;
   if (moto) {
     const leanMax = p.leanMax ?? 0.8;
-    const cible = clamp(atan(Fy / m / G), -leanMax, leanMax) * smoothstep(1, 4, car.speed);
-    const r = (p.leanRate ?? 3.5) * dt;
-    car.lean = clamp(car.lean + clamp(cible - car.lean, -r, r), -leanMax, leanMax);
+    const cible = clamp(atan(demandeLat / m / G), -leanMax, leanMax) * smoothstep(1, 4, car.speed);
+    const w = p.leanFreq ?? 6, z = p.leanAmort ?? 0.9;
+    car.leanVel += (w * w * (cible - car.lean) - 2 * z * w * car.leanVel) * dt;
+    car.lean += car.leanVel * dt;
+    if (Math.abs(car.lean) > leanMax) {
+      car.lean = clamp(car.lean, -leanMax, leanMax);
+      car.leanVel = 0;
+    }
   }
   const axNow = clamp(Fx / m, -15, 15);
   car.ax += (axNow - car.ax) * Math.min(1, 8 * dt);
@@ -12190,4 +12202,4 @@ async function traiterCourse(corps, empreinteServeur, maintenant = /* @__PURE__ 
 export {
   traiterCourse
 };
-export const EMPREINTE = 'e17391c7c78d9be6';
+export const EMPREINTE = 'b114feb65f4fd2ec';

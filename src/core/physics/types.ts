@@ -42,8 +42,12 @@ export interface CarParams {
   genre?: GenreVehicule;
   /** moto : inclinaison maximale (rad) ; l'adhérence latérale est plafonnée à g × tan(leanMax) */
   leanMax?: number;
-  /** moto : vitesse de bascule de l'inclinaison (rad/s) */
-  leanRate?: number;
+  /** moto : pulsation propre du roulis (rad/s) : plus elle est haute, plus la moto bascule vite d'un côté à l'autre */
+  leanFreq?: number;
+  /** moto : amortissement du roulis (1 = juste sans rebond) */
+  leanAmort?: number;
+  /** moto : accélération latérale (en g) que les pneus tiennent sans que la moto soit penchée ; au-delà, il faut pencher */
+  leanMarge?: number;
   /** moto : dérive (rad) au-delà de laquelle elle chute */
   betaChute?: number;
   /** moto : angle de dérive maximal visé par l'aide Drift du mode Arcade (rad) */
@@ -87,6 +91,8 @@ export interface CarState {
   prevVelAngle: number;
   /** inclinaison (rad, + à gauche) : toujours 0 pour une voiture */
   lean: number;
+  /** vitesse de roulis (rad/s) */
+  leanVel: number;
 }
 
 export interface StepContext {
