@@ -7,7 +7,7 @@ import { projectOnTrack, nearestSample } from '../track/projection';
 import type { Environment } from '../env/types';
 import type { AssistParams, CarParams, CarState, StepContext } from '../physics/types';
 import { chute } from '../physics/moto';
-import { createCarState, copyCarState, stepCar } from '../physics/car';
+import { createCarState, copyCarState, stepCar, jaugesMoto, type JaugesMoto } from '../physics/car';
 import { buildCollisionWorld, resolveCollisions, CRASH_IMPACT, type CollisionWorld } from '../physics/collision';
 import {
   createScore, stepScore, finishScore, timeBonus, comboRestant, facteursDrift, DEFAULT_SCORE_PARAMS,
@@ -69,6 +69,8 @@ export interface HudData {
   progress: number;
   wrongWay: boolean;
   speedKmh: number;
+  /** jauges de wheelie (charge de l'embrayage, fourche) : motos seulement */
+  moto: JaugesMoto | null;
 }
 
 export const ZONE_LIMIT = 35;
@@ -234,6 +236,7 @@ export class RaceSim {
       progress: clamp(this.maxProgressS / this.config.track.length, 0, 1),
       wrongWay: this.wrongWay,
       speedKmh: this.car.speed * 3.6,
+      moto: jaugesMoto(this.car, this.ctx),
     };
   }
 

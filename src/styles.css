@@ -84,7 +84,21 @@ html, body {
 .hud-angle.ideal b { color: #3ddc6a; }
 .hud-angle.large b { color: var(--orange); }
 .hud-angle.trop b { color: var(--red); }
-@media (max-height: 480px) { .hud-angle { width: 110px; } .hud-facteurs { font-size: 15px; } .hud-facteurs small { font-size: 9px; } }
+/* jauges de wheelie d'une moto, à gauche de l'indicateur d'angle : charge de l'embrayage et énergie de la fourche */
+.hud-moto { position: absolute; right: calc(50% + 90px); bottom: calc(max(16px, env(safe-area-inset-bottom)) + 34px); display: flex; flex-direction: column; gap: 6px; opacity: 0; transition: opacity .25s; pointer-events: none; }
+.hud-moto.on { opacity: 1; }
+.hud-moto .jm { display: grid; grid-template-columns: 74px 96px 58px; align-items: center; gap: 6px; font-weight: 800; color: #fff; -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill; }
+.hud-moto small { font-size: 12px; letter-spacing: .5px; text-transform: uppercase; text-align: right; }
+.hud-moto .barre { height: 12px; border: 3px solid var(--ink); border-radius: 8px; background: rgba(21, 19, 28, .55); overflow: hidden; }
+.hud-moto .barre i { display: block; height: 100%; background: var(--orange); transform: scaleX(0); transform-origin: left center; transition: transform .06s linear; }
+.hud-moto [data-k="jmFourche"] .barre i { background: #4fd6ff; }
+.hud-moto .jm.pret .barre i { background: #3ddc6a; }
+.hud-moto .jm.vain .barre i { background: rgba(255, 255, 255, .4); }
+.hud-moto b { font-size: 15px; }
+.hud-moto .jm.pret b { color: #3ddc6a; animation: pop .35s ease-out; }
+.hud-moto .jm.vain b { font-size: 12px; opacity: .85; }
+#hud.sans-angle .hud-moto { right: auto; left: 50%; transform: translateX(-50%); }
+@media (max-height: 480px) { .hud-angle { width: 110px; } .hud-moto { right: calc(50% + 66px); } .hud-moto .jm { grid-template-columns: 64px 72px 50px; } .hud-facteurs { font-size: 15px; } .hud-facteurs small { font-size: 9px; } }
 /* temps restant avant la fin du combo, sous le texte des points */
 .hud-combo { width: 180px; height: 10px; margin: 6px auto 0; border: 3px solid var(--ink); border-radius: 8px; background: rgba(21, 19, 28, .55); overflow: hidden; visibility: hidden; }
 .hud-combo.on { visibility: visible; }

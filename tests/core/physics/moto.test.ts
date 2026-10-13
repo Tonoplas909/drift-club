@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { createCarState, stepCar } from '../../../src/core/physics/car';
+import { createCarState, stepCar, jaugesMoto } from '../../../src/core/physics/car';
+import { etatJaugesMoto } from '../../../src/game/hud';
 import { CARS, CAR_IDS, VOITURE_IDS, estMotoId } from '../../../src/core/physics/cars';
 import { MODES } from '../../../src/core/physics/assists';
 import { chute, VITESSE_CHUTE } from '../../../src/core/physics/moto';
@@ -195,10 +196,45 @@ describe('motos', () => {
         expect(rouler('semi', 11, 2.5, (t) => inp({ gaz: 1, direction: t < 0.7 ? 1 : t < 1.4 ? -1 : 0 })).max).toBe(0);
         expect(rouler('semi', 11, 4, (t) => inp({ gaz: 1, direction: alterne(0.8)(t) })).max).toBe(0);
       });
+      it('jauge : la fourche passe au vert (« Gaz ! ») après les coups de guidon ; les gaz à ce moment lèvent l\'avant', () => {
+        const c = createCarState(0, 0, 0);
+        c.vz = 11;
+        const ctx = ctxOf('supermotard', 'semi');
+        let t = 0, pret = -1, max = 0;
+        for (let i = 0; i < 2.5 / SIM_DT; i++, t += SIM_DT) {
+          const gaz = pret >= 0 ? 1 : 0.5;
+          stepCar(c, inp({ gaz, direction: pret < 0 && t < 1.2 ? alterne(0.2)(t) : 0 }), ctx, SIM_DT);
+          const j = jaugesMoto(c, ctx)!;
+          if (pret < 0 && j.fourchePrete) {
+            pret = t;
+            expect(j.fourche).toBe(1);
+            expect(etatJaugesMoto(j)).toMatchObject({ fourche: 1, fourcheEtat: 'pret' });
+          }
+          max = Math.max(max, c.cabrage);
+        }
+        expect(pret).toBeGreaterThan(0);
+        expect(max).toBeGreaterThan(10 * DEG);
+      });
       it('gaz fermés ou trop vite (plus de ~95 km/h) : rien ne se lève', () => {
         expect(rouler('semi', 11, 2.5, (t) => inp({ gaz: 0.5, direction: t < 1 ? alterne(0.2)(t) : 0 })).max).toBe(0);
         expect(rouler('semi', 27, 2.5, (t) => inp({ gaz: 1, direction: t < 1 ? alterne(0.2)(t) : 0 })).max).toBe(0);
       });
+    });
+    it('jauge d\'embrayage : pleine (« Lâche ! ») à 25 km/h, « Trop vite » à 70 km/h, « Redresse » penchée ; rien pour une voiture', () => {
+      const charger = (v0: number, lean = 0) => {
+        const c = createCarState(0, 0, 0);
+        c.vz = v0;
+        for (let i = 0; i < 0.6 / SIM_DT; i++) {
+          stepCar(c, inp({ gaz: 1, frein: 1 }), ctxOf('supermotard'), SIM_DT);
+          if (lean) c.lean = lean;
+        }
+        return etatJaugesMoto(jaugesMoto(c, ctxOf('supermotard'))!);
+      };
+      expect(charger(7)).toMatchObject({ charge: 1, chargeEtat: 'pret', chargeMot: 'Lâche !' });
+      expect(charger(19)).toMatchObject({ chargeEtat: 'vain', chargeMot: 'Trop vite' });
+      expect(charger(7, 25 * DEG)).toMatchObject({ chargeEtat: 'vain', chargeMot: 'Redresse' });
+      expect(jaugesMoto(createCarState(0, 0, 0), ctxOf('equilibree'))).toBeNull();
+      expect(etatJaugesMoto(jaugesMoto(createCarState(0, 0, 0), ctxOf('supermotard'))!)).toMatchObject({ charge: 0, fourche: 0 });
     });
     it('une voiture ne se cabre jamais', () => {
       const c = createCarState(0, 0, 0);
