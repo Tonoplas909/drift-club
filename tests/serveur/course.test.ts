@@ -69,7 +69,8 @@ describe('traiterCourse (Edge Function verifier-course)', () => {
     // une moto sous la clé des voitures, ou une voiture sous celle des motos : refusé
     expect(await traiterCourse({ ...base, niveau: 'off:premiers-virages' }, 'v1')).toMatchObject({ ok: false, message: 'Les motos ont leur propre classement.' });
     expect(await traiterCourse(await demande({ niveau: 'moto:off:col-du-torii' }), 'v1')).toMatchObject({ ok: false, message: 'Ce classement est réservé aux motos.' });
-    expect(await traiterCourse({ ...base, niveau: 'moto:jour:2026-10-13' }, 'v1')).toMatchObject({ ok: false, message: 'Niveau invalide.' });
+    // une moto sous la clé du défi des voitures : refusé
+    expect(await traiterCourse({ ...base, niveau: 'jour:2026-10-13' }, 'v1')).toMatchObject({ ok: false, message: 'Les motos ont leur propre classement.' });
   });
   it('niveau perso : contenu envoyé, contrôlé par son empreinte', async () => {
     const level = hairpinLevel();

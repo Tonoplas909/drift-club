@@ -29,21 +29,20 @@ la fonction `verifier-course` (`npx vite-node tools/gen-fonction.ts`).
 | [Pluie et nuit](#pluie-et-nuit) | moyen | oui (simulation) | fait (0.5.16) |
 | [Ponts dans l'éditeur](#ponts-dans-léditeur) | moyen | oui (simulation) | fait (0.5.21) |
 | [Niveau aléatoire dans l'éditeur](#niveau-aléatoire-dans-léditeur) | petit | non | fait (0.5.22) |
-| [Motos](#motos) | gros | oui (simulation + migration) | en cours (0.5.25 → 0.5.30 : La Supermotard, wheelie, classement) |
+| [Motos](#motos) | gros | oui (simulation + migration) | en cours (0.5.25 → 0.5.31 : deux motos, wheelie, classement, défi) |
 | [Fantômes et tandem](#fantômes-et-tandem) | gros | oui (migration + stockage) | à faire |
 | [Clubs](#clubs) | gros | oui (migration) | à faire |
 | [Saison](#saison) | gros | oui (migration) | à faire |
 | [Réglages de voiture](#réglages-de-voiture) | gros | oui (simulation) | à discuter |
 | [Figures](#figures) | moyen | oui (simulation) | à faire |
 | [Wheelie à moto](#wheelie-à-moto) | gros | oui (simulation) | fait (0.5.27 → 0.5.30) |
-| [Deuxième moto](#deuxième-moto) | moyen | oui (simulation) | à faire |
-| [Défi du jour à moto](#défi-du-jour-à-moto) | petit | oui (simulation) | à faire |
-| [Deux freins et stoppie](#deux-freins-et-stoppie) | moyen | oui (simulation) | à faire |
+| [Deuxième moto](#deuxième-moto) | moyen | oui (simulation + migration) | fait (0.5.31 : La Sportive) |
+| [Défi du jour à moto](#défi-du-jour-à-moto) | petit | oui (simulation + migration) | fait (0.5.31) |
 
-Recommandation actuelle : les motos ont pris le relais depuis la 0.5.25 (La Supermotard, wheelie, classement à part,
-jauges). Pour les compléter : une [deuxième moto](#deuxième-moto) et le [défi du jour à moto](#défi-du-jour-à-moto),
-petits et sans migration. Ensuite, **fantômes et tandem** : les replays, le film (« Revoir ») et le fantôme local
-existent déjà, il reste à stocker les replays sur le serveur pour courir contre le premier du classement.
+Recommandation actuelle : les motos ont pris le relais depuis la 0.5.25 (deux motos, wheelie, classement à part,
+défi du jour à moto) ; il leur reste surtout des livrées dessinées. Pour la suite, **fantômes et tandem** : les
+replays, le film (« Revoir ») et le fantôme local existent déjà, il reste à stocker les replays sur le serveur pour
+courir contre le premier du classement.
 
 ## Petites
 
@@ -106,9 +105,9 @@ chiffres pourraient nourrir les succès ou la saison.
 ### Défi du jour à moto
 
 Le défi du jour tire sa voiture dans une liste figée de sept voitures (`VEHICULES_DEFI`, pour ne pas changer les défis
-passés). Ajouter un défi moto à côté : même niveau du jour, classement « moto:jour:… » (aujourd'hui refusé par la
-fonction), ou un jour sur sept réservé aux motos. Petite migration possible si le classement du jour doit connaître la
-clé moto.
+passés). Un défi moto à côté : même niveau du jour, classement « moto:jour:… », moto imposée tirée de la date dans une
+autre liste figée (`MOTOS_DEFI`). Fait en 0.5.31 : onglets « En voiture » et « À moto » sur l'écran du défi, podium
+à moto récompensé comme celui des voitures (5, 3, 2 clés), vainqueurs des défis à moto (migration 0016).
 
 ## Moyennes
 
@@ -199,13 +198,9 @@ Une moto de caractère différent de La Supermotard, par exemple une sportive (p
 loin, wheelie difficile) ou une petite 125 (légère, joueuse, peu de puissance). Le modèle de moto
 (`src/render/motos.ts`, `MOTO_SHAPES`) et les paramètres (`src/core/physics/cars.ts`) sont prêts à en accueillir
 d'autres ; l'onglet Motos du Garage aussi. Le jeu de paramètres change la simulation : fonction serveur à régénérer.
-
-### Deux freins et stoppie
-
-Aujourd'hui la moto n'a qu'un frein (plus le frein à main qui sert de frein arrière). Séparer frein avant et frein
-arrière (gâchettes de la manette, deux touches au clavier), avec le transfert de masse vers l'avant au freinage : trop
-de frein avant lève la roue arrière (**stoppie**), qui rapporterait des points comme le wheelie. Même mécanique de
-tangage que le cabrage, mais autour du contact de la roue avant. Touche la simulation : fonction serveur à régénérer.
+Fait en 0.5.31 : **La Sportive**, carénée (bulle, guidons bracelets, pilote couché), quatre cylindres qui hurle jusqu'à
+14 000 tr/min, 230 km/h, couchée jusqu'à 55° mais chute dès 60° de travers, wheelie qui demande plus d'élan ; huit
+livrées en teintes (migration 0016 et catalogue 0006). Reste possible : une petite 125.
 
 ## Grosses
 
@@ -216,9 +211,8 @@ trop en travers. Plan détaillé dans la doc « Ajouter des motos à Drift Club 
 véhicule, inclinaison, chute, liste du défi figée), La Supermotard (physique, modèle et pilote, son, livrées en
 teintes, vues embarquées), migration 0014. Puis : roulis en ressort amorti et adhérence liée à l'inclinaison (0.5.26),
 pneus arrondis et [wheelie](#wheelie-à-moto) (0.5.27 → 0.5.30), classement séparé et Garage en onglets Voitures / Motos
-(0.5.28, migration 0015). Reste : une [deuxième moto](#deuxième-moto), le [défi du jour à moto](#défi-du-jour-à-moto),
-[deux freins et le stoppie](#deux-freins-et-stoppie), des livrées dessinées pour les motos (l'Atelier ne connaît que les
-voitures).
+(0.5.28, migration 0015), [La Sportive](#deuxième-moto) et le [défi du jour à moto](#défi-du-jour-à-moto) (0.5.31,
+migration 0016). Reste : des livrées dessinées pour les motos (l'Atelier ne connaît que les voitures).
 
 ### Fantômes et tandem
 
@@ -268,8 +262,7 @@ plus qu'il dure. Ce qui existe :
 - classement des motos à part (clé « moto:… », 0.5.28), puisque les voitures n'ont pas de wheelie.
 
 Reste, en pistes : un bonus propre au wheelie (points par seconde, palier au-delà de quelques secondes) au lieu du
-barème du drift ; le pompage plus facile à doser au clavier si la fenêtre (~0,25 s) se révèle trop courte ; les
-[deux freins et le stoppie](#deux-freins-et-stoppie).
+barème du drift ; le pompage plus facile à doser au clavier si la fenêtre (~0,25 s) se révèle trop courte.
 
 ## Fait (pour mémoire)
 
@@ -308,3 +301,4 @@ barème du drift ; le pompage plus facile à doser au clavier si la fenêtre (~0
 | 0.5.28 | **Classement séparé des motos** (clés « moto:… », migration 0015) et Garage en deux onglets, Voitures et Motos |
 | 0.5.29 | Moto : **pompage de fourche** (coups de guidon gauche-droite puis gaz pour lever l'avant en sortie de virage) et direction au corps pendant le wheelie |
 | 0.5.30 | Moto : jauges **Embrayage** et **Fourche** dans le HUD, pour savoir quand lâcher le frein ou mettre les gaz |
+| 0.5.31 | **La Sportive** (deuxième moto, carénée, 230 km/h) et **défi du jour à moto** (même niveau, moto imposée, classement et podium à part), migration 0016 |

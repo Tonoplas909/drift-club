@@ -1,7 +1,7 @@
 import type { CarId, CarParams, MotoId, VoitureId } from './types';
 import { DEG } from '../math/vec';
 
-export const CAR_IDS: CarId[] = ['equilibree', 'legere', 'turbo', 'kei', 'muscle', 'rotative', 'break', 'supermotard'];
+export const CAR_IDS: CarId[] = ['equilibree', 'legere', 'turbo', 'kei', 'muscle', 'rotative', 'break', 'supermotard', 'sportive'];
 
 /** Valeurs de départ, à régler avec le panneau ?debug. */
 export const CARS: Record<CarId, CarParams> = {
@@ -70,6 +70,18 @@ export const CARS: Record<CarId, CarParams> = {
     length: 2.1, width: 0.8, yawDamp: 1.2, throttleRise: 6, throttleFall: 10, rpmMax: 11000,
     leanMax: 48 * DEG, leanFreq: 6, leanAmort: 0.9, leanMarge: 0.3, betaChute: 70 * DEG, arcadeBetaMax: 30 * DEG,
     wheeliePop: 450, gyrationTangage: 0.5, amortiTangage: 1.5, cabrageChute: 65 * DEG,
+  },
+  // sportive carénée : plus lourde, centre de gravité plus bas, beaucoup plus de puissance et de vitesse ; elle se
+  // couche plus loin mais pardonne moins en travers, et son wheelie demande plus d'élan
+  sportive: {
+    id: 'sportive', nom: 'La Sportive', genre: 'moto',
+    mass: 230, wheelbase: 1.4, cgToFront: 0.68, cgHeight: 0.58, gyration: 1.0,
+    engineForce: 1700, maxSpeed: 64, brakeForce: 3000, handbrakeForce: 900,
+    dragCoef: 0.26, rollResist: 3, muFront: 1.1, muRear: 1.05, tireB: 10, tireC: 1.4,
+    maxSteer: 0.38, steerLock: 0.5, steerSpeed: 2.3, steerReturn: 7, steerCounter: 2.0, steerSpeedReduction: 0.08,
+    length: 2.05, width: 0.75, yawDamp: 1.3, throttleRise: 5, throttleFall: 10, rpmMax: 14000,
+    leanMax: 55 * DEG, leanFreq: 5.5, leanAmort: 0.9, leanMarge: 0.3, betaChute: 60 * DEG, arcadeBetaMax: 25 * DEG,
+    wheeliePop: 430, gyrationTangage: 0.5, amortiTangage: 1.5, cabrageChute: 65 * DEG,
   },
 };
 

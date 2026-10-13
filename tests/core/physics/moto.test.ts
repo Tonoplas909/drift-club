@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { createCarState, stepCar, jaugesMoto } from '../../../src/core/physics/car';
 import { etatJaugesMoto } from '../../../src/game/hud';
-import { CARS, CAR_IDS, VOITURE_IDS, estMotoId } from '../../../src/core/physics/cars';
+import { CARS, CAR_IDS, VOITURE_IDS, MOTO_IDS, estMotoId } from '../../../src/core/physics/cars';
 import { MODES } from '../../../src/core/physics/assists';
 import { chute, VITESSE_CHUTE } from '../../../src/core/physics/moto';
 import { SIM_DT } from '../../../src/core/constants';
 import { DEG } from '../../../src/core/math/vec';
 import type { InputState } from '../../../src/core/input';
-import type { CarId, ModeId, StepContext } from '../../../src/core/physics/types';
+import type { CarId, ModeId, MotoId, StepContext } from '../../../src/core/physics/types';
 import type { Ground } from '../../../src/core/track/terrain';
 import { RaceSim } from '../../../src/core/race/race';
 import { buildTrack } from '../../../src/core/track/buildTrack';
@@ -22,14 +22,40 @@ const inp = (o: Partial<InputState>): InputState => ({ gaz: 0, frein: 0, directi
 const G = 9.81;
 
 describe('motos', () => {
-  it('la Supermotard est une moto, les autres des voitures', () => {
-    expect(CARS.supermotard.genre).toBe('moto');
-    expect(estMotoId('supermotard')).toBe(true);
-    expect(VOITURE_IDS).toEqual(CAR_IDS.filter((id) => id !== 'supermotard'));
-    const p = CARS.supermotard;
-    expect(p.width).toBeLessThan(1);
-    expect(p.wheelbase).toBeLessThan(1.6);
-    expect(p.mass).toBeLessThan(300);
+  it('la Supermotard et la Sportive sont des motos, les autres des voitures', () => {
+    expect(MOTO_IDS).toEqual(['supermotard', 'sportive']);
+    expect(VOITURE_IDS).toEqual(CAR_IDS.filter((id) => !MOTO_IDS.includes(id as MotoId)));
+    for (const id of MOTO_IDS) {
+      const p = CARS[id];
+      expect(p.genre).toBe('moto');
+      expect(estMotoId(id)).toBe(true);
+      expect(p.width).toBeLessThan(1);
+      expect(p.wheelbase).toBeLessThan(1.6);
+      expect(p.mass).toBeLessThan(300);
+    }
+  });
+  it('la Sportive : plus rapide que la Supermotard, couchée plus loin, et elle lève aussi l\'avant (embrayage, pompage)', () => {
+    const plein = (id: MotoId) => {
+      const c = createCarState(0, 0, 0);
+      for (let i = 0; i < 20 / SIM_DT; i++) stepCar(c, inp({ gaz: 1 }), ctxOf(id), SIM_DT);
+      return c.speed;
+    };
+    expect(plein('sportive')).toBeGreaterThan(plein('supermotard') + 8);
+    expect(CARS.sportive.leanMax!).toBeGreaterThan(CARS.supermotard.leanMax!);
+    const lever = (f: (t: number) => InputState) => {
+      const c = createCarState(0, 0, 0);
+      c.vz = 8;
+      c.throttleSmooth = 1;
+      let max = 0;
+      for (let i = 0; i < 2.5 / SIM_DT; i++) {
+        stepCar(c, f(i * SIM_DT), ctxOf('sportive'), SIM_DT);
+        max = Math.max(max, c.cabrage);
+      }
+      return max;
+    };
+    expect(lever((t) => inp({ gaz: 1, frein: t < 0.6 ? 1 : 0 }))).toBeGreaterThan(12 * DEG);
+    expect(lever((t) => inp({ gaz: 1, direction: t < 1 ? (Math.floor(t / 0.2) % 2 ? -1 : 1) : 0 }))).toBeGreaterThan(12 * DEG);
+    expect(lever(() => inp({ gaz: 1 }))).toBe(0);
   });
   it('en virage, la moto penche vers l\'intérieur, à l\'angle qui équilibre l\'accélération latérale', () => {
     const c = createCarState(0, 0, 0);

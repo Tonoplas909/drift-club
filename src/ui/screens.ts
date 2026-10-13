@@ -49,6 +49,7 @@ const DESCRIPTIONS_VOITURES: Record<CarId, string> = {
   break: 'Long break familial : stable et prévisible, mais un drift en break, ça n\'a pas de prix.',
   rotative: 'Coupé rotatif, phares escamotables : équilibrée et vive, le rêve du puriste du drift.',
   supermotard: 'Moto de supermotard, très légère : elle penche dans les virages et glisse de l\'arrière au frein. Trop en travers, elle tombe.',
+  sportive: 'Moto sportive carénée : très rapide, elle se couche loin dans les virages, mais pardonne moins en travers et lève l\'avant moins facilement.',
 };
 
 const DESCRIPTIONS_MODES: Record<ModeId, string> = {

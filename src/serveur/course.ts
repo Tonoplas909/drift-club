@@ -64,7 +64,7 @@ export async function traiterCourse(corps: unknown, empreinteServeur: string, ma
   if (typeof d.mode !== 'string' || !(MODE_IDS as string[]).includes(d.mode)) return refus('demande', 'Mode invalide.');
   if (typeof d.voiture !== 'string' || !(CAR_IDS as string[]).includes(d.voiture)) return refus('demande', 'Voiture invalide.');
   // motos et voitures ont des classements séparés : la clé doit correspondre au véhicule
-  if (estCleMoto(d.niveau) !== estMotoId(d.voiture as CarId) && !d.niveau.startsWith('jour:')) {
+  if (estCleMoto(d.niveau) !== estMotoId(d.voiture as CarId)) {
     return refus('refuse', estCleMoto(d.niveau) ? 'Ce classement est réservé aux motos.' : 'Les motos ont leur propre classement.');
   }
   if (!nombreFini(d.score) || !nombreFini(d.temps) || !nombreFini(d.meilleurDrift)) return refus('demande', 'Score invalide.');
@@ -79,8 +79,9 @@ export async function traiterCourse(corps: unknown, empreinteServeur: string, ma
     // le défi du jour, ou celui de la veille (course commencée avant minuit)
     const aujourdhui = jourParis(maintenant);
     if (!estJourValide(jour) || (jour !== aujourdhui && jour !== decalerJour(aujourdhui, -1))) return refus('refuse', 'Ce défi est terminé : essaie celui du jour !');
-    const defi = defiDuJour(jour);
-    if (d.voiture !== defi.voiture) return refus('refuse', 'Le défi du jour se court avec la voiture imposée.');
+    const moto = estCleMoto(d.niveau);
+    const defi = defiDuJour(jour, moto);
+    if (d.voiture !== defi.voiture) return refus('refuse', moto ? 'Le défi du jour à moto se court avec la moto imposée.' : 'Le défi du jour se court avec la voiture imposée.');
     brut = defi.level;
   } else if (cle.startsWith('off:')) {
     const id = cle.slice(4);

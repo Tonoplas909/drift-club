@@ -17,10 +17,13 @@ export interface MotoShape {
   roueL: number;
   /** longueur hors tout (m), pour le cadrage du garage */
   length: number;
+  /** silhouette : supermotard (garde-boue haut, pilote droit) ou sportive (carénage intégral, pilote couché) */
+  style: 'motard' | 'sportive';
 }
 
 export const MOTO_SHAPES: Record<MotoId, MotoShape> = {
-  supermotard: { avant: 0.72, arriere: 0.73, roueR: 0.31, roueL: 0.14, length: 2.1 },
+  supermotard: { avant: 0.72, arriere: 0.73, roueR: 0.31, roueL: 0.14, length: 2.1, style: 'motard' },
+  sportive: { avant: 0.68, arriere: 0.72, roueR: 0.3, roueL: 0.18, length: 2.05, style: 'sportive' },
 };
 
 const CADRE = 0x34363e;
@@ -32,6 +35,7 @@ const GANTS = 0x111114;
 const VISIERE = 0x101820;
 const PHARE = 0xfff3c4;
 const FEU = 0xd11f1f;
+const BULLE = 0x2a3442;
 
 /** Pavé tourné autour de x (inclinaison avant/arrière), centré en (x, y, z). */
 function pave(w: number, h: number, d: number, x: number, y: number, z: number, rx: number, color: THREE.ColorRepresentation): THREE.BufferGeometry {
@@ -56,11 +60,48 @@ export function roueMoto(r: number, largeur: number): THREE.BufferGeometry {
   return g;
 }
 
+/** Sportive : carénage intégral peint, bulle, guidons bracelets, coque arrière pointue, pilote couché sur le réservoir. */
+function piecesSportive(s: MotoShape): THREE.BufferGeometry[] {
+  const za = s.avant, zr = -s.arriere, r = s.roueR;
+  const both = (f: (side: number) => THREE.BufferGeometry) => [f(1), f(-1)];
+  return [
+    // cadre, moteur, bras oscillant, silencieux court sous la coque
+    pave(0.1, 0.08, 0.9, 0, 0.6, 0.05, -0.2, CADRE),
+    coloredBox(0.3, 0.28, 0.44, 0, 0.42, 0.06, MOTEUR),
+    pave(0.12, 0.07, 0.62, 0, r + 0.05, zr / 2, -0.08, CADRE),
+    pave(0.12, 0.12, 0.42, -0.16, 0.5, -0.36, 0.3, CHROME),
+    // fourche inclinée, té, guidons bracelets bas
+    ...both((side) => pave(0.05, 0.6, 0.05, side * 0.08, r + 0.28, za - 0.1, -0.45, CHROME)),
+    coloredBox(0.22, 0.05, 0.08, 0, r + 0.56, za - 0.26, CADRE),
+    ...both((side) => coloredBox(0.16, 0.035, 0.035, side * 0.17, r + 0.54, za - 0.3, GANTS)),
+    // garde-boue avant, carénage : flancs, sabot, tête de fourche avec phares et bulle
+    pave(0.16, 0.03, 0.36, 0, r + 0.08, za + 0.02, -0.1, PAINT),
+    ...both((side) => pave(0.04, 0.36, 0.62, side * 0.19, 0.55, 0.2, 0.08, PAINT)),
+    pave(0.34, 0.1, 0.5, 0, 0.27, 0.12, 0.12, PAINT),
+    pave(0.36, 0.3, 0.32, 0, r + 0.52, za - 0.14, -0.55, PAINT),
+    ...both((side) => coloredBox(0.08, 0.05, 0.03, side * 0.07, r + 0.47, za + 0.03, PHARE)),
+    pave(0.26, 0.2, 0.03, 0, r + 0.7, za - 0.25, -0.75, BULLE),
+    // réservoir, selle, coque arrière relevée et feu
+    pave(0.34, 0.2, 0.44, 0, 0.84, 0.04, -0.15, PAINT),
+    pave(0.24, 0.06, 0.4, 0, 0.84, -0.32, 0.08, SELLE),
+    pave(0.2, 0.12, 0.36, 0, 0.92, -0.6, 0.2, PAINT),
+    coloredBox(0.1, 0.04, 0.03, 0, 0.96, -0.82, FEU),
+    // pilote couché : cuisses vers l'avant, genoux sortis, buste presque à plat sur le réservoir, bras vers les bracelets
+    ...both((side) => pave(0.13, 0.13, 0.42, side * 0.21, 0.88, -0.12, -0.35, COMBI)),
+    ...both((side) => pave(0.12, 0.36, 0.13, side * 0.24, 0.66, 0.06, 0.6, COMBI)),
+    ...both((side) => coloredBox(0.11, 0.08, 0.2, side * 0.22, 0.42, -0.06, GANTS)),
+    pave(0.36, 0.48, 0.24, 0, 1.06, -0.06, 1.05, COMBI),
+    ...both((side) => pave(0.09, 0.09, 0.4, side * 0.2, 1.02, 0.22, 0.25, COMBI)),
+    pave(0.27, 0.27, 0.3, 0, 1.18, 0.3, 0.5, PAINT),
+    pave(0.2, 0.09, 0.03, 0, 1.18, 0.45, 0.5, VISIERE),
+  ];
+}
+
 /** Moto et pilote assis, prêts à être inclinés d'un bloc (CarView fait pivoter tout le groupe au sol). */
 export function buildMoto(s: MotoShape): CarModel {
   const za = s.avant, zr = -s.arriere, r = s.roueR;
   const both = (f: (side: number) => THREE.BufferGeometry) => [f(1), f(-1)];
-  const parts: THREE.BufferGeometry[] = [
+  const parts: THREE.BufferGeometry[] = s.style === 'sportive' ? piecesSportive(s) : [
     // cadre, moteur, bras oscillant, échappement
     pave(0.09, 0.08, 0.95, 0, 0.62, 0.05, -0.32, CADRE),
     coloredBox(0.28, 0.3, 0.42, 0, 0.42, 0.02, MOTEUR),
@@ -87,6 +128,7 @@ export function buildMoto(s: MotoShape): CarModel {
     pave(0.27, 0.27, 0.3, 0, 1.47, 0.06, 0.2, PAINT),
     pave(0.2, 0.09, 0.03, 0, 1.47, 0.215, 0.2, VISIERE),
   ];
+  const sportive = s.style === 'sportive';
   const body = mergeGeometries(parts);
   if (!body) throw new Error('moto impossible à assembler');
   body.computeBoundingSphere();
@@ -98,9 +140,9 @@ export function buildMoto(s: MotoShape): CarModel {
   return {
     body, wheels, paint: PAINT.clone(), moto: true,
     vues: {
-      capot: { oeil: [0, 1.12, 0.32], vise: [0, 0.9, 40], fov: 76 },
+      capot: sportive ? { oeil: [0, 1.0, 0.36], vise: [0, 0.85, 40], fov: 78 } : { oeil: [0, 1.12, 0.32], vise: [0, 0.9, 40], fov: 76 },
       calandre: { oeil: [0, r + 0.3, za + 0.2], vise: [0, r + 0.2, 40], fov: 80 },
-      conducteur: { oeil: [0, 1.5, 0.24], vise: [0, 0.95, 40], fov: 74 },
+      conducteur: sportive ? { oeil: [0, 1.24, 0.44], vise: [0, 0.9, 40], fov: 76 } : { oeil: [0, 1.5, 0.24], vise: [0, 0.95, 40], fov: 74 },
       roue: { oeil: [0.95, 0.5, zr - 1.7], vise: [-0.1, 0.4, zr + 2], fov: 68 },
       toit: { oeil: [0, 2.1, -0.6], vise: [0, 0.8, 30], fov: 72 },
     },

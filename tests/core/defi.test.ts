@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { defiDuJour, graineDuJour, jourEnClair, cleDefi, estJourValide } from '../../src/core/defi';
+import { defiDuJour, graineDuJour, jourEnClair, cleDefi, estJourValide, motoDuJour, MOTOS_DEFI } from '../../src/core/defi';
+import { estMotoId } from '../../src/core/physics/cars';
 import { prepareLevel } from '../../src/game/prepare';
 import { analyseLevel } from '../../src/core/editor/analyse';
 import { jourParis, decalerJour } from '../../src/jour';
@@ -58,5 +59,49 @@ describe('défi du jour', () => {
     // autre voiture que celle imposée
     const autre = d.voiture === 'kei' ? 'turbo' : 'kei';
     expect(await traiterCourse(await demande({ voiture: autre }), 'v1', midi)).toMatchObject({ ok: false, code: 'refuse' });
+  }, 60_000);
+  it('défi à moto : même niveau, moto imposée tirée de la date (les deux motos sortent), clé à part', () => {
+    const vues = new Set<string>();
+    for (let i = 0; i < 30; i++) {
+      const jour = decalerJour('2026-10-07', i);
+      const v = defiDuJour(jour), m = defiDuJour(jour, true);
+      expect(m.level).toEqual(v.level);
+      expect(estMotoId(m.voiture), jour).toBe(true);
+      expect(m.voiture).toBe(motoDuJour(jour));
+      expect(estMotoId(v.voiture), jour).toBe(false);
+      vues.add(m.voiture);
+    }
+    expect([...vues].sort()).toEqual([...MOTOS_DEFI].sort());
+    // liste figée : changer l'ordre ou en retirer une changerait les défis déjà joués
+    expect(MOTOS_DEFI).toEqual(['supermotard', 'sportive']);
+    expect(motoDuJour('2026-10-14')).toBe(motoDuJour('2026-10-14'));
+    expect(cleDefi('2026-10-07', true)).toBe('moto:jour:2026-10-07');
+    expect(cleEnLigne('moto:jour:2026-10-07')).toBe(true);
+  });
+  it('défis déjà joués : véhicules figés (ajouter une moto ne change pas le défi des voitures)', () => {
+    const figes: [string, string, string][] = [['2026-10-01', 'turbo', 'sportive'], ['2026-10-07', 'muscle', 'supermotard'], ['2026-10-12', 'kei', 'supermotard'], ['2026-10-13', 'rotative', 'supermotard']];
+    for (const [jour, voiture, moto] of figes) {
+      expect(defiDuJour(jour).voiture, jour).toBe(voiture);
+      expect(motoDuJour(jour), jour).toBe(moto);
+    }
+  });
+  it('le serveur vérifie la course du défi à moto : moto imposée, clé des motos', async () => {
+    const jour = '2026-10-07';
+    const d = defiDuJour(jour, true);
+    const r = prepareLevel(cleDefi(jour, true), d.level);
+    if (!r.ok) throw new Error();
+    const course = conduire(r.prepared, d.voiture, 'arcade');
+    expect(course.result).not.toBeNull();
+    const res = course.result!;
+    const demande = (o: Record<string, unknown> = {}) => ({
+      version: 'v1', niveau: cleDefi(jour, true), mode: 'arcade', voiture: d.voiture, score: res.score, temps: res.time, meilleurDrift: res.bestDrift,
+      replay: versBase64(course.replay), compression: 'aucune', ...o,
+    });
+    const midi = new Date('2026-10-07T10:00:00Z');
+    expect(await traiterCourse(demande(), 'v1', midi)).toMatchObject({ ok: true, niveau: 'moto:jour:2026-10-07', voiture: d.voiture, verdict: { statut: 'conforme' } });
+    // l'autre moto : refusée ; une voiture sous la clé des motos : refusée
+    const autre = MOTOS_DEFI.find((m) => m !== d.voiture)!;
+    expect(await traiterCourse(demande({ voiture: autre }), 'v1', midi)).toMatchObject({ ok: false, message: 'Le défi du jour à moto se court avec la moto imposée.' });
+    expect(await traiterCourse(demande({ voiture: defiDuJour(jour).voiture }), 'v1', midi)).toMatchObject({ ok: false, message: 'Ce classement est réservé aux motos.' });
   }, 60_000);
 });

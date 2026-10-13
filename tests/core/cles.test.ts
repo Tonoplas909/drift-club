@@ -3,19 +3,21 @@ import { cleVehicule, cleDuNiveau, estCleMoto, FORMAT_CLE_EN_LIGNE } from '../..
 import { Store } from '../../src/storage/store';
 
 describe('clés de classement : voitures et motos à part', () => {
-  it('une moto a sa propre clé, une voiture garde celle du niveau ; le défi du jour n\'en a pas', () => {
+  it('une moto a sa propre clé, une voiture garde celle du niveau ; défi du jour compris', () => {
     expect(cleVehicule('off:col-du-loup', 'turbo')).toBe('off:col-du-loup');
     expect(cleVehicule('off:col-du-loup', 'supermotard')).toBe('moto:off:col-du-loup');
     expect(cleVehicule('perso:abc', 'supermotard')).toBe('moto:perso:abc');
     expect(cleVehicule('moto:off:x', 'supermotard')).toBe('moto:off:x');
-    expect(cleVehicule('jour:2026-10-13', 'supermotard')).toBe('jour:2026-10-13');
+    expect(cleVehicule('jour:2026-10-13', 'sportive')).toBe('moto:jour:2026-10-13');
+    expect(cleVehicule('jour:2026-10-13', 'kei')).toBe('jour:2026-10-13');
+    expect(cleDuNiveau('moto:jour:2026-10-13')).toBe('jour:2026-10-13');
     expect(estCleMoto('moto:off:x')).toBe(true);
     expect(cleDuNiveau('moto:perso:abc')).toBe('perso:abc');
     expect(cleDuNiveau('off:x')).toBe('off:x');
   });
-  it('format en ligne : clés des motos acceptées, sauf pour le défi du jour', () => {
-    for (const k of ['off:a', 'perso:b-1', 'moto:off:a', 'moto:perso:b', 'jour:2026-10-13']) expect(FORMAT_CLE_EN_LIGNE.test(k), k).toBe(true);
-    for (const k of ['moto:jour:2026-10-13', 'moto:moto:off:a', 'velo:off:a', 'off:']) expect(FORMAT_CLE_EN_LIGNE.test(k), k).toBe(false);
+  it('format en ligne : clés des motos acceptées, défi du jour compris', () => {
+    for (const k of ['off:a', 'perso:b-1', 'moto:off:a', 'moto:perso:b', 'jour:2026-10-13', 'moto:jour:2026-10-13']) expect(FORMAT_CLE_EN_LIGNE.test(k), k).toBe(true);
+    for (const k of ['moto:jour:demain', 'moto:moto:off:a', 'velo:off:a', 'off:']) expect(FORMAT_CLE_EN_LIGNE.test(k), k).toBe(false);
   });
   it('les records et fantômes faits à moto avant passent sous la clé des motos (une seule fois)', () => {
     const m = new Map<string, string>();
