@@ -52,7 +52,8 @@ import { ecranCaisses, type ResultatOuverture } from './ui/caisses';
 import { ecranAtelier } from './ui/atelier';
 import { MiseAJour, lireVersionPubliee } from './online/miseAJour';
 import { BUILD_ID } from './version';
-import { SEUILS_MEDAILLES, medaille, type Medaille } from './core/medailles';
+import { SEUILS_MEDAILLES, MEDAILLES, medaille, type Medaille } from './core/medailles';
+import { cleVehicule, estCleMoto } from './core/cles';
 import { MODE_IDS, MODE_NOMS } from './core/physics/assists';
 import { CARS } from './core/physics/cars';
 import { dessinerCarte, nomCarte } from './ui/carteScore';
@@ -144,6 +145,8 @@ export class App {
     const s = safeStorage();
     this.store = new Store(s.kv);
     this.persistent = s.persistent;
+    // records et fantômes faits à moto avant les classements séparés : rangés avec ceux des motos
+    this.store.rangerMotos();
     // livrées de l'Atelier connues de l'appareil : avant les réglages et la progression, qui oublient les livrées inconnues
     this.installerLivreesAtelier(this.store.loadLivreesAtelier().map(lireLivreeOfficielle).filter((l): l is LivreeOfficielle => l !== null));
     this.reglages = this.store.loadReglages(this.touch);
@@ -396,7 +399,7 @@ export class App {
   private ecranClassement(cle: string, titre: string, retour: () => void): void {
     const e = this.compte.etat;
     this.screens.monter(ecranClassement({
-      titre, moi: e.statut === 'connecte' ? e.id : null,
+      titre: estCleMoto(cle) ? `${titre} · motos` : titre, moi: e.statut === 'connecte' ? e.id : null,
       charger: () => this.classement.chargerClassement(cle, 20),
       onRetour: retour,
     }));
@@ -466,19 +469,21 @@ export class App {
     this.afficherNiveaux(cartes, perso, mesNiveaux);
   }
 
-  /** Meilleure médaille d'un niveau officiel, tous modes confondus (records de l'appareil). */
-  private meilleureMedaille(id: string): Medaille | null {
+  /** Meilleure médaille d'un niveau officiel, tous modes confondus (records de l'appareil), avec ce véhicule (voitures et motos à part). */
+  private meilleureMedaille(id: string, voiture: CarId = this.reglages.voiture): Medaille | null {
     const seuils = SEUILS_MEDAILLES[id];
     if (!seuils) return null;
-    const meilleur = Math.max(0, ...MODE_IDS.map((m) => this.store.getRecord(cleNiveauOfficiel(id), m)?.score ?? 0));
+    const cle = cleVehicule(cleNiveauOfficiel(id), voiture);
+    const meilleur = Math.max(0, ...MODE_IDS.map((m) => this.store.getRecord(cle, m)?.score ?? 0));
     return medaille(meilleur, seuils);
   }
 
   /** Place du joueur dans le classement en ligne de chaque niveau (un seul appel), puis rafraîchit l'écran. */
   private async chargerPlaces(cartes: NiveauCarte[], perso: NiveauCarte[], mesNiveaux: MonNiveau[]): Promise<void> {
-    const clesOff = NIVEAUX_OFFICIELS.map((n) => cleNiveauOfficiel(n.id));
+    const v = this.reglages.voiture;
+    const clesOff = NIVEAUX_OFFICIELS.map((n) => cleVehicule(cleNiveauOfficiel(n.id), v));
     // les niveaux perso sont classés par l'empreinte de leur contenu
-    const clesPerso = await Promise.all(mesNiveaux.map((n) => empreinteNiveau(n.level).then(cleNiveauPerso, () => null)));
+    const clesPerso = await Promise.all(mesNiveaux.map((n) => empreinteNiveau(n.level).then((e) => cleVehicule(cleNiveauPerso(e), v), () => null)));
     const r = await this.classement.mesPlaces([...clesOff, ...clesPerso.filter((k): k is string => k !== null)]);
     const texte = (k: string | null): string => (!r.ok || k === null ? textePlace('erreur') : textePlace({ place: r.valeur.get(k) ?? null }));
     cartes.forEach((c, i) => { c.place = texte(clesOff[i]); });
@@ -501,7 +506,7 @@ export class App {
         await this.demarrer(cleNiveauPerso(r.valeur.empreinte), r.valeur.level, { index: -1, retour: () => this.niveaux(), menuLabel: 'Menu' });
         return { ok: true, valeur: null };
       },
-      onClassement: (n) => this.ecranClassement(cleNiveauPerso(n.empreinte), n.nom, () => this.niveaux()),
+      onClassement: (n) => this.ecranClassement(cleVehicule(cleNiveauPerso(n.empreinte), this.reglages.voiture), n.nom, () => this.niveaux()),
       onEnregistrer: async (n) => {
         const r = await this.niveauxEnLigne.charger(n.id);
         if (!r.ok) return r;
@@ -521,10 +526,10 @@ export class App {
       onChoisir: (i) => void this.lancer(i),
       onChoisirPerso: (i) => void this.lancerPerso(mesNiveaux[i].level, { index: -1, retour: () => this.niveaux(), menuLabel: 'Menu' }),
       onClassement: (perso, i) => {
-        if (!perso) { this.ecranClassement(cleNiveauOfficiel(NIVEAUX_OFFICIELS[i].id), cartes[i].nom, () => this.niveaux()); return; }
+        if (!perso) { this.ecranClassement(cleVehicule(cleNiveauOfficiel(NIVEAUX_OFFICIELS[i].id), this.reglages.voiture), cartes[i].nom, () => this.niveaux()); return; }
         const n = mesNiveaux[i];
         void empreinteNiveau(n.level)
-          .then((e) => this.ecranClassement(cleNiveauPerso(e), n.level.nom, () => this.niveaux()))
+          .then((e) => this.ecranClassement(cleVehicule(cleNiveauPerso(e), this.reglages.voiture), n.level.nom, () => this.niveaux()))
           .catch(() => this.screens.toast('Classement indisponible pour ce niveau.'));
       },
       onImporter: () => void this.importer(() => this.niveaux()),
@@ -738,7 +743,13 @@ export class App {
   private statistiquesEcran(retour: () => void, relire = true): void {
     this.showroom?.stop();
     const medailles = { bronze: 0, argent: 0, or: 0 };
-    for (const n of NIVEAUX_OFFICIELS) { const m = this.meilleureMedaille(n.id); if (m) medailles[m]++; }
+    // la meilleure des deux catégories (voiture, moto) pour chaque niveau
+    const rang = (m: Medaille | null): number => (m ? MEDAILLES.indexOf(m) : -1);
+    for (const n of NIVEAUX_OFFICIELS) {
+      const a = this.meilleureMedaille(n.id, 'equilibree'), b = this.meilleureMedaille(n.id, 'supermotard');
+      const m = rang(b) > rang(a) ? b : a;
+      if (m) medailles[m]++;
+    }
     const c = this.statsCompte, e = this.compte.etat;
     // compte connecté (et migration 0013 passée) : le total du compte et ce qui attend d'être envoyé
     const duCompte = c !== null && !c.absent;
@@ -780,6 +791,8 @@ export class App {
     this.showroom?.stop();
     this.screens.loading('Préparation du niveau…');
     await new Promise((r) => setTimeout(r, 30));
+    // motos et voitures : records, fantômes et classement séparés (clé « moto:… »)
+    key = cleVehicule(key, contexte.voiture ?? this.reglages.voiture);
     const res = prepareLevel(key, forcerDecor(raw, location.search));
     if (!res.ok) {
       this.screens.error('Niveau invalide', res.erreurs.join('\n'), [{ label: 'Retour', onClick: contexte.retour }]);

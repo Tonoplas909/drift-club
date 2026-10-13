@@ -13,6 +13,17 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.28',
+    date: '13/10/2026',
+    titre: 'Classement des motos',
+    notes: [
+      'Les motos ont maintenant leur propre classement sur chaque niveau : plus de duel moto contre voiture, chacun se mesure à sa catégorie.',
+      'Records, fantômes et médailles sont aussi séparés : la liste des niveaux montre ceux du véhicule choisi au Garage.',
+      'Les scores déjà faits à moto passent automatiquement dans le classement des motos (en ligne et sur l\'appareil).',
+      'Garage : voitures et motos sont rangées dans deux onglets, « Voitures » et « Motos ».',
+    ],
+  },
+  {
     version: '0.5.27',
     date: '13/10/2026',
     titre: 'Wheelies et pneus arrondis',

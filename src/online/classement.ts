@@ -1,3 +1,7 @@
+import { FORMAT_CLE_EN_LIGNE, cleDuNiveau, estCleMoto } from '../core/cles';
+
+/** Score de moto refusé parce que le classement des motos n'est pas encore en place sur le serveur. */
+export const MSG_MOTOS_PAS_PRET = "Le classement des motos arrive bientôt en ligne : ton score reste enregistré sur l'appareil.";
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Fournisseur } from './client';
 import { messageErreur, MSG_INDISPONIBLE } from './erreurs';
@@ -63,7 +67,7 @@ export interface MaPlace {
 
 /** Seuls les niveaux officiels, perso et les défis du jour ont un classement (même règle que le SQL). */
 export function cleEnLigne(cle: string): boolean {
-  return /^((off|perso):[A-Za-z0-9_-]{1,80}|jour:\d{4}-\d{2}-\d{2})$/.test(cle);
+  return FORMAT_CLE_EN_LIGNE.test(cle);
 }
 
 const nombre = (v: unknown): number => (typeof v === 'number' ? v : Number(v));
@@ -98,6 +102,8 @@ export class ClassementService {
     const r = await this.soumettre(s);
     // défi du jour refusé par un serveur sans la migration 0011 : on le dit clairement
     if (!r.ok && s.niveau.startsWith('jour:') && r.message === 'Niveau invalide.') return { ok: false, message: MSG_DEFI_PAS_PRET };
+    // classement des motos : tant que la migration 0015 n'est pas passée, le serveur ne connaît pas ces clés
+    if (!r.ok && estCleMoto(s.niveau) && r.message === 'Niveau invalide.') return { ok: false, message: MSG_MOTOS_PAS_PRET };
     return r;
   }
 
@@ -134,7 +140,7 @@ export class ClassementService {
       version: EMPREINTE_SIMULATION, niveau: s.niveau, mode: s.mode, voiture: s.voiture,
       score: s.score, temps: s.temps, meilleurDrift: s.meilleurDrift,
       replay: versBase64(compresse ?? c.replay), compression: compresse ? 'deflate-raw' : 'aucune',
-      ...(c.level !== undefined && s.niveau.startsWith('perso:') ? { level: c.level } : {}),
+      ...(c.level !== undefined && cleDuNiveau(s.niveau).startsWith('perso:') ? { level: c.level } : {}),
     };
     const { data, error } = await client.functions.invoke('verifier-course', { body: corps });
     if (error) {

@@ -10844,6 +10844,7 @@ var CARS = {
 var estMoto = (p) => p.genre === "moto";
 var estMotoId = (id) => estMoto(CARS[id]);
 var VOITURE_IDS = CAR_IDS.filter((id) => !estMotoId(id));
+var MOTO_IDS = CAR_IDS.filter((id) => estMotoId(id));
 
 // src/core/physics/assists.ts
 var MODE_IDS = ["arcade", "semi", "exigeant"];
@@ -12193,6 +12194,12 @@ function decalerJour(jour, n) {
   return new Date(Date.UTC(a, m - 1, j + n)).toISOString().slice(0, 10);
 }
 
+// src/core/cles.ts
+var PREFIXE_MOTO = "moto:";
+var estCleMoto = (cle2) => cle2.startsWith(PREFIXE_MOTO);
+var cleDuNiveau = (cle2) => estCleMoto(cle2) ? cle2.slice(PREFIXE_MOTO.length) : cle2;
+var FORMAT_CLE_EN_LIGNE = /^((moto:)?(off|perso):[A-Za-z0-9_-]{1,80}|jour:\d{4}-\d{2}-\d{2})$/;
+
 // src/serveur/course.ts
 var MAX_BASE64 = 6e5;
 var MAX_OCTETS = PAS_MAX * 6 + 16;
@@ -12209,30 +12216,34 @@ async function traiterCourse(corps, empreinteServeur, maintenant = /* @__PURE__ 
   if (d.version !== empreinteServeur) {
     return refus("version", "Le jeu vient d'être mis à jour : il se recharge tout seul au retour au menu. Ce score reste enregistré sur l'appareil.");
   }
-  if (typeof d.niveau !== "string" || !/^((off|perso):[A-Za-z0-9_-]{1,80}|jour:\d{4}-\d{2}-\d{2})$/.test(d.niveau)) return refus("demande", "Niveau invalide.");
+  if (typeof d.niveau !== "string" || !FORMAT_CLE_EN_LIGNE.test(d.niveau)) return refus("demande", "Niveau invalide.");
   if (typeof d.mode !== "string" || !MODE_IDS.includes(d.mode)) return refus("demande", "Mode invalide.");
   if (typeof d.voiture !== "string" || !CAR_IDS.includes(d.voiture)) return refus("demande", "Voiture invalide.");
+  if (estCleMoto(d.niveau) !== estMotoId(d.voiture) && !d.niveau.startsWith("jour:")) {
+    return refus("refuse", estCleMoto(d.niveau) ? "Ce classement est réservé aux motos." : "Les motos ont leur propre classement.");
+  }
   if (!nombreFini(d.score) || !nombreFini(d.temps) || !nombreFini(d.meilleurDrift)) return refus("demande", "Score invalide.");
   if (typeof d.replay !== "string" || d.replay.length > MAX_BASE64) return refus("demande", "Replay invalide.");
   let brut;
-  if (d.niveau.startsWith("jour:")) {
-    const jour = d.niveau.slice(5);
+  const cle2 = cleDuNiveau(d.niveau);
+  if (cle2.startsWith("jour:")) {
+    const jour = cle2.slice(5);
     const aujourdhui = jourParis(maintenant);
     if (!estJourValide(jour) || jour !== aujourdhui && jour !== decalerJour(aujourdhui, -1)) return refus("refuse", "Ce défi est terminé : essaie celui du jour !");
     const defi = defiDuJour(jour);
     if (d.voiture !== defi.voiture) return refus("refuse", "Le défi du jour se court avec la voiture imposée.");
     brut = defi.level;
-  } else if (d.niveau.startsWith("off:")) {
-    const id = d.niveau.slice(4);
+  } else if (cle2.startsWith("off:")) {
+    const id = cle2.slice(4);
     brut = NIVEAUX_OFFICIELS.find((n) => n.id === id)?.data;
     if (brut === void 0) return refus("demande", "Niveau officiel inconnu.");
   } else {
     if (d.level === void 0) return refus("demande", "Contenu du niveau manquant.");
     brut = d.level;
   }
-  const prep = prepareLevel(d.niveau, brut);
+  const prep = prepareLevel(cle2, brut);
   if (!prep.ok) return refus("refuse", "Niveau invalide.");
-  if (d.niveau.startsWith("perso:") && `perso:${await empreinteNiveau(prep.prepared.level)}` !== d.niveau) {
+  if (cle2.startsWith("perso:") && `perso:${await empreinteNiveau(prep.prepared.level)}` !== cle2) {
     return refus("refuse", "Le niveau envoyé ne correspond pas à son empreinte.");
   }
   const compresse = depuisBase64(d.replay);
@@ -12247,4 +12258,4 @@ async function traiterCourse(corps, empreinteServeur, maintenant = /* @__PURE__ 
 export {
   traiterCourse
 };
-export const EMPREINTE = '2c3ea0ffb160db9e';
+export const EMPREINTE = '1ba32fe52aa25e45';

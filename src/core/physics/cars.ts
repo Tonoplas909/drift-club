@@ -78,3 +78,5 @@ export const estMoto = (p: CarParams): boolean => p.genre === 'moto';
 export const estMotoId = (id: CarId): id is MotoId => estMoto(CARS[id]);
 /** Voitures seules (les livrées dessinées et l'Atelier ne concernent qu'elles). */
 export const VOITURE_IDS = CAR_IDS.filter((id): id is VoitureId => !estMotoId(id));
+/** Motos seules (onglet Motos du Garage). */
+export const MOTO_IDS = CAR_IDS.filter((id): id is MotoId => estMotoId(id));

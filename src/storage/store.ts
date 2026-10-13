@@ -1,5 +1,6 @@
+import { PREFIXE_MOTO, cleVehicule, estCleMoto } from '../core/cles';
 import type { CarId, ModeId } from '../core/physics/types';
-import { CAR_IDS } from '../core/physics/cars';
+import { CAR_IDS, estMotoId } from '../core/physics/cars';
 import { MODE_IDS } from '../core/physics/assists';
 import type { Level } from '../core/level/types';
 import { validateLevel } from '../core/level/validate';
@@ -304,6 +305,36 @@ export class Store {
   getRecord(levelKey: string, mode: ModeId): RecordEntry | null {
     const e = this.records()[levelKey]?.[mode];
     return e && typeof e.score === 'number' ? e : null;
+  }
+
+  /**
+   * Classements séparés des motos (0.5.28) : les records et fantômes faits à moto avant, rangés sous la clé du niveau
+   * avec ceux des voitures, passent sous la clé des motos (« moto:… »). Sans effet une fois fait.
+   */
+  rangerMotos(): void {
+    const all = this.records();
+    let change = false;
+    for (const cle of Object.keys(all)) {
+      if (estCleMoto(cle)) continue;
+      for (const [mode, e] of Object.entries(all[cle] ?? {}) as [ModeId, RecordEntry][]) {
+        if (!e || !CAR_IDS.includes(e.voiture) || !estMotoId(e.voiture)) continue;
+        const dest = cleVehicule(cle, e.voiture);
+        const deja = all[dest]?.[mode];
+        if (!deja || deja.score < e.score) all[dest] = { ...(all[dest] ?? {}), [mode]: e };
+        delete all[cle][mode];
+        change = true;
+      }
+    }
+    if (change) this.write(K_RECORDS, all);
+    const fantomes = this.fantomes();
+    let changeF = false;
+    for (const [k, f] of Object.entries(fantomes)) {
+      if (estCleMoto(k) || !f || !CAR_IDS.includes(f.voiture) || !estMotoId(f.voiture)) continue;
+      fantomes[PREFIXE_MOTO + k] = f;
+      delete fantomes[k];
+      changeF = true;
+    }
+    if (changeF) this.write(K_FANTOMES, fantomes);
   }
 
   /** Enregistre si c'est un nouveau record ; renvoie true dans ce cas. */

@@ -57,6 +57,20 @@ describe('traiterCourse (Edge Function verifier-course)', () => {
     expect(await traiterCourse([], 'v1')).toMatchObject({ ok: false, code: 'demande' });
   });
 
+  it('motos : classement séparé, la clé doit aller avec le véhicule', async () => {
+    const moto = conduire(prep('off:premiers-virages', NIVEAUX_OFFICIELS[0].data), 'supermotard', 'arcade');
+    const rm = moto.result!;
+    const base = {
+      version: 'v1', mode: 'arcade', voiture: 'supermotard', score: rm.score, temps: rm.time, meilleurDrift: rm.bestDrift,
+      replay: versBase64(moto.replay), compression: 'aucune',
+    } as const;
+    expect(await traiterCourse({ ...base, niveau: 'moto:off:premiers-virages' }, 'v1'))
+      .toMatchObject({ ok: true, niveau: 'moto:off:premiers-virages', voiture: 'supermotard', verdict: { statut: 'conforme' } });
+    // une moto sous la clé des voitures, ou une voiture sous celle des motos : refusé
+    expect(await traiterCourse({ ...base, niveau: 'off:premiers-virages' }, 'v1')).toMatchObject({ ok: false, message: 'Les motos ont leur propre classement.' });
+    expect(await traiterCourse(await demande({ niveau: 'moto:off:col-du-torii' }), 'v1')).toMatchObject({ ok: false, message: 'Ce classement est réservé aux motos.' });
+    expect(await traiterCourse({ ...base, niveau: 'moto:jour:2026-10-13' }, 'v1')).toMatchObject({ ok: false, message: 'Niveau invalide.' });
+  });
   it('niveau perso : contenu envoyé, contrôlé par son empreinte', async () => {
     const level = hairpinLevel();
     const p = prep('x', level);
