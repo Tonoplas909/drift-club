@@ -13,8 +13,8 @@ import { QUALITY, type QualityLevel } from './quality';
 import { createSky } from './sky';
 import { Eau } from './eau';
 import { buildRoad, buildPonts, createRoadTextures } from './road';
-import { buildTerrain, buildMountains, buildPlafond } from './terrainMesh';
-import { buildDecor, DecorVisible } from './decor';
+import { buildTerrain, buildMountains, buildPlafond, RAYON_MORCEAU } from './terrainMesh';
+import { buildDecor, DecorVisible, profondeur } from './decor';
 import { CarView, type CarPose } from './carView';
 import { SmokeSystem, SkidMarks } from './effects';
 import { ChaseCamera, type ChaseConfig, type CameraTarget } from './camera';
@@ -262,11 +262,13 @@ export class World {
 
     this.decorVisible.mettreAJour(this.camera, this.palette.brume * QUALITY[this.quality].fogFar, pose.x, pose.z, this.camLibre !== null);
 
-    const maxD = QUALITY[this.quality].fogFar + 150;
-    const cx = this.camera.position.x, cz = this.camera.position.z;
+    // morceaux de terrain : écartés loin derrière le brouillard (marge : les collines fondues dans la brume se
+    // découpent encore sur le ciel), en profondeur comme lui ; hors champ, three.js les écarte déjà (sphère
+    // englobante de chaque morceau). Le centre est pris à la hauteur de la caméra.
+    const brume = QUALITY[this.quality].fogFar + 150 + RAYON_MORCEAU;
     for (const chunk of this.terrainGroup.children) {
       const c = chunk.userData.center as THREE.Vector3;
-      chunk.visible = this.camLibre !== null || (c.x - cx) * (c.x - cx) + (c.z - cz) * (c.z - cz) < maxD * maxD;
+      chunk.visible = this.camLibre !== null || profondeur(this.camera, c.x, this.camera.position.y, c.z) < brume;
     }
   }
 
@@ -294,5 +296,8 @@ export class World {
       if (mesh.isMesh && mesh.geometry && !shared.has(mesh.geometry)) mesh.geometry.dispose();
     });
     for (const d of this.owned) d.dispose();
+    // lumières : la carte d'ombre du soleil (2048², ~16 Mo de mémoire graphique) n'est libérée qu'ainsi ; oubliée, elle
+    // s'accumulait à chaque course jusqu'à la perte du contexte WebGL (écran blanc)
+    this.scene.traverse((o) => { if ((o as THREE.Light).isLight) (o as THREE.Light).dispose(); });
   }
 }

@@ -245,7 +245,8 @@ export class ZenWorld {
     const d = this.palette.sunDir;
     this.sun.position.set(pose.x + d[0] * 80, pose.y + d[1] * 80, pose.z + d[2] * 80);
     this.sun.target.position.set(pose.x, pose.y, pose.z);
-    this.troncons.visibilite(cam.x, cam.z, QUALITY[this.quality].fogFar + 150, this.camLibre !== null);
+    this.camera.updateMatrixWorld();
+    this.troncons.visibilite(this.camera, QUALITY[this.quality].fogFar + 150, this.camLibre !== null);
     this.troncons.trierDecor(this.camera, this.fog.far, pose.x, pose.z, this.camLibre !== null);
   }
 
@@ -264,6 +265,8 @@ export class ZenWorld {
     this.sky.geometry.dispose();
     (this.sky.material as THREE.Material).dispose();
     for (const t of this.textures) t.dispose();
+    // carte d'ombre du soleil (voir World.dispose)
+    this.scene.traverse((o) => { if ((o as THREE.Light).isLight) (o as THREE.Light).dispose(); });
   }
 }
 

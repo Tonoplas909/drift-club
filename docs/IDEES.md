@@ -302,3 +302,4 @@ barème du drift ; le pompage plus facile à doser au clavier si la fenêtre (~0
 | 0.5.29 | Moto : **pompage de fourche** (coups de guidon gauche-droite puis gaz pour lever l'avant en sortie de virage) et direction au corps pendant le wheelie |
 | 0.5.30 | Moto : jauges **Embrayage** et **Fourche** dans le HUD, pour savoir quand lâcher le frein ou mettre les gaz |
 | 0.5.31 | **La Sportive** (deuxième moto, carénée, 230 km/h) et **défi du jour à moto** (même niveau, moto imposée, classement et podium à part), migration 0016 |
+| 0.5.32 | Correctifs d'affichage (barrières et décor écartés à tort sur les bords de l'écran), fuite de mémoire graphique (écran blanc), contours lointains allégés |
