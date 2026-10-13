@@ -163,10 +163,42 @@ describe('motos', () => {
       expect(tombe).toBe(false);
       expect(c.cabrage).toBe(0);
     });
-    it('roue avant en l\'air : la direction ne répond plus', () => {
-      const tout = rouler('semi', 7, 1.6, (t) => inp({ gaz: 1, frein: t < 0.5 ? 1 : 0, direction: t > 1 ? 1 : 0 }));
-      expect(tout.c.cabrage).toBeGreaterThan(10 * DEG);
-      expect(Math.abs(tout.c.heading)).toBeLessThan(3 * DEG);
+    it('roue avant en l\'air : on dirige un peu, au corps (virage large, la moto reste en wheelie)', () => {
+      const cap = (dir: number) => {
+        const r = rouler('semi', 8, 2.6, (t) => inp({ gaz: 1, frein: t < 0.6 ? 1 : 0, direction: t > 1 ? dir : 0 }));
+        expect(r.c.cabrage).toBeGreaterThan(10 * DEG);
+        expect(r.tombe).toBe(false);
+        return r.c.heading;
+      };
+      expect(cap(0)).toBe(0);
+      const droite = cap(1);
+      expect(droite).toBeGreaterThan(5 * DEG);
+      expect(droite).toBeLessThan(25 * DEG); // bien moins qu'avec la roue avant au sol
+      expect(cap(-1)).toBe(-droite);
+    });
+    describe('pompage de fourche', () => {
+      /** à ~40 km/h, gaz ouverts : `direction(t)` pendant 1 s, puis tout droit */
+      const sortie = (mode: ModeId, direction: (t: number) => number) => rouler(mode, 11, 2.5, (t) => inp({ gaz: 1, direction: t < 1 ? direction(t) : 0 }));
+      const alterne = (periode: number) => (t: number) => (Math.floor(t / periode) % 2 ? -1 : 1);
+      it('deux ou trois coups de guidon rapides, gaz ouverts : l\'avant se lève en sortie de virage', () => {
+        for (const mode of ['arcade', 'semi'] as const) {
+          for (const periode of [0.15, 0.25]) {
+            const { max, tombe } = sortie(mode, alterne(periode));
+            expect(max, `${mode} ${periode}`).toBeGreaterThan(15 * DEG);
+            expect(max, `${mode} ${periode}`).toBeLessThan(MODES[mode].antiCabrage + 5 * DEG);
+            expect(tombe, `${mode} ${periode}`).toBe(false);
+          }
+        }
+      });
+      it('virage normal, chicane ou slalom tranquille : rien ne se lève', () => {
+        expect(sortie('semi', () => 1).max).toBe(0);
+        expect(rouler('semi', 11, 2.5, (t) => inp({ gaz: 1, direction: t < 0.7 ? 1 : t < 1.4 ? -1 : 0 })).max).toBe(0);
+        expect(rouler('semi', 11, 4, (t) => inp({ gaz: 1, direction: alterne(0.8)(t) })).max).toBe(0);
+      });
+      it('gaz fermés ou trop vite (plus de ~95 km/h) : rien ne se lève', () => {
+        expect(rouler('semi', 11, 2.5, (t) => inp({ gaz: 0.5, direction: t < 1 ? alterne(0.2)(t) : 0 })).max).toBe(0);
+        expect(rouler('semi', 27, 2.5, (t) => inp({ gaz: 1, direction: t < 1 ? alterne(0.2)(t) : 0 })).max).toBe(0);
+      });
     });
     it('une voiture ne se cabre jamais', () => {
       const c = createCarState(0, 0, 0);

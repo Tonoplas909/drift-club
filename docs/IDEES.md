@@ -235,6 +235,8 @@ sont à régénérer ; une moto a son propre classement, ou ses niveaux à elle 
 Fait en 0.5.27 : cabrage physique autour de la roue arrière, coup d'embrayage (frein + gaz, puis relâcher le frein),
 frein arrière (frein à main) pour rabattre, aide anti-cabrage en Arcade et Semi, chute en arrière en Exigeant, points
 comme un drift. Depuis 0.5.28, les motos ont leur propre classement (clé « moto:… »).
+En 0.5.29 : lever l'avant en sortie de virage par pompage de fourche (deux ou trois coups de guidon rapides, puis
+gaz ouverts en se redressant), et diriger un peu au corps pendant le wheelie.
 
 ## Fait (pour mémoire)
 
@@ -271,3 +273,4 @@ comme un drift. Depuis 0.5.28, les motos ont leur propre classement (clé « mot
 | 0.5.26 | Moto : roulis en ressort amorti (plus d'à-coups) et adhérence liée à l'inclinaison (il faut pencher pour tourner fort) |
 | 0.5.27 | **Wheelie à moto** : coup d'embrayage (frein + gaz, puis relâcher le frein), cabrage physique autour de la roue arrière, aide anti-cabrage en Arcade et Semi, chute en arrière en Exigeant, points comme un drift ; pneus de moto arrondis |
 | 0.5.28 | **Classement séparé des motos** (clés « moto:… », migration 0015) et Garage en deux onglets, Voitures et Motos |
+| 0.5.29 | Moto : **pompage de fourche** (coups de guidon gauche-droite puis gaz pour lever l'avant en sortie de virage) et direction au corps pendant le wheelie |

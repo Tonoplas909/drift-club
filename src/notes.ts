@@ -13,6 +13,16 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.29',
+    date: '13/10/2026',
+    titre: 'Moto : pompage de fourche',
+    notes: [
+      'Comme en vrai, on peut maintenant lever l\'avant en sortie de virage en pompant la fourche : deux ou trois coups de guidon rapides à gauche puis à droite, puis gaz à fond en redressant la moto.',
+      'Un virage normal ou une chicane ne lèvent rien : il faut vraiment pomper, sans glisser, et en dessous de ~90 km/h.',
+      'Pendant une roue arrière, la direction fait pencher le pilote : la moto tourne un peu, en courbe large, sans retomber.',
+    ],
+  },
+  {
     version: '0.5.28',
     date: '13/10/2026',
     titre: 'Classement des motos',
