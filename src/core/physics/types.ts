@@ -54,6 +54,8 @@ export interface CarParams {
   gyrationTangage?: number;
   /** moto : amortissement du tangage (1/s), le pilote et les suspensions absorbent le mouvement */
   amortiTangage?: number;
+  /** moto : inclinaison (rad) que le pilote donne au corps en wheelie pour tourner (roue avant en l'air) */
+  leanWheelie?: number;
   /** moto : cabrage (rad) au-delà duquel elle bascule en arrière et tombe */
   cabrageChute?: number;
   /** moto : dérive (rad) au-delà de laquelle elle chute */
@@ -108,6 +110,10 @@ export interface CarState {
   cabrageVel: number;
   /** charge du coup d'embrayage (0 à 1) : frein et gaz tenus ensemble sur une moto */
   embrayage: number;
+  /** énergie de la fourche écrasée par des coups de guidon rapides (pompage), qui peut lever l'avant */
+  fourche: number;
+  /** côté du dernier coup de guidon (−1, 0, 1), pour compter les changements de côté */
+  coteBraquage: number;
 }
 
 export interface StepContext {

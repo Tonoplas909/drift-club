@@ -7,6 +7,8 @@ const G = 9.81;
 const GEAR_STEPS = [0, 0.2, 0.38, 0.56, 0.76];
 /** Part minimale de force latérale conservée sous pleine patinage (cercle d'adhérence adouci) */
 const LAT_MIN = 0.35;
+/** Pompage de fourche (moto) : énergie d'un coup de guidon, temps de dissipation (s), seuil de décollage, énergie d'un plein élan. */
+const POMPE_COUP = 0.5, POMPE_TAU = 0.6, POMPE_SEUIL = 0.9, POMPE_PLEIN = 1.1;
 /** Idem essieu arrière : plein gaz clavier (0/1) ne doit pas supprimer tout le guidage latéral en glisse */
 const REAR_LAT_MIN = 0.5;
 
@@ -14,7 +16,7 @@ export function createCarState(x: number, z: number, heading: number, y = 0): Ca
   return {
     x, y, z, heading, vx: 0, vz: 0, yawRate: 0, steer: 0, steerInput: 0, ax: 0, beta: 0, speed: 0,
     vLong: 0, vLat: 0, rearSlip: 0, wheelSpin: 0, rpm: 900, gear: 1, reverse: false, throttle: 0, throttleSmooth: 0, prevVelAngle: heading,
-    lean: 0, leanVel: 0, cabrage: 0, cabrageVel: 0, embrayage: 0,
+    lean: 0, leanVel: 0, cabrage: 0, cabrageVel: 0, embrayage: 0, fourche: 0, coteBraquage: 0,
   };
 }
 
@@ -130,17 +132,20 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
   const alphaR = dm.atan2(vLat0 - car.yawRate * b, vAbs);
   let Fyf = tireForce(alphaF, Fzf, muF, p.tireB, p.tireC) * frontLat;
   let Fyr = tireForce(alphaR, Fzr, muR, p.tireB, p.tireC) * rearLat;
-  if (enLAir) Fyf = 0; // roue avant en l'air : la direction ne répond plus
+  if (enLAir) Fyf = 0; // roue avant en l'air : la roue avant ne guide plus
   const cosD = dm.cos(steer), sinD = dm.sin(steer);
 
   // Moto : la force latérale que les pneus peuvent transmettre dépend de l'inclinaison. Penchée du côté du virage, la
   // moto tient g·tan(lean) (+ une petite marge) ; droite ou penchée de l'autre côté, la marge seulement. Pour tourner
   // fort, il faut d'abord se coucher : le virage se resserre à mesure que la moto penche. Plafond absolu : leanMax.
   let demandeLat = 0;
+  // en wheelie, on dirige au corps : la direction fait pencher la moto, et le pneu arrière incliné (poussée de
+  // carrossage) courbe la trajectoire, en virage large (au plus g·tan(leanWheelie)). La roue arrière aligne le cap.
+  const pousseeWheelie = enLAir ? clamp(steer / maxSteer, -1, 1) * m * G * dm.tan(p.leanWheelie ?? 0.26) : 0;
   if (moto) {
     const leanMax = p.leanMax ?? 0.8;
     const lat = Fyr + Fyf * cosD + Ffx * sinD;
-    demandeLat = lat;
+    demandeLat = lat + pousseeWheelie;
     const penche = lat * car.lean > 0 ? Math.abs(car.lean) : 0;
     const maxLat = m * G * Math.min(dm.tan(leanMax), dm.tan(penche) + (p.leanMarge ?? 0.3));
     if (Math.abs(lat) > maxLat) {
@@ -153,7 +158,7 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
   // Somme des forces (repère voiture : x = avant, y = gauche) et couple
   const rolling = p.rollResist * (ctx.onRoad ? 1 : 4);
   const Fx = Frx + Ffx * cosD - Fyf * sinD - p.dragCoef * vLong0 * Math.abs(vLong0) - rolling * vLong0;
-  const Fy = Fyr + Fyf * cosD + Ffx * sinD;
+  const Fy = Fyr + Fyf * cosD + Ffx * sinD + pousseeWheelie;
   const torque = a * (Fyf * cosD + Ffx * sinD) - b * Fyr;
 
   // Intégration (Euler semi-implicite) ; monde = avant·Fx + gauche·Fy ; gravité sur la pente
@@ -261,6 +266,19 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
         car.cabrageVel += ((p.wheeliePop ?? 0) * car.embrayage * droite * lent) / I;
       }
       car.embrayage = 0;
+    }
+    // Pompage de fourche : des coups de guidon rapides d'un côté puis de l'autre (moto qui ne glisse pas) écrasent la
+    // fourche ; l'énergie s'accumule et se dissipe vite. Gaz ouverts, moto redressée, la détente lève l'avant.
+    const nette = Math.abs(beta0) < 12 * DEG;
+    const cote = steer > 0.06 ? 1 : steer < -0.06 ? -1 : 0;
+    if (!enLAir && nette && cote !== 0 && cote === -car.coteBraquage) car.fourche = Math.min(1.5, car.fourche + POMPE_COUP);
+    if (cote !== 0) car.coteBraquage = cote;
+    car.fourche *= dm.exp(-dt / POMPE_TAU);
+    if (!enLAir && nette && !car.reverse && car.fourche >= POMPE_SEUIL && input.gaz > 0.8 && Math.abs(car.lean) < 12 * DEG) {
+      // en sortie de virage, jusqu'à ~90 km/h : au-delà, le moteur ne tire plus assez pour lever l'avant
+      const lent = 1 - smoothstep(18, 26, vLong0);
+      car.cabrageVel += ((p.wheeliePop ?? 0) * Math.min(1, car.fourche / POMPE_PLEIN) * lent) / I;
+      car.fourche = 0;
     }
     const couple = m * (Fx / m) * (b * sT + h * cT) - m * G * (b * cT - h * sT);
     if (car.cabrage > 0 || car.cabrageVel > 0) {
