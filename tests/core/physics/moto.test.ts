@@ -45,6 +45,32 @@ describe('motos', () => {
     expect(Math.sign(c.lean)).toBe(Math.sign(ay));
     expect(Math.abs(c.lean - Math.atan(ay / G))).toBeLessThan(6 * DEG);
   });
+  it('le roulis est progressif : pas d\'à-coup aux appuis clavier, la moto met du temps à se coucher', () => {
+    const c = createCarState(0, 0, 0);
+    c.vz = 17;
+    let prevVel = 0, maxAcc = 0, a01 = 0;
+    for (let i = 0; i < 3 / SIM_DT; i++) {
+      const t = i * SIM_DT;
+      // appuis secs : gauche 0,6 s, rien, droite 0,6 s, tapotements
+      const direction = t < 0.6 ? 1 : t < 0.9 ? 0 : t < 1.5 ? -1 : Math.floor(t / 0.15) % 2;
+      stepCar(c, inp({ gaz: 0.6, direction }), ctxOf('supermotard'), SIM_DT);
+      if (i > 0) maxAcc = Math.max(maxAcc, Math.abs(c.leanVel - prevVel) / SIM_DT);
+      prevVel = c.leanVel;
+      if (Math.abs(t - 0.1) < SIM_DT / 2) a01 = Math.abs(c.lean);
+    }
+    // accélération de roulis bornée (l'ancien modèle partait à vitesse maximale d'un coup : ~50 000 °/s²)
+    expect(maxAcc).toBeLessThan(3000 * DEG);
+    // 0,1 s après l'appui, la moto n'est encore qu'un peu penchée
+    expect(a01).toBeLessThan(8 * DEG);
+  });
+  it('pour tourner fort, il faut pencher : droite, la moto ne tient que la marge latérale', () => {
+    const c = createCarState(0, 0, 0);
+    c.vz = 20;
+    const vx0 = c.vx;
+    stepCar(c, inp({ direction: 1 }), ctxOf('supermotard'), SIM_DT);
+    // premier pas, moto droite : accélération latérale au plus leanMarge × g
+    expect(Math.abs((c.vx - vx0) / SIM_DT)).toBeLessThanOrEqual((CARS.supermotard.leanMarge ?? 0.3) * G + 1e-9);
+  });
   it('l\'inclinaison ne dépasse jamais leanMax, et une voiture ne penche jamais', () => {
     for (const id of ['supermotard', 'equilibree'] as const) {
       const c = createCarState(0, 0, 0);

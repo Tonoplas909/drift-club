@@ -265,3 +265,4 @@ sont à régénérer ; une moto a son propre classement, ou ses niveaux à elle 
 | 0.5.23 | **19 nouveaux niveaux officiels** (50 au total) : quatre avec un pont, quatre sous la pluie, sept de nuit, dans tous les décors (Irohazaka, Col de la Bonette, Mirage de midi, Pluie sous les néons…) |
 | 0.5.24 | Repère sur la jauge de vitesse : la vitesse (30 km/h) à partir de laquelle un drift rapporte des points |
 | 0.5.25 | **Première moto, La Supermotard** : elle penche dans les virages, glisse de l'arrière au frein, tombe trop en travers ; modèle et pilote, son de monocylindre, livrées en teintes, vues embarquées (migration 0014) |
+| 0.5.26 | Moto : roulis en ressort amorti (plus d'à-coups) et adhérence liée à l'inclinaison (il faut pencher pour tourner fort) |

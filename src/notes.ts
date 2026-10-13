@@ -13,6 +13,16 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.26',
+    date: '13/10/2026',
+    titre: 'Moto : inclinaison plus naturelle',
+    notes: [
+      'La Supermotard bascule maintenant en douceur d\'un côté à l\'autre : elle prend de la vitesse en se couchant puis ralentit avant l\'angle, au lieu de pencher d\'un coup.',
+      'L\'inclinaison compte vraiment : pour tourner fort, il faut d\'abord pencher. Le virage se resserre à mesure que la moto se couche, comme sur une vraie moto.',
+      'Les petits appuis répétés sur la direction ne la font plus trembler.',
+    ],
+  },
+  {
     version: '0.5.25',
     date: '12/10/2026',
     titre: 'Première moto : La Supermotard',

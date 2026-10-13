@@ -14,7 +14,7 @@ export function createCarState(x: number, z: number, heading: number, y = 0): Ca
   return {
     x, y, z, heading, vx: 0, vz: 0, yawRate: 0, steer: 0, steerInput: 0, ax: 0, beta: 0, speed: 0,
     vLong: 0, vLat: 0, rearSlip: 0, wheelSpin: 0, rpm: 900, gear: 1, reverse: false, throttle: 0, throttleSmooth: 0, prevVelAngle: heading,
-    lean: 0,
+    lean: 0, leanVel: 0,
   };
 }
 
@@ -123,13 +123,19 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
   let Fyr = tireForce(alphaR, Fzr, muR, p.tireB, p.tireC) * rearLat;
   const cosD = dm.cos(steer), sinD = dm.sin(steer);
 
-  // Moto : elle penche pour tenir le virage ; au-delà de leanMax, les pneus lâchent (force latérale plafonnée)
+  // Moto : la force latérale que les pneus peuvent transmettre dépend de l'inclinaison. Penchée du côté du virage, la
+  // moto tient g·tan(lean) (+ une petite marge) ; droite ou penchée de l'autre côté, la marge seulement. Pour tourner
+  // fort, il faut d'abord se coucher : le virage se resserre à mesure que la moto penche. Plafond absolu : leanMax.
   const moto = p.genre === 'moto';
+  let demandeLat = 0;
   if (moto) {
-    const maxLat = m * G * dm.tan(p.leanMax ?? 0.8);
-    const lat = Math.abs(Fyr + Fyf * cosD + Ffx * sinD);
-    if (lat > maxLat) {
-      const k = maxLat / lat;
+    const leanMax = p.leanMax ?? 0.8;
+    const lat = Fyr + Fyf * cosD + Ffx * sinD;
+    demandeLat = lat;
+    const penche = lat * car.lean > 0 ? Math.abs(car.lean) : 0;
+    const maxLat = m * G * Math.min(dm.tan(leanMax), dm.tan(penche) + (p.leanMarge ?? 0.3));
+    if (Math.abs(lat) > maxLat) {
+      const k = maxLat / Math.abs(lat);
       Fyf *= k;
       Fyr *= k;
     }
@@ -217,12 +223,16 @@ export function stepCar(car: CarState, input: InputState, ctx: StepContext, dt: 
   car.vLat = car.vx * c2 - car.vz * s2;
   car.speed = dm.hypot(car.vx, car.vz);
   car.beta = car.speed > 1 ? dm.atan2(car.vLat, car.vLong) : 0;
-  // Inclinaison de la moto : vers l'équilibre de l'accélération latérale, avec un temps de bascule
+  // Roulis de la moto : un ressort amorti (inertie de roulis) vers l'angle qui équilibre la force latérale demandée
+  // aux pneus. La moto prend de la vitesse en basculant puis ralentit avant l'angle visé : pas d'à-coup, et les
+  // petites variations des pneus sont lissées.
   if (moto) {
     const leanMax = p.leanMax ?? 0.8;
-    const cible = clamp(dm.atan(Fy / m / G), -leanMax, leanMax) * smoothstep(1, 4, car.speed);
-    const r = (p.leanRate ?? 3.5) * dt;
-    car.lean = clamp(car.lean + clamp(cible - car.lean, -r, r), -leanMax, leanMax);
+    const cible = clamp(dm.atan(demandeLat / m / G), -leanMax, leanMax) * smoothstep(1, 4, car.speed);
+    const w = p.leanFreq ?? 6, z = p.leanAmort ?? 0.9;
+    car.leanVel += (w * w * (cible - car.lean) - 2 * z * w * car.leanVel) * dt;
+    car.lean += car.leanVel * dt;
+    if (Math.abs(car.lean) > leanMax) { car.lean = clamp(car.lean, -leanMax, leanMax); car.leanVel = 0; }
   }
   // accélération issue des forces (pas de la dérivée de vLong : la rotation du cap simulerait un freinage et fausserait le transfert de masse)
   const axNow = clamp(Fx / m, -15, 15);
