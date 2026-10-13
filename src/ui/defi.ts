@@ -17,6 +17,9 @@ export const RECOMPENSES_DEFI: readonly [number, number, number] = [5, 3, 2];
  */
 export function ecranDefi(o: {
   defi: DefiDuJour;
+  /** défi à moto (même niveau, moto imposée, classement à part) */
+  moto: boolean;
+  onGenre(moto: boolean): void;
   longueur: number;
   /** meilleur score de l'appareil sur ce défi */
   record: { score: number; temps: number } | null;
@@ -30,12 +33,13 @@ export function ecranDefi(o: {
 }): HTMLElement {
   const l = o.defi.level;
   const voiture = CARS[o.defi.voiture as CarId];
+  const onglet = (moto: boolean, label: string) => h('button', { class: 'tab' + (o.moto === moto ? ' on' : ''), onclick: () => { if (o.moto !== moto) o.onGenre(moto); } }, label);
   const zoneClassement = h('div', { class: 'defi-classement' }, h('p', { class: 'hint' }, 'Chargement du classement…'));
   const zonePasses = h('div', { class: 'defi-passes' }, h('p', { class: 'hint' }, 'Chargement…'));
 
   void o.classement().then((r) => {
     if (!r.ok) { zoneClassement.replaceChildren(h('p', { class: 'hint' }, r.message)); return; }
-    if (r.valeur.length === 0) { zoneClassement.replaceChildren(h('p', { class: 'hint' }, 'Personne n\'a encore couru ce défi : à toi la première place !')); return; }
+    if (r.valeur.length === 0) { zoneClassement.replaceChildren(h('p', { class: 'hint' }, `Personne n'a encore couru ce défi${o.moto ? ' à moto' : ''} : à toi la première place !`)); return; }
     zoneClassement.replaceChildren(h('table', { class: 'detail defi-table' }, ...r.valeur.slice(0, 10).map((x) =>
       h('tr', { class: x.joueur === o.moi ? 'moi' : '' }, h('td', {}, `${x.rang}.`), h('td', {}, x.pseudo), h('td', {}, formatScore(x.score)), h('td', {}, formatTime(x.temps))))));
   });
@@ -49,16 +53,17 @@ export function ecranDefi(o: {
 
   return h('div', { class: 'screen' }, h('div', { class: 'panel wide defi' },
     h('h2', {}, 'Défi du jour'),
+    h('div', { class: 'tabs defi-genres' }, onglet(false, 'En voiture'), onglet(true, 'À moto')),
     h('div', { class: 'defi-carte' },
       h('div', {},
         h('b', { class: 'defi-nom' }, l.nom),
         h('small', {}, `${formatDistance(o.longueur)} · ${THEMES[l.environnement].nom} · ${libelleAmbiance(l)}`),
-        h('span', { class: 'defi-voiture' }, 'Voiture imposée : ', h('b', {}, voiture.nom)),
+        h('span', { class: 'defi-voiture' }, o.moto ? 'Moto imposée : ' : 'Voiture imposée : ', h('b', {}, voiture.nom)),
         o.record && h('span', { class: 'rec' }, `Ton meilleur : ${formatScore(o.record.score)} (${formatTime(o.record.temps)})`),
       ),
       h('button', { class: 'btn big', onclick: o.onJouer }, 'Jouer'),
     ),
-    h('p', { class: 'defi-recompenses' }, iconeCle(), `Podium récompensé : ${RECOMPENSES_DEFI[0]} clés au 1er, ${RECOMPENSES_DEFI[1]} au 2e, ${RECOMPENSES_DEFI[2]} au 3e. Un nouveau défi chaque jour à minuit ; les clés arrivent quand tu reviens ici le lendemain.`),
+    h('p', { class: 'defi-recompenses' }, iconeCle(), `Podium récompensé, en voiture comme à moto : ${RECOMPENSES_DEFI[0]} clés au 1er, ${RECOMPENSES_DEFI[1]} au 2e, ${RECOMPENSES_DEFI[2]} au 3e. Un nouveau défi chaque jour à minuit ; les clés arrivent quand tu reviens ici le lendemain.`),
     h('div', { class: 'defi-colonnes' },
       h('div', {}, h('h3', {}, 'Classement du jour'), zoneClassement, h('button', { class: 'btn sm sec', onclick: o.onClassement }, 'Classement complet')),
       h('div', {}, h('h3', {}, 'Défis passés'), zonePasses),

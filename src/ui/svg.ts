@@ -50,11 +50,22 @@ const SILHOUETTES: Record<CarId, { corps: string; vitre: string; roues: [number,
     detail: '<rect x="53" y="11.4" width="4.6" height="3.4" rx="0.8" fill="#dfe3ea" stroke="#15131c" stroke-width="1.2"/>' },
   // supermotard : dessinée à part (iconeMoto), ces tracés ne servent pas
   supermotard: { corps: '', vitre: '', roues: [14, 50] },
+  sportive: { corps: '', vitre: '', roues: [14, 50] },
 };
 
 /** Petite moto de profil (l'avant est à droite) : réservoir et carénages `base`, casque `accent`. */
-function iconeMoto(b: string, a: string, classe: string): HTMLSpanElement {
+function iconeMoto(b: string, a: string, classe: string, sportive = false): HTMLSpanElement {
   const roue = (x: number) => `<circle cx="${x}" cy="22" r="6" fill="#1d1d24" stroke="#15131c" stroke-width="1.5"/><circle cx="${x}" cy="22" r="2" fill="#c9ced8"/>`;
+  if (sportive) {
+    // carénage intégral, bulle, pilote couché sur le réservoir
+    return enSpan(classe, `<svg viewBox="0 0 64 30" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">`
+      + `<path d="M14 22 L26 17 L40 17 L50 22" fill="none" stroke="#34363e" stroke-width="3" stroke-linecap="round"/>`
+      + `<path d="M6 12 L20 11 L30 10 L42 8 L52 10.5 L54 15 L46 19 L28 20 L16 16 Z" fill="${b}" stroke="#15131c" stroke-width="1.8" stroke-linejoin="round"/>`
+      + `<path d="M44 8.6 L50 6.4 L52.5 10.4" fill="#28303f" stroke="#15131c" stroke-width="1.2" stroke-linejoin="round"/>`
+      + `<path d="M20 10.5 L30 5.6 L38 7" fill="none" stroke="#26272f" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`
+      + `<circle cx="39" cy="5.4" r="3.4" fill="${a}" stroke="#15131c" stroke-width="1.5"/>`
+      + `${roue(14)}${roue(50)}</svg>`);
+  }
   return enSpan(classe, `<svg viewBox="0 0 64 30" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">`
     + `<path d="M14 22 L26 16 L40 17 L50 22" fill="none" stroke="#34363e" stroke-width="3" stroke-linecap="round"/>`
     + `<path d="M48 22 L44 9" stroke="#c9ced8" stroke-width="2.4" stroke-linecap="round"/>`
@@ -67,7 +78,7 @@ function iconeMoto(b: string, a: string, classe: string): HTMLSpanElement {
 /** Petite voiture vue de profil (l'avant est à droite) : carrosserie `base`, filet `accent` ; la silhouette suit le modèle. */
 export function iconeVoiture(base: string, accent: string, modele: CarId = 'equilibree', classe = 'ico-voiture'): HTMLSpanElement {
   const b = hexOk(base, '#e63b2e'), a = hexOk(accent, b);
-  if (modele === 'supermotard') return iconeMoto(b, a, classe);
+  if (modele === 'supermotard' || modele === 'sportive') return iconeMoto(b, a, classe, modele === 'sportive');
   const m = SILHOUETTES[modele] ?? SILHOUETTES.equilibree;
   const [ra, rb] = m.roues;
   const roue = (x: number) => `<circle cx="${x}" cy="22" r="5" fill="#1d1d24" stroke="#15131c" stroke-width="1.5"/><circle cx="${x}" cy="22" r="1.8" fill="#c9ced8"/>`;

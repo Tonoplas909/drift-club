@@ -7,7 +7,7 @@ import type { Fournisseur } from './client';
 import { messageErreur, MSG_INDISPONIBLE } from './erreurs';
 import { EMPREINTE_SIMULATION } from './empreinteSimulation';
 import { compresserReplay, versBase64 } from '../core/replay/replay';
-import { MSG_DEFI_PAS_PRET } from './defi';
+import { MSG_DEFI_PAS_PRET, MSG_DEFI_MOTO_PAS_PRET } from './defi';
 
 export type Resultat<T> = { ok: true; valeur: T } | { ok: false; message: string };
 
@@ -101,7 +101,7 @@ export class ClassementService {
   async soumettreScore(s: ScoreEnvoye): Promise<Resultat<RangEnLigne>> {
     const r = await this.soumettre(s);
     // défi du jour refusé par un serveur sans la migration 0011 : on le dit clairement
-    if (!r.ok && s.niveau.startsWith('jour:') && r.message === 'Niveau invalide.') return { ok: false, message: MSG_DEFI_PAS_PRET };
+    if (!r.ok && cleDuNiveau(s.niveau).startsWith('jour:') && r.message === 'Niveau invalide.') return { ok: false, message: estCleMoto(s.niveau) ? MSG_DEFI_MOTO_PAS_PRET : MSG_DEFI_PAS_PRET };
     // classement des motos : tant que la migration 0015 n'est pas passée, le serveur ne connaît pas ces clés
     if (!r.ok && estCleMoto(s.niveau) && r.message === 'Niveau invalide.') return { ok: false, message: MSG_MOTOS_PAS_PRET };
     return r;

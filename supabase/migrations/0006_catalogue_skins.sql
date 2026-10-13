@@ -3,7 +3,7 @@
 -- À coller dans Supabase → SQL Editor → Run, après 0005. Peut être relancé sans danger.
 -- Après avoir ajouté ou retiré des livrées ou des fumées : relancer le générateur et coller de nouveau ce fichier.
 -- Les fumées de pneus y figurent sous la voiture « fumee » ; elles sortent des mêmes caisses que les livrées.
--- 259 objets (livrées et fumées).
+-- 267 objets (livrées et fumées).
 
 insert into public.catalogue_skins (voiture, id, rarete) values
   ('break', 'rayures', 'commune'),
@@ -222,6 +222,14 @@ insert into public.catalogue_skins (voiture, id, rarete) values
   ('rotative', 'voielactee', 'legendaire'),
   ('rotative', 'chrome', 'exotique'),
   ('rotative', 'maitredrift', 'exotique'),
+  ('sportive', 'rouge-course', 'commune'),
+  ('sportive', 'blanc-nacre', 'commune'),
+  ('sportive', 'bleu-piste', 'commune'),
+  ('sportive', 'vert-acide', 'rare'),
+  ('sportive', 'gris-titane', 'rare'),
+  ('sportive', 'noir-carbone', 'epique'),
+  ('sportive', 'violet-nuit', 'epique'),
+  ('sportive', 'chrome', 'legendaire'),
   ('supermotard', 'blanc-enduro', 'commune'),
   ('supermotard', 'orange-cross', 'commune'),
   ('supermotard', 'vert-pomme', 'commune'),
@@ -487,6 +495,14 @@ delete from public.catalogue_skins
   ('rotative', 'voielactee'),
   ('rotative', 'chrome'),
   ('rotative', 'maitredrift'),
+  ('sportive', 'rouge-course'),
+  ('sportive', 'blanc-nacre'),
+  ('sportive', 'bleu-piste'),
+  ('sportive', 'vert-acide'),
+  ('sportive', 'gris-titane'),
+  ('sportive', 'noir-carbone'),
+  ('sportive', 'violet-nuit'),
+  ('sportive', 'chrome'),
   ('supermotard', 'blanc-enduro'),
   ('supermotard', 'orange-cross'),
   ('supermotard', 'vert-pomme'),

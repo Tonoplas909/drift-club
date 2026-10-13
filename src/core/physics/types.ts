@@ -1,7 +1,7 @@
 import type { Ground } from '../track/terrain';
 
 export type VoitureId = 'equilibree' | 'legere' | 'turbo' | 'kei' | 'muscle' | 'rotative' | 'break';
-export type MotoId = 'supermotard';
+export type MotoId = 'supermotard' | 'sportive';
 /** Identifiant d'un véhicule (voiture ou moto) : c'est lui qui voyage dans les replays, les scores et la base. */
 export type CarId = VoitureId | MotoId;
 /** Genre de véhicule : les motos penchent en virage et peuvent chuter (voir stepCar). */

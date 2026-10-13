@@ -8,19 +8,19 @@ import { INDEX_GAGNANT, TAILLE_BANDE, construireBande } from '../../src/core/cai
 import { mulberry32 } from '../../src/core/math/rng';
 import { SKINS } from '../../src/core/skins';
 
-const local: Progression = { cles: 7, debloques: { equilibree: ['rayures'], legere: [], turbo: ['flammes'], kei: [], muscle: [], rotative: [], break: [], supermotard: [], fumee: [] }, caisseOfferte: true, ouvertes: 2 };
-const compteProg: Progression = { cles: 12, debloques: { equilibree: [], legere: ['bande'], turbo: [], kei: [], muscle: [], rotative: [], break: [], supermotard: [], fumee: [] }, caisseOfferte: true, ouvertes: 5 };
+const local: Progression = { cles: 7, debloques: { equilibree: ['rayures'], legere: [], turbo: ['flammes'], kei: [], muscle: [], rotative: [], break: [], supermotard: [], sportive: [], fumee: [] }, caisseOfferte: true, ouvertes: 2 };
+const compteProg: Progression = { cles: 12, debloques: { equilibree: [], legere: ['bande'], turbo: [], kei: [], muscle: [], rotative: [], break: [], supermotard: [], sportive: [], fumee: [] }, caisseOfferte: true, ouvertes: 5 };
 const etat = (o: Partial<EtatProgressionCompte> = {}): EtatProgressionCompte => ({ id: 'u1', progression: compteProg, importee: true, synchro: 'ok', ...o });
 
 describe('lecture de la progression du serveur', () => {
   it('convertit une ligne progressions (« voiture:skin »)', () => {
     const c = lireProgressionCompte({ joueur: 'u1', cles: 5, debloques: ['turbo:flammes', 'equilibree:rayures'], caisse_offerte: true, ouvertes: 3, importee: true, maj: 'x' });
-    expect(c).toEqual({ importee: true, progression: { cles: 5, ouvertes: 3, caisseOfferte: true, debloques: { equilibree: ['rayures'], legere: [], turbo: ['flammes'], kei: [], muscle: [], rotative: [], break: [], supermotard: [], fumee: [] } } });
+    expect(c).toEqual({ importee: true, progression: { cles: 5, ouvertes: 3, caisseOfferte: true, debloques: { equilibree: ['rayures'], legere: [], turbo: ['flammes'], kei: [], muscle: [], rotative: [], break: [], supermotard: [], sportive: [], fumee: [] } } });
   });
   it('ignore les livrées inconnues de cette version, les valeurs abîmées et les nombres négatifs', () => {
     const c = lireProgressionCompte({ cles: '4', debloques: ['turbo:inconnue', 'bidon:x', 'turbo', 12, 'turbo:unie', 'legere:bande'], importee: false });
     expect(c?.progression.cles).toBe(4);
-    expect(c?.progression.debloques).toEqual({ equilibree: [], legere: ['bande'], turbo: [], kei: [], muscle: [], rotative: [], break: [], supermotard: [], fumee: [] });
+    expect(c?.progression.debloques).toEqual({ equilibree: [], legere: ['bande'], turbo: [], kei: [], muscle: [], rotative: [], break: [], supermotard: [], sportive: [], fumee: [] });
     expect(c?.importee).toBe(false);
     expect(lireProgressionCompte({ cles: -3 })?.progression.cles).toBe(0);
   });
@@ -33,7 +33,7 @@ describe('format serveur des objets débloqués', () => {
   it('livrées « voiture:skin », jamais « unie » ni une livrée inconnue', () => {
     expect(debloquesVersLignes(local.debloques)).toEqual(['equilibree:rayures', 'turbo:flammes']);
     expect(debloquesVersLignes(progressionVide().debloques)).toEqual([]);
-    const p = { ...local, debloques: { equilibree: ['unie', 'rayures', 'nimporte'], legere: [], turbo: [], kei: [], muscle: [], rotative: [], break: [], supermotard: [], fumee: [] } };
+    const p = { ...local, debloques: { equilibree: ['unie', 'rayures', 'nimporte'], legere: [], turbo: [], kei: [], muscle: [], rotative: [], break: [], supermotard: [], sportive: [], fumee: [] } };
     expect(debloquesVersLignes(p.debloques)).toEqual(['equilibree:rayures']);
   });
 });

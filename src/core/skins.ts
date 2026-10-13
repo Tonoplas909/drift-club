@@ -427,6 +427,17 @@ const BASE: Record<CarId, SkinDef[]> = {
     sk('rose-bonbon', 'Rose bonbon', 'epique', 'Sucrée en apparence, féroce en travers.', [], '#ff5fa2'),
     sk('or-massif', 'Or massif', 'legendaire', 'Toute la moto en or : réservé à ceux qui ne tombent jamais.', [], OR),
   ],
+  sportive: [
+    UNIE,
+    sk('rouge-course', 'Rouge course', 'commune', 'Le rouge des grilles de départ, celui qui va vite à l\'arrêt.', [], '#d6262b'),
+    sk('blanc-nacre', 'Blanc nacré', 'commune', 'Un carénage blanc impeccable, jusqu\'au premier moustique.', [], '#f4f2ec'),
+    sk('bleu-piste', 'Bleu piste', 'commune', 'Le bleu des journées circuit, genou au sol.', [], '#2a6fdb'),
+    sk('vert-acide', 'Vert acide', 'rare', 'Un vert qu\'on entend arriver avant de le voir.', [], '#7be02b'),
+    sk('gris-titane', 'Gris titane', 'rare', 'Sobre et métallique, comme un chrono qui tombe.', [], '#8a9099'),
+    sk('noir-carbone', 'Noir carbone', 'epique', 'Noir profond, carénage taillé pour la nuit.', [], '#16161b'),
+    sk('violet-nuit', 'Violet nuit', 'epique', 'La couleur des courses sous les néons.', [], '#7a3cff'),
+    sk('chrome', 'Chrome', 'legendaire', 'Un miroir à 230 km/h : le paysage défile deux fois.', [], '#d9dde4'),
+  ],
 };
 
 const BLEU = '#1f4fb5';
@@ -695,6 +706,7 @@ const NOUVELLES: Record<CarId, string[]> = {
     'mystere', 'fantomes', 'tofu', 'urgences', 'n42',
     'rouille', 'toutvabien', 'eurobeat', 'codevert', 'delorean', 'voielactee', 'famille'],
   supermotard: [],
+  sportive: [],
 };
 
 const RANG = (r: Rarete): number => RARETE_IDS.indexOf(r);

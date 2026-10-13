@@ -10579,7 +10579,7 @@ async function empreinteNiveau(level) {
 }
 
 // src/core/physics/cars.ts
-var CAR_IDS = ["equilibree", "legere", "turbo", "kei", "muscle", "rotative", "break", "supermotard"];
+var CAR_IDS = ["equilibree", "legere", "turbo", "kei", "muscle", "rotative", "break", "supermotard", "sportive"];
 var CARS = {
   equilibree: {
     id: "equilibree",
@@ -10836,6 +10836,50 @@ var CARS = {
     betaChute: 70 * DEG,
     arcadeBetaMax: 30 * DEG,
     wheeliePop: 450,
+    gyrationTangage: 0.5,
+    amortiTangage: 1.5,
+    cabrageChute: 65 * DEG
+  },
+  // sportive carénée : plus lourde, centre de gravité plus bas, beaucoup plus de puissance et de vitesse ; elle se
+  // couche plus loin mais pardonne moins en travers, et son wheelie demande plus d'élan
+  sportive: {
+    id: "sportive",
+    nom: "La Sportive",
+    genre: "moto",
+    mass: 230,
+    wheelbase: 1.4,
+    cgToFront: 0.68,
+    cgHeight: 0.58,
+    gyration: 1,
+    engineForce: 1700,
+    maxSpeed: 64,
+    brakeForce: 3e3,
+    handbrakeForce: 900,
+    dragCoef: 0.26,
+    rollResist: 3,
+    muFront: 1.1,
+    muRear: 1.05,
+    tireB: 10,
+    tireC: 1.4,
+    maxSteer: 0.38,
+    steerLock: 0.5,
+    steerSpeed: 2.3,
+    steerReturn: 7,
+    steerCounter: 2,
+    steerSpeedReduction: 0.08,
+    length: 2.05,
+    width: 0.75,
+    yawDamp: 1.3,
+    throttleRise: 5,
+    throttleFall: 10,
+    rpmMax: 14e3,
+    leanMax: 55 * DEG,
+    leanFreq: 5.5,
+    leanAmort: 0.9,
+    leanMarge: 0.3,
+    betaChute: 60 * DEG,
+    arcadeBetaMax: 25 * DEG,
+    wheeliePop: 430,
     gyrationTangage: 0.5,
     amortiTangage: 1.5,
     cabrageChute: 65 * DEG
@@ -12201,6 +12245,10 @@ function niveauGenere(graine, nom, pas = PAS_POINTS) {
 }
 
 // src/core/defi.ts
+var MOTOS_DEFI = ["supermotard", "sportive"];
+function motoDuJour(jour) {
+  return MOTOS_DEFI[(graineDuJour(jour) >>> 11) % MOTOS_DEFI.length];
+}
 var estJourValide = (jour) => /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(jour);
 var MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 function jourEnClair(jour) {
@@ -12215,9 +12263,9 @@ function graineDuJour(jour) {
   }
   return h >>> 0;
 }
-function defiDuJour(jour) {
+function defiDuJour(jour, moto = false) {
   const { level, voiture } = niveauGenere(graineDuJour(jour), `Défi du ${jourEnClair(jour)}`);
-  return { jour, level, voiture };
+  return { jour, level, voiture: moto ? motoDuJour(jour) : voiture };
 }
 
 // src/jour.ts
@@ -12233,7 +12281,7 @@ function decalerJour(jour, n) {
 var PREFIXE_MOTO = "moto:";
 var estCleMoto = (cle2) => cle2.startsWith(PREFIXE_MOTO);
 var cleDuNiveau = (cle2) => estCleMoto(cle2) ? cle2.slice(PREFIXE_MOTO.length) : cle2;
-var FORMAT_CLE_EN_LIGNE = /^((moto:)?(off|perso):[A-Za-z0-9_-]{1,80}|jour:\d{4}-\d{2}-\d{2})$/;
+var FORMAT_CLE_EN_LIGNE = /^(moto:)?((off|perso):[A-Za-z0-9_-]{1,80}|jour:\d{4}-\d{2}-\d{2})$/;
 
 // src/serveur/course.ts
 var MAX_BASE64 = 6e5;
@@ -12254,7 +12302,7 @@ async function traiterCourse(corps, empreinteServeur, maintenant = /* @__PURE__ 
   if (typeof d.niveau !== "string" || !FORMAT_CLE_EN_LIGNE.test(d.niveau)) return refus("demande", "Niveau invalide.");
   if (typeof d.mode !== "string" || !MODE_IDS.includes(d.mode)) return refus("demande", "Mode invalide.");
   if (typeof d.voiture !== "string" || !CAR_IDS.includes(d.voiture)) return refus("demande", "Voiture invalide.");
-  if (estCleMoto(d.niveau) !== estMotoId(d.voiture) && !d.niveau.startsWith("jour:")) {
+  if (estCleMoto(d.niveau) !== estMotoId(d.voiture)) {
     return refus("refuse", estCleMoto(d.niveau) ? "Ce classement est réservé aux motos." : "Les motos ont leur propre classement.");
   }
   if (!nombreFini(d.score) || !nombreFini(d.temps) || !nombreFini(d.meilleurDrift)) return refus("demande", "Score invalide.");
@@ -12265,8 +12313,9 @@ async function traiterCourse(corps, empreinteServeur, maintenant = /* @__PURE__ 
     const jour = cle2.slice(5);
     const aujourdhui = jourParis(maintenant);
     if (!estJourValide(jour) || jour !== aujourdhui && jour !== decalerJour(aujourdhui, -1)) return refus("refuse", "Ce défi est terminé : essaie celui du jour !");
-    const defi = defiDuJour(jour);
-    if (d.voiture !== defi.voiture) return refus("refuse", "Le défi du jour se court avec la voiture imposée.");
+    const moto = estCleMoto(d.niveau);
+    const defi = defiDuJour(jour, moto);
+    if (d.voiture !== defi.voiture) return refus("refuse", moto ? "Le défi du jour à moto se court avec la moto imposée." : "Le défi du jour se court avec la voiture imposée.");
     brut = defi.level;
   } else if (cle2.startsWith("off:")) {
     const id = cle2.slice(4);
@@ -12293,4 +12342,4 @@ async function traiterCourse(corps, empreinteServeur, maintenant = /* @__PURE__ 
 export {
   traiterCourse
 };
-export const EMPREINTE = '47a7af4acd7f06e1';
+export const EMPREINTE = 'a98f43a41874ba26';

@@ -13,6 +13,15 @@ export interface NoteVersion {
  */
 export const NOTES: NoteVersion[] = [
   {
+    version: '0.5.31',
+    date: '13/10/2026',
+    titre: 'La Sportive et le défi du jour à moto',
+    notes: [
+      'Nouvelle moto : La Sportive. Carénée, quatre cylindres qui hurle jusqu\'à 14 000 tr/min et 230 km/h en pointe. Elle se couche plus loin que La Supermotard, mais pardonne moins en travers et demande plus d\'élan pour lever l\'avant. Huit livrées à gagner dans les caisses.',
+      'Défi du jour à moto : sur l\'écran du défi, un onglet « À moto » propose le même niveau avec une moto imposée (tirée chaque jour), avec son propre classement et son podium récompensé comme celui des voitures (5, 3 et 2 clés).',
+    ],
+  },
+  {
     version: '0.5.30',
     date: '13/10/2026',
     titre: 'Moto : jauges de wheelie',

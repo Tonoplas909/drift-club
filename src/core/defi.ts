@@ -1,5 +1,5 @@
 import type { Level } from './level/types';
-import type { CarId } from './physics/types';
+import type { CarId, MotoId } from './physics/types';
 import { niveauGenere } from './niveauGenere';
 
 /**
@@ -13,8 +13,19 @@ export interface DefiDuJour {
   voiture: CarId;
 }
 
-/** Clé du classement d'un défi : « jour:AAAA-MM-JJ ». */
-export const cleDefi = (jour: string): string => `jour:${jour}`;
+/** Clé du classement d'un défi : « jour:AAAA-MM-JJ », et « moto:jour:AAAA-MM-JJ » pour le défi à moto. */
+export const cleDefi = (jour: string, moto = false): string => `${moto ? 'moto:' : ''}jour:${jour}`;
+
+/**
+ * Motos tirées pour le défi du jour à moto. Liste FIGÉE (comme `VEHICULES_DEFI`) : une nouvelle moto y entrerait à
+ * partir d'une date fixée, sans changer les défis déjà joués.
+ */
+export const MOTOS_DEFI: readonly MotoId[] = ['supermotard', 'sportive'];
+
+/** Moto imposée au défi à moto d'un jour (tirée de la date, indépendamment de la voiture). */
+export function motoDuJour(jour: string): MotoId {
+  return MOTOS_DEFI[(graineDuJour(jour) >>> 11) % MOTOS_DEFI.length];
+}
 export const estJourValide = (jour: string): boolean => /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(jour);
 
 const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
@@ -32,8 +43,8 @@ export function graineDuJour(jour: string): number {
   return h >>> 0;
 }
 
-/** Niveau du défi d'un jour (et sa voiture imposée). */
-export function defiDuJour(jour: string): DefiDuJour {
+/** Niveau du défi d'un jour et son véhicule imposé : la voiture tirée avec le niveau, ou la moto du jour. Même niveau pour les deux. */
+export function defiDuJour(jour: string, moto = false): DefiDuJour {
   const { level, voiture } = niveauGenere(graineDuJour(jour), `Défi du ${jourEnClair(jour)}`);
-  return { jour, level, voiture };
+  return { jour, level, voiture: moto ? motoDuJour(jour) : voiture };
 }
